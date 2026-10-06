@@ -1,8 +1,11 @@
 # ArduCopter pro kvadrokoptéru: sestavení a nahrání
 
-Návod pro připravené prostředí v tomto projektu. Vytvořeno s asistencí AI.
+Návod pro WSL Ubuntu a tuto kopii projektu zaměřenou na Copter. Vytvořeno s asistencí AI.
 
-## 1. Otevři WSL
+Kompletní postup instalace Ubuntu, nastavení Gitu a doplnění build závislostí
+je v [návodu k přípravě prostředí](README_ARDUPILOT_UTB_SETUP_BUILD_CS.md).
+
+## 1. Otevři WSL a připrav prostředí
 
 V PowerShellu:
 
@@ -10,16 +13,67 @@ V PowerShellu:
 wsl -d Ubuntu
 ```
 
-Další příkazy patří do terminálu Ubuntu:
+Další příkazy patří do terminálu Ubuntu. Aktuální umístění projektu je
+`/home/jirka/ardupilot_utb` (uživatel `jirka`, nikoli původní `jirkka`):
 
 ```bash
-cd /home/jirkka/ardupilot_utb
-source .venv/bin/activate
-export PATH="$PWD/tmp/toolchains/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH"
+cd ~/ardupilot_utb
 ```
 
-Tím aktivuješ připravený Python a ARM překladač.
-Složky `.venv` a `tmp/toolchains` jsou potřebné pro další sestavení.
+Pokud projekt přesuneš jinam, změň pouze tento `cd`; příkazy `./waf`
+spouštěj vždy z kořene této kopie repozitáře.
+
+### Jednorázová příprava po naklonování nebo přesunu na jiný počítač
+
+V této instalaci je ARM GCC 10.2.1 již rozbalený v
+`/opt/gcc-arm-none-eabi-10-2020-q4-major`. Původní cesta
+`tmp/toolchains/...` zde neexistuje. Ověř překladač:
+
+```bash
+/opt/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-g++ --version
+```
+
+Pokud soubor chybí, nejprve zajisti tuto ARM toolchain a uprav cestu
+v `export PATH` níže podle jejího skutečného umístění.
+Hostitelský `g++` je také potřebný pro generátor Lua bindings.
+
+```bash
+sudo apt-get update
+sudo apt-get install -y make g++ python3-venv pkg-config
+python3 -m venv .venv
+.venv/bin/python -m pip install empy==3.3.4 intelhex pexpect future lxml pyserial dronecan
+```
+
+Balíčky se instalují do lokálního Python prostředí, nikoli systémovým `pip`.
+Složka `.venv` není součástí Gitu; na jiném počítači ji vytvoř znovu.
+Výše uvedené závislosti pokrývají zde ověřený build obou ChibiOS desek,
+nikoli kompletní prostředí SITL/autotest.
+
+Zkontroluj také submoduly:
+
+```bash
+git submodule status --recursive
+```
+
+Pokud některý řádek začíná `-`, stáhni chybějící obsah na revizích
+předepsaných repozitářem:
+
+```bash
+git submodule update --init --recursive
+```
+
+### Před každým sestavením v novém terminálu
+
+```bash
+cd ~/ardupilot_utb
+source .venv/bin/activate
+export PATH="/opt/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH"
+python --version
+arm-none-eabi-g++ --version
+```
+
+Tím aktivuješ Python prostředí a ARM překladač. Waf nikdy nespouštěj
+přes `sudo`; administrátorská oprávnění jsou potřeba pouze pro `apt-get`.
 
 ## 2. Sestav firmware pro svou desku
 
@@ -54,13 +108,13 @@ HEX se vytvoří automaticky.
 Skystars:
 
 ```text
-\\wsl$\Ubuntu\home\jirkka\ardupilot_utb\build\SkystarsH7HD-bdshot\bin
+\\wsl$\Ubuntu\home\jirka\ardupilot_utb\build\SkystarsH7HD-bdshot\bin
 ```
 
 MicoAir:
 
 ```text
-\\wsl$\Ubuntu\home\jirkka\ardupilot_utb\build\MicoAir743v2\bin
+\\wsl$\Ubuntu\home\jirka\ardupilot_utb\build\MicoAir743v2\bin
 ```
 
 | Soubor | Použití |
@@ -112,9 +166,45 @@ Pokud chybí HEX, ověř:
 python3 -c 'import intelhex; print("intelhex OK")'
 ```
 
-Potom zopakuj konfiguraci a sestavení.
+Při chybě `ModuleNotFoundError: No module named 'intelhex'` aktivuj
+`source .venv/bin/activate` a případně doinstaluj modul pomocí
+`python -m pip install intelhex`. Nestačí pouze spouštět Waf příkazem
+`.venv/bin/python ./waf`: pomocný skript pro HEX spouští `python3`
+z `PATH`, takže i ten musí patřit do `.venv`.
+
+Potom zopakuj konfiguraci a sestavení; již přeložené objekty se využijí znovu.
 
 ## Stav ověření
+
+### Aktuální počítač: 6. 10. 2026
+
+Ověřeno v `/home/jirka/ardupilot_utb`, commit `bd9f46956e`, WSL Ubuntu
+26.04.1, Python 3.14.4 v `.venv`, ARM GCC 10.2.1 z `/opt`.
+Chybějící systémové a Python závislosti byly doplněny podle kroku 1.
+
+| Cíl | Konfigurace a build Copter | APJ/BIN a HEX/bootloader/BIN |
+| --- | --- | --- |
+| `SkystarsH7HD-bdshot` | Prošlo | Shoduje se |
+| `MicoAir743v2` | Prošlo | Shoduje se |
+
+Obě desky byly sestaveny z nového build adresáře. U Skystars první běh
+skončil až při tvorbě HEX kvůli neaktivovanému prostředí; po aktivaci
+`.venv` a opakování konfigurace/buildu prošel i tento krok.
+Rozbalený obraz APJ byl porovnán s BIN. Obsah HEX byl porovnán
+s bootloaderem dané desky, výplní do 128 KiB a aplikací BIN
+od adresy `0x08020000`.
+
+Logy v této kopii (adresář `tmp/` není součástí Gitu):
+
+- `tmp/configure-Skystars.log`, `tmp/build-Skystars.log`
+  a úspěšné dokončení `tmp/build-Skystars-retry.log`
+- `tmp/configure-MicoAir.log`, `tmp/build-MicoAir.log`
+- `tmp/verify-firmware.log` — porovnání obrazů a SHA-256 výsledných HEX
+
+Nahrání do FC, test na skutečné desce ani SITL/autotest v tomto ověření
+neproběhly. Ověřen je postup sestavení a konzistence výstupních souborů.
+
+### Historický záznam z původního počítače
 
 Oba firmware byly 3. 10. 2026 úspěšně sestaveny z commitu `dbe792162d`.
 Obsah HEX byl porovnán s příslušným bootloaderem a aplikací BIN;
@@ -149,10 +239,11 @@ a testy vyžadující jejich zdroje už z této kopie neprovedeme.
 Smazání je evidované v Gitu. Původní adresáře lze obnovit:
 
 ```bash
-git restore -- Rover ArduPlane ArduSub AntennaTracker Blimp
+git restore --source=bd9f46956e^ -- Rover ArduPlane ArduSub AntennaTracker Blimp
 ```
 
 Po odstranění ostatních vozidel bylo 3. 10. 2026 pro obě desky znovu
 provedeno configure, clean a úplné sestavení Copter. Obě sestavení i kontrola
 HEX/APJ prošly. SHA-256 obou HEX se shoduje s původními soubory před úklidem.
-Logy jsou v `tmp/trim-build-Skystars.log` a `tmp/trim-build-MicoAir.log`.
+Původní návod odkazoval na logy `tmp/trim-build-Skystars.log` a
+`tmp/trim-build-MicoAir.log`; tyto logy se do aktuální kopie nepřenesly.
