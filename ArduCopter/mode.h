@@ -102,6 +102,10 @@ public:
         AUTO_RTL =     27,  // Auto RTL, this is not a true mode, AUTO will report as this mode if entered to perform a DO_LAND_START Landing sequence
         TURTLE =       28,  // Flip over after crash
 
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+        UTB_ACRO =     40,  // UTB disarmed-only diagnostic skeleton (local fork)
+#endif
+
         // Mode number 30 reserved for "offboard" for external/lua control.
 
         // Mode number 127 reserved for the "drone show mode" in the Skybrush
@@ -428,6 +432,26 @@ public:
     // end pass-through functions
 };
 
+
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+class ModeUTBAcro : public Mode {
+public:
+    using Mode::Mode;
+    Number mode_number() const override { return Number::UTB_ACRO; }
+    bool init(bool ignore_checks) override;
+    void run() override;
+    bool enabled() const override;
+    bool requires_position() const override { return false; }
+    bool has_manual_throttle() const override { return true; }
+    bool allows_arming(AP_Arming::Method method) const override { return false; }
+    bool is_autopilot() const override { return false; }
+    bool allows_entry_in_rc_failsafe() const override { return false; }
+
+protected:
+    const char *name() const override { return "UTB Acro (disarmed)"; }
+    const char *name4() const override { return "UTB0"; }
+};
+#endif
 
 #if MODE_ACRO_ENABLED
 class ModeAcro : public Mode {

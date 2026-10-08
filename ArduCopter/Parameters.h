@@ -698,6 +698,9 @@ public:
 #endif
 
     void *mode_land_ptr;
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    void *utb_ptr;
+#endif
 
 #if MODE_POSHOLD_ENABLED
     void *mode_poshold_ptr;

@@ -247,3 +247,44 @@ provedeno configure, clean a úplné sestavení Copter. Obě sestavení i kontro
 HEX/APJ prošly. SHA-256 obou HEX se shoduje s původními soubory před úklidem.
 Původní návod odkazoval na logy `tmp/trim-build-Skystars.log` a
 `tmp/trim-build-MicoAir.log`; tyto logy se do aktuální kopie nepřenesly.
+
+
+## Doplnění Codex: UTB FÁZE 0 (8. 10. 2026)
+
+Pro ověření skeleton patche byly do existující `.venv` doinstalovány
+`pymavlink`, `pytest`, `flake8` a jejich závislosti. Do Ubuntu byl doplněn
+`astyle`. ARM toolchain se neměnil. `pytest` není nutný k přímému spuštění
+níže uvedeného regresního skriptu.
+
+```bash
+cd /home/jirka/ardupilot_utb
+source .venv/bin/activate
+export PATH=/opt/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH
+# Jednorázově, pokud tyto nástroje ještě chybí:
+python -m pip install pymavlink pytest flake8
+sudo apt-get install astyle
+
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB
+./waf copter -j4
+./waf configure --board SkystarsH7HD-bdshot --disable-UTB
+./waf copter -j4
+
+./waf configure --board sitl --enable-UTB
+./waf copter --targets tests/test_utb -j4
+./build/sitl/tests/test_utb
+python Tools/autotest/test_utb_skeleton.py --binary build/sitl/bin/arducopter --compiled 1 --log-dir tmp/utb-sitl-tests-on
+./waf configure --board sitl --disable-UTB
+./waf copter -j4
+python Tools/autotest/test_utb_skeleton.py --binary build/sitl/bin/arducopter --compiled 0 --log-dir tmp/utb-sitl-tests-off
+```
+
+Oba Skystars buildy, oba SITL buildy, všech 6 C++ testů i lokální SITL
+regrese prošly. Firmware nebyl nahrán do FC; hardware ani let nebyl ověřen.
+Výchozí `AP_UTB_ENABLED=0` feature vyřadí; při zapnutém buildu je výchozí
+`UTB_ENABLE=0` a změna tohoto parametru vyžaduje restart. FÁZE 0 poskytuje
+pouze disarmovaný diagnostický režim a neobsahuje aktivní UTB řízení motorů.
+
+Podrobný stav, seznam změn a lokální logy jsou popsány v
+[UTB_ARCHITEKTURA_CS.md](docs/UTB_ARCHITEKTURA_CS.md).
+Firmware obou variant je uložen v `tmp/utb-artifacts/hw-on/` a
+`tmp/utb-artifacts/hw-off/`; adresář `tmp/` není součástí Gitu.

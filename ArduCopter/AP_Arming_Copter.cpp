@@ -654,6 +654,13 @@ bool AP_Arming_Copter::arm_checks(AP_Arming::Method method)
 // mandatory checks that will be run if ARMING_SKIPCHK skips all or arming forced
 bool AP_Arming_Copter::mandatory_checks(bool display_failure)
 {
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    // Force-arm skips arm_checks(), so the phase-0 mode needs this mandatory guard.
+    if (copter.flightmode->mode_number() == Mode::Number::UTB_ACRO) {
+        check_failed(display_failure, "UTB phase 0 is not armable");
+        return false;
+    }
+#endif
     // call mandatory position checks and update notify status because regular position checks will not run
     bool result = mandatory_position_checks(display_failure);
     AP_Notify::flags.pre_arm_gps_check = result;

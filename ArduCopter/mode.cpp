@@ -33,6 +33,10 @@ Mode *Copter::mode_from_mode_num(const Mode::Number mode)
 {
 
     switch (mode) {
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+        case Mode::Number::UTB_ACRO:
+            return &mode_utb_acro;
+#endif
 #if MODE_ACRO_ENABLED
         case Mode::Number::ACRO:
             return &mode_acro;
@@ -223,6 +227,9 @@ uint32_t Copter::get_available_mode_enabled_mask() const
 #endif
 #if MODE_ACRO_ENABLED
         &copter.mode_acro,
+#endif
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+        &copter.mode_utb_acro,
 #endif
         &copter.mode_stabilize,
         &copter.mode_althold,

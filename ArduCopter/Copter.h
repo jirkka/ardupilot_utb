@@ -72,6 +72,10 @@
 #include <AP_OpticalFlow/AP_OpticalFlow.h>
 #include <AP_Winch/AP_Winch_config.h>
 #include <AP_SurfaceDistance/AP_SurfaceDistance.h>
+#include <AP_UTB/AP_UTB_config.h>
+#if AP_UTB_ENABLED
+#include <AP_UTB/AP_UTB.h>
+#endif
 
 // Configuration
 #include "defines.h"
@@ -202,6 +206,9 @@ public:
 
     friend class Mode;
     friend class ModeAcro;
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    friend class ModeUTBAcro;
+#endif
     friend class ModeAcro_Heli;
     friend class ModeAltHold;
     friend class ModeAuto;
@@ -239,6 +246,10 @@ private:
     // Global parameters are all contained within the 'g' class.
     Parameters g;
     ParametersG2 g2;
+
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    AP_UTB utb;
+#endif
 
     // used to detect MAVLink acks from GCS to stop compassmot
     uint8_t command_ack_counter;
@@ -1027,6 +1038,9 @@ private:
 #else
     ModeAcro mode_acro;
 #endif
+#endif
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    ModeUTBAcro mode_utb_acro;
 #endif
     ModeAltHold mode_althold;
 #if MODE_AUTO_ENABLED

@@ -1384,6 +1384,9 @@ uint8_t GCS_MAVLINK_Copter::send_available_mode(uint8_t index) const
 #if MODE_ACRO_ENABLED
         &copter.mode_acro,
 #endif
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+        &copter.mode_utb_acro,
+#endif
         &copter.mode_stabilize,
         &copter.mode_althold,
 #if MODE_CIRCLE_ENABLED
