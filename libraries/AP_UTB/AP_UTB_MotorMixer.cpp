@@ -20,8 +20,11 @@ AP_UTB_MotorMixer::Result AP_UTB_MotorMixer::mix(
         c.is_nan() || c.is_inf() || fabsf(c.x) > 1 || fabsf(c.y) > 1 || fabsf(c.z) > 1) {
         return result;
     }
-    const float moment[4] = {(-c.x - c.y - c.z) * 0.5f, (-c.x + c.y + c.z) * 0.5f,
-                             (c.x - c.y + c.z) * 0.5f, (c.x + c.y - c.z) * 0.5f
+    // BF_X_REV reverses only the yaw column; allocation and inverse use the same sign.
+    const float yaw_sign = frame_type == 18 ? -1.0f : 1.0f;
+    const float yaw = yaw_sign * c.z;
+    const float moment[4] = {(-c.x - c.y - yaw) * 0.5f, (-c.x + c.y + yaw) * 0.5f,
+                             (c.x - c.y + yaw) * 0.5f, (c.x + c.y - yaw) * 0.5f
                             };
     float low = moment[0];
     float high = moment[0];
@@ -50,7 +53,7 @@ AP_UTB_MotorMixer::Result AP_UTB_MotorMixer::mix(
     result.achieved_thrust = (m[0] + m[1] + m[2] + m[3]) * 0.25f;
     result.achieved = Vector3f((-m[0] - m[1] + m[2] + m[3]) * 0.5f,
                                (-m[0] + m[1] - m[2] + m[3]) * 0.5f,
-                               (-m[0] + m[1] + m[2] - m[3]) * 0.5f);
+                               yaw_sign * ((-m[0] + m[1] + m[2] - m[3]) * 0.5f));
     for (uint8_t i = 0; i < 4; i++) {
         const float residual = i == 3 ? thrust - result.achieved_thrust : c[i] - result.achieved[i];
         if (residual > 1.0e-5f) {

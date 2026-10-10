@@ -1,5 +1,7 @@
 # UTB: matematická specifikace rate controlleru a shadow mixeru
 
+Aktuální rozšíření ve větvi test/skystars-5inch: SHADOW podporuje Quad BF_X=12 a BF_X_REV=18, viz oddíl26 a UTB_BFX_REV_REPORT_CS.md. Historické revize níže zachovávají původní výsledky.
+
 Verze 2, 8. 10. 2026 — matematická a architektonická specifikace. **IMPLEMENTOVÁNA POUZE SHADOW FÁZE 1. Historické ověření viz oddíl 24; aktuální hardening stav viz oddíl 25.**
 Podklady: dodaná BP a místní kód
 větve `ardupilot-4.7.1-utb`, HEAD `761a38d704`. Pracovní strom byl při
@@ -385,17 +387,14 @@ vědomě označený diagnostický experiment, nikoli ověřený letový tune.
 [ARDUPILOT INFRASTRUKTURA] SkystarsH7HD-bdshot/hwdef.dat zahrnuje
 SkystarsH7HD/hwdef.dat a nastaví HAL_FRAME_TYPE_DEFAULT=12. **HAL_FRAME_CLASS_DEFAULT
 zde není definován**; Parameters.cpp má multicopter DEFAULT_FRAME_CLASS=0.
-BF_X FRAME_TYPE=12 je schválený **matematický typ pro první implementaci**,
-nikoli potvrzená konfigurace fyzického dronu. První implementace podporuje
-pouze tento jeden explicitní typ: FRAME_CLASS==1 AND FRAME_TYPE==12.
-Kontrolovat runtime v každém shadow cyklu, ne jen hwdef nebo boot default.
-Při neshodě MixerValid=false, nulový invalid výsledek a
-reason=FRAME_MISMATCH; nesmí vzniknout mixer výpočet označený jako validní.
-AP controller/motor path se nemění.
-AP_Motors_Class.h: Quad=1, BF_X=12, BF_X_REV=18. Typ 18 není alias 12
-a automaticky se nepodporuje. Před hardware testem se FRAME_CLASS a
-FRAME_TYPE ověří přímo na FC; kdyby FC měl jiný typ, je nutné samostatně
-navrhnout a schválit jeho matici nebo explicitně rozhodnout o konfiguraci.
+Aktuální SHADOW ve větvi test/skystars-5inch podporuje explicitně
+FRAME_CLASS==1 AND (FRAME_TYPE==12 OR FRAME_TYPE==18). Původní FÁZE 1
+podporovala pouze BF_X=12; nové rozšíření BF_X_REV=18 je popsáno v oddílu26.
+Oba typy jsou matematické geometrie, nikoli potvrzení fyzického zapojení.
+Kontrola běží v každém shadow cyklu. Ostatní class/type kombinace vrací
+FRAME_MISMATCH, MixerValid=false a nulový invalid výsledek.
+AP controller/motor path se nemění. BF_X_REV není alias12: mění yaw sloupec
+alokace i jeho inverze. Před bench testem ověřit class/type přímo na FC.
 
 AP_MotorsMatrix.cpp setup_quad_matrix() BF_X (627–639), add_motors()
 (561–566) a add_motor() (531–545): úhel od body +X k +Y,
@@ -1012,6 +1011,8 @@ nebyly opakovány při této čistě dokumentační revizi.
 
 ## 24. Implementace a evidence SHADOW FÁZE 1 (8. 10. 2026)
 
+Historická evidence před BF_X_REV; aktuální rozšíření ve větvi test/skystars-5inch popisuje oddíl26.
+
 **IMPLEMENTOVÁNO:** reference/PID/diagnostický BF_X allocator, parametry,
 read-only AP capture, shadow/consumer tasks, oddělené health/policy,
 bounded fronta, static logy a testy. **Žádný aktivní UTB output.**
@@ -1219,7 +1220,9 @@ Bez H743 měření není potvrzen žádný bezpečný hardware log rate limit.
 Hardware, fyzický frame a let s vlastní UTB regulací zůstávají NEOVĚŘENO.
 
 
-## 25. HARDENING REVIZE FÁZE 1 — aktuální stav (8. 10. 2026)
+## 25. HARDENING REVIZE FÁZE 1 — stav 8. 10. 2026
+
+Historické výsledky; aktuální geometrie a nové ověření jsou v oddílu26.
 
 Oddíl 24 je historická evidence prvního patche. Jeho main-thread consumer
 nevyhověl závěrečnému požadavku na absenci blocking logger cesty. Tato revize
@@ -1463,3 +1466,26 @@ v rozsahu této softwarové revize a uvedených testů/source auditu.
 H743 priorities/stack/load, logger medium/backend throughput/jitter a
 nejvyšší bezpečně udržitelný log rate. Po této revizi se práce zastavuje;
 aktivní UTB_ACRO ani FÁZE 2 nebyly zahájeny.
+
+## 26. SHADOW BF_X_REV — větev test/skystars-5inch (10. 10. 2026)
+
+IMPLEMENTOVÁNO: pouze class1/type12 BF_X a class1/type18 BF_X_REV. Jediný allocator vybírá yaw_sign=+1 pro12, −1 pro18; původní BF_X aritmetické pořadí zůstává stejné. Žádná závislost matematických tříd na desce.
+
+```text
+G12 = 0.5 * [ -1 -1 -1 ]    G18 = 0.5 * [ -1 -1 +1 ]
+            [ -1 +1 +1 ]                [ -1 +1 -1 ]
+            [ +1 -1 +1 ]                [ +1 -1 -1 ]
+            [ +1 +1 -1 ]                [ +1 +1 +1 ]
+```
+
+Literatura: obecné principy alokace a anti-windup dle oddílu22. ArduPilot source convention: quad MotorDef, CW=−1/CCW=+1, logical pořadí a normalise_rpy_factors v AP_MotorsMatrix. Engineering decision: explicitní whitelist12/18, společný diagnostický allocator a epoch změny geometrie. Nejde o změnu fyzikálních rovnic PID.
+
+G18=G12·diag(1,1,−1), GᵀG=I, Gᵀ1=0. Po desaturaci m=T_shift·1+scale·G·c, takže achieved=Gᵀm=scale·c a achieved_thrust=sum(m)/4. Konkrétně Y12=(−m1+m2+m3−m4)/2, Y18=(m1−m2−m3+m4)/2. Collective shift neovlivní momenty. Numerické clamp tolerance zůstávají původní.
+
+Priorita a saturace zůstávají: společný poměr R/P/Y, společný scale při span>1, posun collective a bounds[0,1]; yaw nemá nižší prioritu. SHADOW ONLY anti-windup dostává achieved v téže tělesové soustavě jako raw PID, včetně správného znaménka yaw18. PID, D filtr, reference, anti-windup metoda a Ki=0 default se nemění.
+
+Změna class/type za běhu resetuje všechny I/D/previous/residual historie a první validní cyklus je PRIMING (neplatný controller/mixer). Nově se zvýší diagnostická epoch; staré queued snapshoty si zachovají starou epoch a worker je podle existujícího filtru může zahodit. In-flight write již zahájený workerem může dokončit starou epoch; nepředstavuje zpětnou vazbu nové geometrii ani motorový output. UBEP umožní offline rozlišení epoch při BENCH ON. Snapshot a saturation flags jsou v každém cyklu sestaveny znovu. Změna geometrie neodblokuje TIME_BUDGET latch a neobchází jinou ochranu. FRAME_MISMATCH stále platí pro všechny nepodporované kombinace.
+
+Obě geometrie jsou dostupné pouze pro SHADOW. Žádné změny AP_Motors, HAL/DShot, motor setters, arming, EKF ani FSTRATE. Motorové výstupy nadále zapisuje původní AP. Referenční FRAME_TYPE=18 zůstává zachován.
+
+UNIT/SITL/BUILD evidence a přesný manifest jsou v [reportu rozšíření](UTB_BFX_REV_REPORT_CS.md). Starší oddíly23–25 zachovávají výsledky tehdejší implementace; odmítnutí18 v nich není aktuální podporou této větve. HARDWARE NEOVĚŘENO: timing, CPU/logger load, mutex latence, stack rezerva, udržitelnost200/400Hz, fyzické směry/mapping. Aktivní UTB ani FÁZE2 nejsou implementovány.

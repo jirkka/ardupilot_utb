@@ -154,7 +154,7 @@ UTB OFF/BENCH ON SITL se sestaví `--disable-UTB --enable-UTB_BENCH`; pro FÁZI 
 
 1. Bez vrtulí, DISARMED, žádné automatické armování; deska bezpečně upevněna. Zajistit vhodné napájení a chlazení. První session provádí obsluha, která může okamžitě vypnout napájení.
 2. Zapsat označení PCB/revizi, MCU, IMU orientace a skutečný board ID. Zálohovat parametry a původní firmware. Ověřit hash vybraného APJ a target SkystarsH7HD-bdshot; MicoAir je samostatný test.
-3. Ověřit FRAME_CLASS=1 a FRAME_TYPE=12 přímým readbackem FC. BF_X_REV=18 není podporovaný BF_X. Zkontrolovat stávající arming zákazy UTB_ACRO; mód nepoužívat k řízení.
+3. Ověřit FRAME_CLASS=1 a skutečný FRAME_TYPE přímým readbackem FC. V test/skystars-5inch podporuje SHADOW explicitně BF_X=12 i BF_X_REV=18; Skystars referenční konfiguraci18 nepřepisovat na12. Zkontrolovat stávající arming zákazy UTB_ACRO; mód nepoužívat k řízení.
 4. Ověřit LOG_BACKEND_TYPE=4 a nalezení W25Q128/BLOCK loggeru. Nastavit LOG_DISARMED=1 a konzistentní původní LOG_BITMASK; zajistit volné místo a stažení logu po každém běhu. A0 nemá UB metriky. BENCH ON musí vykázat UB33=4.
 5. Zachovat stejný loop rate, FSTRATE konfiguraci, telemetry stream rates, napájení a teplotní podmínky. Zaznamenat readback všech relevantních parametrů. BENCH nesmí obcházet FSTRATE guard.
 6. Pro B_WAIT_US nejprve ponechat 0 (exceed counter vypnutý), získat distribuci a zvolit pozorovací threshold se zdůvodněním proti periodě/main budgetu. Threshold není bezpečnostní záruka.
@@ -199,3 +199,15 @@ Před C++ změnami byl ověřen reprodukovatelný checkpoint `tmp/utb-1ha-checkp
 Výsledky před/po instrumentaci, finální souborový manifest a firmware hashe jsou v [software reportu](UTB_BENCH_SOFTWARE_REPORT_CS.md). Navrženo a implementováno jsou zde odděleny od skutečných výsledků testů v reportu. Hardware latence, PI dopad, CPU load, watermark, deadline rezerva a udržitelnost 200/400 Hz na H743 zůstávají neověřené.
 
 Patch nemění UTB PID/filtr/anti-windup/reference/mixer, arming, AP_Motors, motor setters, HAL/DShot, EKF ani FSTRATE pravidla. Existující AP controller se nevolá podruhé. Frontend AP_Logger synchronizace a neměřené flash/SPI zámky zůstávají samostatná rizika; tento benchmark není důkazem celkové thread safety loggeru. Další architektura ani FÁZE 2 není součástí této implementace.
+
+## 13. BF_X_REV benchmark v test/skystars-5inch
+
+Samostatná SHADOW geometrie18 má opačný yaw sloupec i jeho inverzi proti12. Úspěšný software test nezjišťuje skutečnou kabeláž motorů a neprokazuje H743 throughput. Podmínky platnosti a evidence: [BF_X_REV report](UTB_BFX_REV_REPORT_CS.md). Starší checkpointy/build hashe jsou historické, pro tuto změnu použít nové archivované artefakty z reportu.
+
+A0/A/B zůstávají v configs/skystars_5inch beze změny. Nové bench_C.param a bench_D.param mění pouze LOG_DISARMED=1, UTB_ENABLE=1, UTB_SHADOW=1 a UTB_LOG_RATE=200/400. Nepřidávají gains, frame, motor mapping ani battery/arming nastavení. Gains před session přečíst a zaznamenat; nulové defaulty jsou validní matematika, ale neexperimentují s nenulovou momentovou saturací.
+
+První navržená session: DISARMED bez vrtulí, záloha/readback/identita a firmware hash; stejný pack pro všechna srovnání A0→A→B→C, mezi variantami restart a stažení logu. Nejprve 10s warmup a30s měřicí okno A0/A/B/C jako omezený pilotní experiment, nikoli nový bezpečnostní limit. D pouze pokud C nemá stop podmínky a data jsou úplná: 10s warmup a5s měření, potom SHADOW=0 a stažení logu. Délky jsou organizační volba omezení experimentu; delší test a udržitelná frekvence se stanoví až podle měření.
+
+Vyhodnotit A−A0 overhead, B−A lifecycle, C−B controller/logging, D−C frekvenci. Použít skutečné monotónní HW metriky, PM, jitter/overruns, main mutex acquire a worker hold, UNKNOWN, HWM/drops/partial sets, stack watermark/lifecycle a uložené complete sets přes celé předem zapsané okno. Žádný hardware bezpečnostní threshold nelze odvodit ze SITL. Stop při existujících podmínkách oddílu10, TIME_BUDGET, nedostupném loggeru nebo nevysvětleném zhoršení baseline; po zhoršení nepokračovat automaticky doD. Nulové confirmed collisions nejsou důkazem neblokování.
+
+4S i6S LiPo jsou používané varianty tohoto dronu. Benchmark bez motorového provozu nemění bateriové prahy ani failsafe; každý běh musí zaznamenat skutečný použitý pack, napětí a kalibraci. Bateriová ochrana pro lety bude posouzena zvlášť. Firmware upload, motor test, armování a fyzický benchmark nyní neproběhly.

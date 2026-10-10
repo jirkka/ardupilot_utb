@@ -590,7 +590,7 @@ aktivní UTB_ACRO, další režimy a FÁZE 2 zůstávají návrhem.
 SHADOW ONLY directional jednokrokový anti-windup, diagnostický BF_X mixer,
 AP-derived UTB shadow reference, parametry SHADOW/LOG_RATE/gains a oddělená
 validita state/controller/mixer versus logging/observability. Runtime přijímá
-jen class=1/type=12, typ 18 neakceptuje. Neplatné motorové výsledky jsou nuly.
+class=1/type=12 nebo18 ve větvi test/skystars-5inch. Neplatné motorové výsledky jsou nuly.
 Mixer zachovává poměr R/P/Y společným scale a může posunout collective;
 yaw nemá nižší prioritu. Allocator není schválen pro aktivní letový output.
 
@@ -689,3 +689,11 @@ Plán první session je [hardware bench postup](UTB_HARDWARE_BENCH_CS.md).
 MicoAir743v2 je samostatný target s SDMMC filesystem loggerem; současný
 BLOCK mutex probe pro jeho hardware neplatí. FÁZE 2 ani aktivní UTB_ACRO
 nejsou zahájeny. Firmware se na hardware nenahrával.
+
+## N. SHADOW BF_X_REV — test/skystars-5inch
+
+IMPLEMENTOVÁNO: whitelist class1/type12 a18, jedna matematická implementace allocatoru s opačným yaw sloupcem a konzistentní inverzí pro18. R/P, motor numbering, common scale/collective shift a SHADOW ONLY anti-windup se nemění. Runtime změna geometrie resetuje PID historii a zvýší diagnostickou epoch; PRIMING výpočet nemá platný mixer. TIME_BUDGET/FSTRATE/state/gyro/logger ochrany zůstávají.
+
+UTB nadále nemá fyzický motorový output. AP_Motors, HAL, DShot, původní PID, arming a EKF nejsou dotčeny. Změna existuje pouze v testovací větvi; vývojová větev se nemění. Skystars export class1/type18 a všech1190 hodnot jsou zachovány. C/D overlay jsou oddělené profily pro DISARMED bench, nikdy změna frame nebo globální default.
+
+Unit/SITL/build ověření a jeho omezení viz [report](UTB_BFX_REV_REPORT_CS.md). Hardware timing/log throughput a fyzické zapojení NEOVĚŘENO. Aktivní UTB_ACRO a FÁZE2 nejsou součástí rozšíření.

@@ -305,12 +305,12 @@ TEST(UTBRate, MixerSaturationFeedbackAndIndependentIntegrators)
     }
 }
 
-static AP_UTB_MotorMixer::Result allocate(float thrust, const Vector3f &command)
+static AP_UTB_MotorMixer::Result allocate(float thrust, const Vector3f &command, uint8_t frame_type = 12)
 {
     AP_UTB_RateController::Result control;
     control.valid = true;
     control.command = command;
-    return AP_UTB_MotorMixer().mix(control, thrust, 1, 12);
+    return AP_UTB_MotorMixer().mix(control, thrust, 1, frame_type);
 }
 
 TEST(UTBMixer, ZeroEqualAndSignedAxes)
@@ -401,7 +401,7 @@ TEST(UTBMixer, InvalidFrameDomainAndNumbersAreFiniteZeros)
     control.command = {0.1f, 0.2f, 0.3f};
     AP_UTB_MotorMixer mixer;
     for (auto frame : {
-             std::pair<uint8_t, uint8_t>(0, 12), {1, 18}, {1, 1}, {2, 12}
+             std::pair<uint8_t, uint8_t>(0, 12), {0, 18}, {1, 0}, {1, 1}, {2, 12}, {2, 18}
          }) {
         const auto result = mixer.mix(control, 0.5f, frame.first, frame.second);
         EXPECT_FALSE(result.valid);
@@ -502,7 +502,7 @@ TEST(UTBHealth, FrameFastRateStaleAndModeResetRecovery)
     auto in = engine_input();
     AP_UTB_RateController::Gains gains[3] {};
     for (uint8_t type : {
-             uint8_t(18), uint8_t(1)
+             uint8_t(0), uint8_t(1)
          }) {
         in.frame_type = type;
         utb.evaluate(in, gains, snapshot);
@@ -784,6 +784,192 @@ TEST(UTBSourceConvention, ActualAPExpoAtParameterBoundary)
     EXPECT_DOUBLE_EQ(double(0.95f), 0.94999998807907104);
     EXPECT_FLOAT_EQ(input_expo(0.5f, 0.95f), 0.5f);
     EXPECT_FLOAT_EQ(input_expo(0.5f, nextafterf(0.95f, 1.0f)), 0.5f);
+}
+#endif // AP_UTB_ENABLED
+
+
+#if AP_UTB_ENABLED
+TEST(UTBMixer, BothGeometriesSignedAxesAndInverse)
+{
+    // Independent literal columns from AP MotorDef + per-axis normalization.
+    const float columns[2][3][4] = {
+        {{-0.5f, -0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f, -0.5f}},
+        {{-0.5f, -0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, -0.5f, 0.5f}, {0.5f, -0.5f, -0.5f, 0.5f}}
+    };
+    for (uint8_t geometry = 0; geometry < 2; geometry++) {
+        const uint8_t type = geometry == 0 ? 12 : 18;
+        ASSERT_TRUE(AP_UTB_MotorMixer::supports_frame(1, type));
+        for (float thrust : {
+                 0.0f, 0.5f, 1.0f
+             }) {
+            const auto zero = allocate(thrust, {}, type);
+            ASSERT_TRUE(zero.valid);
+            for (float motor : zero.thrust) {
+                EXPECT_FLOAT_EQ(motor, thrust);
+            }
+        }
+        for (uint8_t axis = 0; axis < 3; axis++) {
+            for (float sign : {
+                     -1.0f, 1.0f
+                 }) {
+                Vector3f command;
+                command[axis] = sign * 0.2f;
+                const auto result = allocate(0.5f, command, type);
+                ASSERT_TRUE(result.valid);
+                for (uint8_t m = 0; m < 4; m++) {
+                    EXPECT_NEAR(result.thrust[m], 0.5f + columns[geometry][axis][m] * command[axis], 1.0e-6f);
+                }
+                for (uint8_t j = 0; j < 3; j++) {
+                    EXPECT_NEAR(result.achieved[j], command[j], 1.0e-6f);
+                }
+            }
+        }
+        const auto combined = allocate(0.5f, {0.1f, -0.2f, 0.3f}, type);
+        ASSERT_TRUE(combined.valid);
+        const float expected[2][4] = {{0.4f, 0.5f, 0.8f, 0.3f}, {0.7f, 0.2f, 0.5f, 0.6f}};
+        for (uint8_t m = 0; m < 4; m++) {
+            EXPECT_NEAR(combined.thrust[m], expected[geometry][m], 1.0e-6f);
+        }
+    }
+    for (Vector3f command : {
+             Vector3f(0.2f, 0, 0), Vector3f(0, -0.2f, 0)
+         }) {
+        const auto a = allocate(0.5f, command, 12);
+        const auto b = allocate(0.5f, command, 18);
+        for (uint8_t m = 0; m < 4; m++) {
+            EXPECT_FLOAT_EQ(a.thrust[m], b.thrust[m]);
+        }
+    }
+    const auto a = allocate(0.5f, {0, 0, 0.2f}, 12);
+    const auto b = allocate(0.5f, {0, 0, 0.2f}, 18);
+    for (uint8_t m = 0; m < 4; m++) {
+        EXPECT_NEAR(a.thrust[m] + b.thrust[m], 1, 1.0e-6f);
+    }
+}
+
+TEST(UTBMixer, ReversedYawSaturationAndFiniteDomain)
+{
+    const auto scaled = allocate(0.5f, {1, 1, 1}, 18);
+    ASSERT_TRUE(scaled.valid);
+    EXPECT_FLOAT_EQ(scaled.scale, 0.5f);
+    const float expected[4] = {0, 0, 0, 1};
+    for (uint8_t m = 0; m < 4; m++) {
+        EXPECT_FLOAT_EQ(scaled.thrust[m], expected[m]);
+    }
+    EXPECT_FLOAT_EQ(scaled.achieved_thrust, 0.25f);
+    EXPECT_FLOAT_EQ(scaled.collective_shift, -0.25f);
+    for (uint8_t axis = 0; axis < 3; axis++) {
+        EXPECT_FLOAT_EQ(scaled.achieved[axis], 0.5f);
+    }
+    EXPECT_EQ(scaled.positive_limits, 15);
+    EXPECT_EQ(scaled.lower_mask, 7);
+    EXPECT_EQ(scaled.upper_mask, 8);
+    for (uint8_t type : {
+             12, 18
+         }) {
+        for (int roll = -10; roll <= 10; roll++) {
+            for (int pitch = -10; pitch <= 10; pitch++) {
+                for (int yaw = -10; yaw <= 10; yaw++) {
+                    const Vector3f command(roll * 0.1f, pitch * 0.1f, yaw * 0.1f);
+                    const auto result = allocate((roll + 10) * 0.05f, command, type);
+                    ASSERT_TRUE(result.valid);
+                    for (float motor : result.thrust) {
+                        EXPECT_GE(motor, 0);
+                        EXPECT_LE(motor, 1);
+                    }
+                    for (uint8_t j = 0; j < 3; j++) {
+                        EXPECT_NEAR(result.achieved[j], result.scale * command[j], 1.0e-5f);
+                    }
+                }
+            }
+        }
+        for (uint8_t axis = 0; axis < 3; axis++) {
+            for (float invalid : {
+                     NAN, INFINITY, -INFINITY, 1.1f, -1.1f
+                 }) {
+                Vector3f command;
+                command[axis] = invalid;
+                EXPECT_FALSE(allocate(0.5f, command, type).valid);
+                EXPECT_FALSE(allocate(invalid, {}, type).valid);
+            }
+        }
+    }
+}
+
+TEST(UTBRate, BothGeometriesDirectionalYawAntiWindup)
+{
+    for (uint8_t type : {
+             12, 18
+         }) {
+        for (float sign : {
+                 -1.0f, 1.0f
+             }) {
+            AP_UTB_RateController controller;
+            AP_UTB_RateController::Gains gains[3] = {{0.9f, 1, 0, 1, 0}, {0.9f, 1, 0, 1, 0}, {0.9f, 1, 0, 1, 0}};
+            ASSERT_TRUE(controller.configure(gains, 0.01f));
+            controller.update(zero_state(), {}, 0.01f);
+            const Vector3f demand(1, 1, sign);
+            const auto first = controller.update(zero_state(), demand, 0.01f);
+            const auto mixed = AP_UTB_MotorMixer().mix(first, 0.5f, 1, type);
+            ASSERT_TRUE(mixed.valid);
+            EXPECT_NEAR(mixed.achieved.z, sign * 0.5f, 1.0e-6f);
+            controller.feedback(first, mixed.achieved);
+            const auto blocked = controller.update(zero_state(), demand, 0.01f);
+            EXPECT_TRUE(blocked.axis[2].integration_blocked);
+            EXPECT_FLOAT_EQ(blocked.axis[2].i, first.axis[2].i);
+            const auto unwind = controller.update(zero_state(), {1, 1, -sign}, 0.01f);
+            EXPECT_FALSE(unwind.axis[2].integration_blocked);
+            EXPECT_NEAR(unwind.axis[2].i, 0, 1.0e-6f);
+        }
+    }
+}
+
+TEST(UTBHealth, GeometryTransitionResetsHistoryAndDiagnosticEpoch)
+{
+    AP_UTB utb;
+    AP_UTB::Snapshot sample;
+    auto in = engine_input();
+    in.reference = {1, 1, 1};
+    AP_UTB_RateController::Gains gains[3] = {{0.9f, 1, 0.001f, 1, 20}, {0.9f, 1, 0.001f, 1, 20}, {0.9f, 1, 0.001f, 1, 20}};
+    utb.evaluate(in, gains, sample);
+    advance(in);
+    utb.evaluate(in, gains, sample);
+    ASSERT_TRUE(sample.mixer.moments_scaled);
+    ASSERT_TRUE(utb.publish_diagnostics(sample, true));
+    uint32_t previous_epoch = sample.epoch;
+    for (uint8_t type : {
+             18, 12, 18
+         }) {
+        advance(in);
+        in.frame_type = type;
+        in.state.rates_rads = {0.1f, 0.1f, 0.1f};
+        utb.evaluate(in, gains, sample);
+        EXPECT_EQ(sample.calculation, AP_UTB::CalculationReason::PRIMING);
+        EXPECT_FALSE(sample.control.valid);
+        EXPECT_FALSE(sample.mixer.valid);
+        EXPECT_EQ(sample.epoch, previous_epoch + 1);
+        if (previous_epoch == 0) {
+            AP_UTB::Snapshot old;
+            ASSERT_TRUE(utb.pop_log(old));
+            EXPECT_NE(old.epoch, utb.epoch());
+        }
+        previous_epoch = sample.epoch;
+        advance(in);
+        utb.evaluate(in, gains, sample);
+        ASSERT_TRUE(sample.flags & AP_UTB::SHADOW_HEALTHY);
+        for (uint8_t axis = 0; axis < 3; axis++) {
+            EXPECT_FALSE(sample.control.axis[axis].integration_blocked);
+            EXPECT_NEAR(sample.control.axis[axis].i, 0.9f * in.dt, 1.0e-6f);
+            EXPECT_FLOAT_EQ(sample.control.axis[axis].d, 0);
+        }
+    }
+    utb.record_execution(126, 0.0025f);
+    utb.record_execution(126, 0.0025f);
+    utb.record_execution(126, 0.0025f);
+    advance(in);
+    in.frame_type = 12;
+    utb.evaluate(in, gains, sample);
+    EXPECT_EQ(sample.policy, AP_UTB::PolicyReason::TIME_BUDGET);
 }
 #endif // AP_UTB_ENABLED
 

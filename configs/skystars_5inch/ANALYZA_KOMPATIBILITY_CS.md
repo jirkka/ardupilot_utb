@@ -30,13 +30,9 @@ G12 = 0.5 * [ -1 -1 -1 ]    G18 = 0.5 * [ -1 -1 +1 ]
 
 G18=G12·diag(1,1,−1); roll/pitch a pořadí jsou stejné, yaw je opačný. Pro obě matice GᵀG=I a Gᵀ1=0. Inverze momentu je Gᵀm, collective je sum(m)/4; yaw18=(m1−m2−m3+m4)/2. To popisuje normalizované faktory, nikoli celý AP desaturační allocator nebo fyzikální model tahu.
 
-Současný UTB používá G12 a podporuje výhradně class1/type12. Při class1/type18 vyhodnotí FRAME_MISMATCH a neprovede platný controller/mixer výpočet; při nepřipraveném loggeru může dříve nastoupit EXPERIMENT_SUPPRESSED. Žádná změna guardu ani mixeru není provedena. Samotný FRAME_TYPE nepřepíná fyzické směry ESC.
+Aktuální rozšíření ve větvi test/skystars-5inch podporuje class1/type12 i18. Typ18 vybírá G18 a jeho konzistentní inverzi; podporu určuje explicitní whitelist, nikoli automatická ekvivalence obou frame. Ostatní konfigurace zůstávají FRAME_MISMATCH. Nově platný shadow controller/mixer používá původní PID a SHADOW ONLY anti-windup, reset historie a diagnostickou epoch při změně geometrie. FSTRATE a ostatní guards zůstávají. Samotný FRAME_TYPE nepřepíná fyzické směry ESC.
 
-Varianty dalšího postupu:
-
-- A: zachovat 18 a až po samostatném schválení přidat samostatně matematicky a softwarově ověřenou SHADOW podporu BF_X_REV, včetně inverze, resetů a testů. Tato podpora zde není implementována ani schválena pro aktivní output.
-- B: zachovat 18 a nynější UTB; připravit pouze A0/A/B. Doporučený současný postup. Zapnutí shadow na 18 může ověřit odmítnutí frame, nikoli výkon platného mixeru při 200/400 Hz.
-- C: případná fyzická rekonfigurace až po ověření motorů, ESC směru a vrtulí. Nepřevádět funkční 18 na 12 pouhou editací parametru.
+Zvolená varianta A: zachovat referenční18 a doplnit obecnou SHADOW podporu BF_X_REV. Implementace a výsledky nové validace jsou v ../../docs/UTB_BFX_REV_REPORT_CS.md. Varianta B (A0/A/B bez shadow) zůstává baseline. Varianta C (fyzická rekonfigurace) není provedena ani nutná pro tuto matematickou podporu. Žádný fyzický motorový output nebyl přidán.
 
 ## Významné parametry a fyzické kontroly
 
@@ -64,7 +60,7 @@ Varianty dalšího postupu:
 | Kompas | COMPASS_ENABLE=1, EXTERNAL=1, USE/USE2/USE3=0, ORIENT=101 | Není použit pro navigaci; custom rotation a ID vyžadují kontrolu skutečného zařízení; nulové offsets nejsou důkaz kalibrace |
 | GPS | GPS1_TYPE=1 Auto, GPS2_TYPE=0, AUTO_CONFIG=1, SAVE_CFG=2 | Ověřit skutečný modul a GPS/EKF stav; obnovení může také způsobit konfiguraci připojeného GPS |
 | Logging | LOG_BACKEND_TYPE=4, LOG_DISARMED=0, LOG_BITMASK=180222 | Block backend, původní PM bit3 je zapnutý, PID bit12 a Fast Attitude bit0 vypnuté; fyzická kapacita a zápis neověřeny |
-| Scheduler | SCHED_LOOP_RATE=400, FSTRATE_ENABLE=0, DIV=1 | Kompatibilní s FSTRATE guardem; neodstraňuje FRAME mismatch |
+| Scheduler | SCHED_LOOP_RATE=400, FSTRATE_ENABLE=0, DIV=1 | Kompatibilní s FSTRATE guardem; nevypíná ostatní guards |
 | UTB | Žádný UTB_* v exportu | Export neurčuje stávající ani budoucí UTB gains/enable; nutný zvláštní readback |
 
 ## Cílový hwdef a periferie
@@ -79,7 +75,7 @@ Analogový OSD AT7456E odpovídá OSD_TYPE=1. Dual BMI270 a barometr musí být 
 
 BATT_FS_LOW_ACT=0 a BATT_FS_CRT_ACT=0 neurčují žádnou bateriovou failsafe akci. LOW=13.6 V, CRT=13.2 V, ARM_VOLT=14 V, LOW_TIMER=10 s a FS_VOLTSRC=0 raw voltage jsou zachovány; samotné překročení prahů zde není schválenou ochranou RTL/Land. MAH prahy jsou 0, CAPACITY=3300 mAh není ověřená fyzická kapacita.
 
-13.6/13.2/14 V odpovídají aritmeticky 4×3.4/3.3/3.5 V; MOT_BAT_VOLT_MIN/MAX=19.8/25.2 odpovídají 6×3.3/4.2 V. Jde o nesoulad předpokladů, nikoli důkaz 4S nebo 6S akumulátoru. Při 6S by LOW/CRT byly přibližně 2.267/2.2 V na článek; při 4S je i 16.8 V pod nastaveným MOT_BAT_VOLT_MIN. Motorová kompenzace napětí není bateriový failsafe. Chybí skutečný počet článků, chemie, kapacita, limity packu při zatížení, kalibrace napětí/proudu a ověření reakce. Žádné hodnoty nebyly opraveny odhadem.
+13.6/13.2/14 V odpovídají aritmeticky 4×3.4/3.3/3.5 V; MOT_BAT_VOLT_MIN/MAX=19.8/25.2 odpovídají 6×3.3/4.2 V. Jde o nesoulad předpokladů, nikoli důkaz 4S nebo 6S akumulátoru. Při 6S by LOW/CRT byly přibližně 2.267/2.2 V na článek; při 4S je i 16.8 V pod nastaveným MOT_BAT_VOLT_MIN. Motorová kompenzace napětí není bateriový failsafe. Dron používá střídavě 4S i6S LiPo. Pro konkrétní session stále chybí identifikace aktuálního packu, kapacita, limity při zatížení, kalibrace napětí/proudu a ověření reakce. Jedna kombinace uvedených prahů/kompenzace není tímto tvrzením ověřena pro oba packy. Žádné hodnoty nebyly opraveny odhadem.
 
 RC failsafe: FS_THR_ENABLE=1 RTL, FS_THR_VALUE=975, RC_FS_TIMEOUT=1 s; normální minimum plynu 988 ponechává pouze 13 µs rozdíl. Přijímač držící poslední platnou hodnotu nemusí propadnout pod 975; ověřit výpadek rámců/failsafe flag a skutečné chování protokolu. RC_PROTOCOLS=1 dovoluje autodetekci všech protokolů, RC_OPTIONS=32 vyžaduje nulový plyn při armingu a bit pro ignorování receiver failsafe není nastaven. FS_GCS_ENABLE=0; FS_OPTIONS=16 řeší pokračování pilotního řízení při GCS failsafe, není plošné vypnutí RC failsafe. RC_OVERRIDE_TIME=3 s je potřeba zahrnout do kontroly GCS ovládání.
 

@@ -66,17 +66,17 @@ def read_logs(directory):
             if msg is None:
                 break
             kind = msg.get_type()
-            if kind in {"UTBS", "UTBR", "UTBM", "UTBA", "UTBT", "UTBQ", "RCOU", "PARM", "PIDR", "RATE", "PM", "SIDD"}:
+            if kind in {"UTBS", "UTBR", "UTBM", "UTBA", "UTBT", "UTBQ", "RCOU", "PARM", "PIDR", "RATE", "PM", "SIDD", "UBEP"}:
                 records.setdefault(kind, []).append(msg.to_dict())
     return records
 
 
-def launch(binary, root, output, name, extras, action, enabled=1):
+def launch(binary, root, output, name, extras, action, enabled=1, model="bfx"):
     directory = output / name
     directory.mkdir(parents=True, exist_ok=False)
     with (directory / "console.log").open("w") as console:
         sim = ShadowSITL(binary, root / "Tools/autotest/default_params/copter.parm", directory,
-                         console, True, enabled, extra_params=extras, model="bfx", speedup=1)
+                         console, True, enabled, extra_params=extras, model=model, speedup=1)
         try:
             action(sim)
             sim.duration(2)  # permit normal backend flushing
@@ -98,7 +98,7 @@ def exercise(sim):
     sim.duration(6)
     sim.param("UTB_LOG_RATE", 400)
     sim.duration(6)
-    for param, value in (("FRAME_TYPE", 18), ("FRAME_CLASS", 2)):
+    for param, value in (("FRAME_TYPE", 1), ("FRAME_CLASS", 2)):
         sim.param(param, value)
         sim.health(lambda flags, calc, obs, policy: calc == 6 and not flags & 64)
         sim.param(param, 12 if param == "FRAME_TYPE" else 1)
@@ -318,7 +318,15 @@ def source_audit(root):
     assert "logger." not in manager
     assert "ATOMIC_INT_LOCK_FREE == 2" in manager
     assert "GCS_SEND_TEXT" not in (root / "ArduCopter/mode_utb_acro.cpp").read_text()
-    return {"producer_backend_calls": 0, "producer_waits": 0, "worker_priority": "PRIORITY_IO,0",
+    for path in (root / "libraries/AP_UTB").glob("AP_UTB*.*"):
+        if path.suffix not in {".cpp", ".h"}:
+            continue
+        source = path.read_text()
+        for forbidden in ("AP_Motors", "SRV_Channels", "hal.rcout", "set_throttle(", "set_roll(",
+                          "set_pitch(", "set_yaw(", "AP_HAL_ChibiOS", "send_dshot_command("):
+            assert forbidden not in source, (path.name, forbidden)
+    return {"utb_motor_writer_dependencies": 0, "producer_backend_calls": 0, "producer_waits": 0,
+            "worker_priority": "PRIORITY_IO,0",
             "queue_capacity": 4, "synchronisation": "AP SPSC external ByteBuffer; status HAL try-lock; atomic feedback"}
 
 

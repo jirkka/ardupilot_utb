@@ -1,0 +1,6 @@
+# DISARMED, no propellers. Requires verified class1/type18 and BF_X_REV-capable BENCH ON firmware.
+# No frame, mapping, gains, battery, arming or failsafe changes.
+LOG_DISARMED,1
+UTB_ENABLE,1
+UTB_SHADOW,1
+UTB_LOG_RATE,200

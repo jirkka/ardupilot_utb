@@ -32,7 +32,7 @@ public:
     };
     static bool supports_frame(uint8_t frame_class, uint8_t frame_type)
     {
-        return frame_class == 1 && frame_type == 12;
+        return frame_class == 1 && (frame_type == 12 || frame_type == 18);
     }
     Result mix(const AP_UTB_RateController::Result &control, float thrust,
                uint8_t frame_class, uint8_t frame_type) const;

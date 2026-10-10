@@ -255,6 +255,12 @@ void AP_UTB::evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&
     s = {};
     s.input = input;
     s.seq = ++_seq;
+    const bool geometry_changed = _context_valid &&
+                                  (input.frame_class != _last_class || input.frame_type != _last_type);
+    if (geometry_changed) {
+        // Old queued snapshots retain their epoch and cannot be attributed to the new geometry.
+        ++_epoch;
+    }
     s.epoch = _epoch.load();
     s.flags = ENABLED | SHADOW_REQUESTED;
     if (input.logging_available) {

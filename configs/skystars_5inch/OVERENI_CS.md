@@ -1,4 +1,4 @@
-# Ověření archivu a analýzy
+# Historické ověření archivu a analýzy (před BF_X_REV)
 
 - Původní export versus archiv i Git blob: byte-for-byte PASS; 1190 unikátních jmen, všechny hodnoty konečné; SHA-256 a velikost dle README.
 - Jmenná kompatibilita: 1189 metadata + 1 přímá registrace ve zdroji; 1190/1190 známých názvů. Dostupnost na konkrétním FC neověřena.
@@ -9,3 +9,5 @@
 - Hardware, upload, motorové testy, aktivní UTB: neprovedeno. Nic nebylo doinstalováno.
 
 Ověření provedeno 2026-10-10. Bez nových C++/Python zdrojů nejsou nové compile/style regresní testy relevantní; kontrola whitespace provedena před lokálním commitem.
+
+Aktuální rozšíření podporuje18; staré očekávání odmítnutí18 bylo záměrně nahrazeno testy geometrie, inverze a runtime resetu. Aktuální výsledky a manifest jsou v ../../docs/UTB_BFX_REV_REPORT_CS.md. Původní archiv a A0/A/B overlay zůstávají beze změny.
