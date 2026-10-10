@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AP_Logger_Backend.h"
+#include "AP_Logger_UTBBench.h"
 
 #if HAL_LOGGING_BLOCK_ENABLED
 
@@ -93,6 +94,9 @@ private:
     HAL_Semaphore sem;
     // semaphore to mediate access to the ring buffer
     HAL_Semaphore write_sem;
+#if AP_UTB_BENCH_ENABLED
+    UTBBench::MutexState _bench_mutex {4};
+#endif
     ByteBuffer writebuf;
 
     // state variables

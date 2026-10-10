@@ -38,9 +38,10 @@ bool AP_UTB_APStateProvider::sample(AP_UTB_State &state) const
     state.sampled_us = AP_HAL::micros();
     state.imu_updated_us = AP::ins().get_last_update_usec();
     _view->get_quat_body_to_ned(state.attitude_body_to_ned);
+    state.primary_gyro = AP::ahrs().get_primary_gyro_index();
     state.rates_rads = _view->get_gyro_latest();
     state.attitude_valid = AP::ahrs().initialised() && AP::ahrs().healthy();
-    state.rates_valid = AP::ins().get_gyro_health();
+    state.rates_valid = AP::ins().get_gyro_health(state.primary_gyro);
     // This is diagnostic validity, not permission to control a vehicle.
     return state.valid(state.sampled_us, 100000);
 }

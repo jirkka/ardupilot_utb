@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef AP_UTB_BENCH_ENABLED
+#define AP_UTB_BENCH_ENABLED 0
+#endif
+
 #include <AP_HAL/AP_HAL_Boards.h>
 #include <AP_Filesystem/AP_Filesystem_config.h>
 #include <GCS_MAVLink/GCS_config.h>

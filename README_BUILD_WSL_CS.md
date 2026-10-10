@@ -1,6 +1,6 @@
 # ArduCopter pro kvadrokoptéru: sestavení a nahrání
 
-Návod pro WSL Ubuntu a tuto kopii projektu zaměřenou na Copter. Vytvořeno s asistencí AI.
+Návod pro WSL Ubuntu a tuto kopii projektu zaměřenou na Copter.
 
 Kompletní postup instalace Ubuntu, nastavení Gitu a doplnění build závislostí
 je v [návodu k přípravě prostředí](README_ARDUPILOT_UTB_SETUP_BUILD_CS.md).
@@ -249,7 +249,7 @@ Původní návod odkazoval na logy `tmp/trim-build-Skystars.log` a
 `tmp/trim-build-MicoAir.log`; tyto logy se do aktuální kopie nepřenesly.
 
 
-## Doplnění Codex: UTB FÁZE 0 (8. 10. 2026)
+## Doplnění: UTB FÁZE 0 (8. 10. 2026)
 
 Pro ověření skeleton patche byly do existující `.venv` doinstalovány
 `pymavlink`, `pytest`, `flake8` a jejich závislosti. Do Ubuntu byl doplněn
@@ -288,3 +288,126 @@ Podrobný stav, seznam změn a lokální logy jsou popsány v
 [UTB_ARCHITEKTURA_CS.md](docs/UTB_ARCHITEKTURA_CS.md).
 Firmware obou variant je uložen v `tmp/utb-artifacts/hw-on/` a
 `tmp/utb-artifacts/hw-off/`; adresář `tmp/` není součástí Gitu.
+
+
+## Doplnění: SHADOW FÁZE 1 (8. 10. 2026)
+
+V této fázi nebylo nic doinstalováno. Použita byla existující `.venv`,
+`pymavlink`, `flake8`, `astyle`, GTest submodule a stejný ARM toolchain.
+Instalační příkazy v předchozí části popisují historickou FÁZI 0.
+
+Implementován je pouze diagnostický shadow PID, BF_X allocator a logování.
+AP nadále řídí všechny skutečné motorové výstupy. `UTB_ACRO` nelze armovat
+ani zvolit za letu. Výchozí `UTB_ENABLE=0` a `UTB_SHADOW=0`; ENABLE vyžaduje
+restart. Runtime shadow podporuje pouze `FRAME_CLASS=1`, `FRAME_TYPE=12`.
+To nepotvrzuje konfiguraci fyzického dronu. Typ 18 je odmítnut.
+
+Opakovatelné příkazy v Ubuntu/WSL (vždy bez sudo pro waf):
+
+```bash
+cd /home/jirka/ardupilot_utb
+source .venv/bin/activate
+export PATH=/opt/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH
+mkdir -p tmp
+
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB
+./waf copter -j4
+# Před změnou konfigurace případně zkopírovat build/.../bin/arducopter*.
+./waf configure --board SkystarsH7HD-bdshot --disable-UTB
+./waf copter -j4
+
+./waf configure --board sitl --enable-UTB
+./waf copter --targets tests/test_utb -j4
+./build/sitl/tests/test_utb --gtest_output=xml:tmp/utb-unit-results.xml
+python Tools/autotest/test_utb_skeleton.py --binary build/sitl/bin/arducopter --compiled 1 --log-dir tmp/utb-new-skeleton-on
+python Tools/autotest/test_utb_shadow.py --binary build/sitl/bin/arducopter --output tmp/utb-new-shadow
+
+./waf configure --board sitl --disable-UTB
+./waf copter -j4
+python Tools/autotest/test_utb_skeleton.py --binary build/sitl/bin/arducopter --compiled 0 --log-dir tmp/utb-new-skeleton-off
+
+python -m flake8 Tools/autotest/test_utb_skeleton.py Tools/autotest/test_utb_shadow.py
+python Tools/autotest/param_metadata/param_parse.py --vehicle ArduCopter --no-emit
+mkdir -p tmp/utb-new-logger-metadata
+(cd tmp/utb-new-logger-metadata && python ../../Tools/autotest/logger_metadata/parse.py --vehicle Copter)
+git diff --check
+```
+
+Pro testovací output adresáře používat nové názvy. Skripty spouštějí lokální
+SITL a neotevírají spojení na fyzickou FC. Během dalšího waf configure/build
+je potřeba spouštět testy ze zachované kopie SITL binary, ne přepisovaného cíle.
+
+Zachované výsledky této fáze jsou v `tmp/utb-phase1-artifacts/{hw-on,hw-off,sitl-on,sitl-off}/`.
+Podrobné výsledky, log formáty, skutečné naměřené frekvence a omezení jsou
+v [UTB_CONTROL_THEORY_CS.md](docs/UTB_CONTROL_THEORY_CS.md), část 24.
+`tmp/` je ignorované lokální úložiště, nikoli verzovaný důkaz pro vzdálené CI.
+H743 CPU/logger load, fyzický frame, hardware a skutečný let nebyly ověřeny.
+FÁZE 2 ani aktivní UTB motorový output nebyly implementovány.
+
+
+## Hardening SHADOW FÁZE 1
+
+Původní FAST_TASK logger consumer nahradil samostatný HAL I/O worker.
+Producer nevolá AP_Logger backend/GCS a nikdy na consumer nečeká.
+Použita je pevná čtyřpoložková AP SPSC queue; full znamená diagnostický drop.
+Primary gyro změna resetuje pouze UTB PID historii. Nic nebylo doinstalováno.
+Build příkazy ON/OFF se nemění; test_utb nyní obsahuje 31 testů, shadow script
+navíc ověřuje worker counters, primary gyro switch a truncated-set parser.
+Pro log rate test script používá SITL speedup=1 (nativní worker a sim time);
+startup health timeout45s dovolí skutečné EKF ustálení při této rychlosti.
+
+Aktuální evidence: `tmp/utb-hardening-*`, firmware
+`tmp/utb-hardening-artifacts/{hw-on,hw-off,sitl-on,sitl-off}/`.
+Podrobný transport, priority, formáty a finální výsledky jsou v teorii,
+oddíl25. Původní `utb-phase1-*` jsou historické výsledky před hardeningem.
+Hardware a skutečný let zůstávají neověřené; další fáze nebyla zahájena.
+
+
+Hardening výsledky: 31/31 unit testů, SITL shadow i FÁZE 0 ON/OFF regrese,
+všechny čtyři buildy a source/style/metadata audit prošly. Naměřeno v SITL
+200.003738 a 399.326397 complete sets/s, nikoli H743 benchmark.
+Softwarový stav: SHADOW FÁZE 1 COMPLETE; hardware a skutečný let neověřeny.
+## FÁZE 1H-A — diagnostické sestavení
+
+Nic nebylo doinstalováno. Použit stávající WSL Ubuntu, .venv, waf,
+ARM GCC 10.2.1, gtest, astyle a flake8. Před C++ změnami byl ověřen checkpoint
+včetně untracked souborů a provedeny baseline build/unit/SITL regrese.
+Checkpoint: `tmp/utb-1ha-checkpoint/workspace.tar.gz`, SHA-256
+`92bcd530009062832ab8595cbfe43b80c7da795d953668ec6ef8f1a52efae51c`.
+
+```sh
+cd /home/jirka/ardupilot_utb
+export PATH="$PWD/.venv/bin:/opt/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH"
+# A0: runtime UTB_ENABLE=0, bez instrumentace
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB --disable-UTB_BENCH
+./waf copter -j4
+mkdir -p tmp/bench-session/A0
+cp build/SkystarsH7HD-bdshot/bin/arducopter* tmp/bench-session/A0/
+sha256sum tmp/bench-session/A0/arducopter*
+
+# A/B/C/D: stejný BENCH ON firmware, odlišné parametry
+mkdir -p tmp/utb-1ha
+printf 'define AP_UTB_BENCH_ENABLED 1\n' > tmp/utb-1ha/bench-on.hwdef
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB --enable-UTB_BENCH \
+  --extra-hwdef "$PWD/tmp/utb-1ha/bench-on.hwdef"
+./waf copter -j4
+mkdir -p tmp/bench-session/BENCH_ON
+cp build/SkystarsH7HD-bdshot/bin/arducopter* tmp/bench-session/BENCH_ON/
+sha256sum tmp/bench-session/BENCH_ON/arducopter*
+```
+
+A: ENABLE=0. B: ENABLE=1/SHADOW=0. C: ENABLE=1/SHADOW=1/LOG_RATE=200.
+D: ENABLE=1/SHADOW=1/LOG_RATE=400. Každý profil začít rebootem s uloženými
+parametry; worker vzniká pouze při boot ENABLE=1. Vždy explicitní readback parametrů,
+FRAME_CLASS=1/FRAME_TYPE=12, LOG_DISARMED=1 a pro Skystars LOG_BACKEND_TYPE=4.
+A0 a BENCH ON nezaměnit; každý APJ archivovat s targetem, flagy, velikostí
+a SHA-256. UTB OFF a logging-disabled buildy jsou compile guard kontroly,
+nikoli profily pro shadow benchmark. MicoAir používá samostatný target
+MicoAir743v2 a SDMMC logger typ 1; podrobné rozdíly jsou v bench dokumentu.
+
+Přesné ostatní build/test příkazy a první DISARMED postup bez vrtulí:
+[UTB_HARDWARE_BENCH_CS.md](docs/UTB_HARDWARE_BENCH_CS.md).
+Výsledky a manifest: [software report](docs/UTB_BENCH_SOFTWARE_REPORT_CS.md).
+Implementována je pouze diagnostika. Unit/SITL výsledky jsou oddělené
+od dosud neověřených H743 časů, CPU/logger zátěže a stack rezervy.
+Firmware nebyl nahrán na FC; aktivní UTB_ACRO a FÁZE 2 nejsou povoleny.

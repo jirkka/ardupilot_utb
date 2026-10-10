@@ -24,6 +24,7 @@
 #if AP_SCHEDULER_ENABLED
 
 #include "AP_Scheduler.h"
+#include <AP_Logger/AP_Logger_UTBBench.h>
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Param/AP_Param.h>
@@ -280,6 +281,9 @@ void AP_Scheduler::run(uint32_t time_available)
         bool overrun = false;
         if (time_taken > _task_time_allowed) {
             overrun = true;
+#if AP_UTB_BENCH_ENABLED
+            UTBBench::task_overrun();
+#endif
             // the event overran!
             debug(3, "Scheduler overrun task[%u-%s] (%u/%u)\n",
                   (unsigned)i,
@@ -356,6 +360,9 @@ void AP_Scheduler::loop()
 
     _loop_sample_time_us = AP_HAL::micros64();
     const uint32_t sample_time_us = uint32_t(_loop_sample_time_us);
+#if AP_UTB_BENCH_ENABLED
+    UTBBench::loop(sample_time_us, get_loop_period_us());
+#endif
     
     if (_loop_timer_start_us == 0) {
         _loop_timer_start_us = sample_time_us;

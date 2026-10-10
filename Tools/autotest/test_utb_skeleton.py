@@ -13,16 +13,16 @@ from pymavlink import mavutil
 
 
 class SITL:
-    def __init__(self, binary, defaults, workdir, log, compiled, enabled):
+    def __init__(self, binary, defaults, workdir, log, compiled, enabled, extra_params="", model="quad", speedup=5):
         params = workdir / "utb.parm"
         params.write_text("FRAME_CLASS 1\nFRAME_TYPE 1\nFS_THR_ENABLE 0\nFS_GCS_ENABLE 0\n"
                           "FLTMODE_CH 5\nFLTMODE1 0\nRC7_OPTION 0\nDISARM_DELAY 0\n"
-                          + (f"UTB_ENABLE {enabled}\n" if compiled else ""))
+                          + (f"UTB_ENABLE {enabled}\n" if compiled else "") + extra_params)
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
         self.process = subprocess.Popen(
-            [str(binary), "--model", "quad", "--speedup", "5", "--wipe",
+            [str(binary), "--model", model, "--speedup", str(speedup), "--wipe",
              "--home", "50,14,200,0", "--serial0", f"tcp:{port}",
              "--defaults", f"{defaults},{params}"], cwd=workdir, stdout=log, stderr=subprocess.STDOUT)
         self.link = None

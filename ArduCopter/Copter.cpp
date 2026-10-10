@@ -123,6 +123,9 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
 #endif //HELI_FRAME
     // send outputs to the motors library immediately
     FAST_TASK(motors_output_main),
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    FAST_TASK(utb_shadow_update),
+#endif
      // run EKF state estimator (expensive)
     FAST_TASK(read_AHRS),
 #if FRAME_CONFIG == HELI_FRAME

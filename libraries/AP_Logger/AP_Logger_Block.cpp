@@ -132,7 +132,11 @@ bool AP_Logger_Block::_WritePrioritisedBlock(const void *pBuffer, uint16_t size,
         return false;
     }
 
+#if AP_UTB_BENCH_ENABLED
+    UTBBench::MutexProbe bench(write_sem, _bench_mutex, __AP_LINE__);
+#else
     WITH_SEMAPHORE(write_sem);
+#endif
 
     const uint32_t space = writebuf.space();
 

@@ -172,8 +172,15 @@ void Copter::init_ardupilot()
 
     startup_INS_ground();
 
+#if AP_UTB_BENCH_ENABLED
+    utb_bench_init();
+#endif
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     utb.init(*ahrs_view);
+#if AP_UTB_BENCH_ENABLED
+    utb_bench_config();
+#endif
+    utb_log_init();
 #endif
 
 #if AC_CUSTOMCONTROL_MULTI_ENABLED

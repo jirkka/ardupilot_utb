@@ -24,6 +24,7 @@ struct AP_UTB_State {
     Vector3f rates_rads;
     uint32_t sampled_us = 0;
     uint32_t imu_updated_us = 0;
+    uint8_t primary_gyro = 255;
     bool attitude_valid = false;
     bool rates_valid = false;
 

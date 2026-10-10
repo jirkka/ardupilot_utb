@@ -73,6 +73,7 @@
 #include <AP_Winch/AP_Winch_config.h>
 #include <AP_SurfaceDistance/AP_SurfaceDistance.h>
 #include <AP_UTB/AP_UTB_config.h>
+#include <AP_Logger/AP_Logger_UTBBench.h>
 #if AP_UTB_ENABLED
 #include <AP_UTB/AP_UTB.h>
 #endif
@@ -249,6 +250,16 @@ private:
 
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     AP_UTB utb;
+    void utb_shadow_update();
+    void utb_log_init();
+    void utb_log_thread();
+    bool utb_log_update();
+    void utb_status_update(const AP_UTB::Snapshot &snapshot);
+#endif
+#if AP_UTB_BENCH_ENABLED
+    void utb_bench_init();
+    void utb_bench_config();
+    void utb_bench_thread();
 #endif
 
     // used to detect MAVLink acks from GCS to stop compassmot

@@ -17,6 +17,11 @@ void Copter::run_rate_controller_main()
     if (!using_rate_thread) {
         motors->set_dt_s(last_loop_time_s);
         // only run the rate controller if we are not using the rate thread
+#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+        if (utb.shadow_requested() && get_fast_rate_type() == FastRateType::FAST_RATE_DISABLED) {
+            utb.capture_target(attitude_control->rate_bf_targets(), AP_HAL::micros64(), uint8_t(flightmode->mode_number()));
+        }
+#endif
         attitude_control->rate_controller_run();
     }
     // reset sysid and other temporary inputs

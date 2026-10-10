@@ -1,4 +1,6 @@
 #include "Copter.h"
+#include "utb_bench_log.h"
+#include "utb_log.h"
 #include <AP_InertialSensor/AP_InertialSensor_rate_config.h>
 
 #if HAL_LOGGING_ENABLED
@@ -422,6 +424,12 @@ void Copter::Log_Write_Rate_Thread_Dt(float dt, float dtAvg, float dtMax, float 
 // libraries/AP_Logger/Logstructure.h; search for "log_Units" for
 // units and "Format characters" for field type information
 const struct LogStructure Copter::log_structure[] = {
+#if AP_UTB_ENABLED
+    UTB_LOG_STRUCTURES
+#endif
+#if AP_UTB_BENCH_ENABLED
+    UTB_BENCH_LOG_STRUCTURES
+#endif
     LOG_COMMON_STRUCTURES,
     
 // @LoggerMessage: PTUN

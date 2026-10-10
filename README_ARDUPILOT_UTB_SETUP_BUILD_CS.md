@@ -2,7 +2,7 @@
 
 Tento návod popisuje kompletní zprovoznění projektu `ardupilot_utb` na čistém Windows počítači nebo notebooku.
 
-Doplnění závislostí a ověření buildu dne 6. 10. 2026 bylo provedeno s asistencí AI.
+Závislosti byly doplněny a build ověřen dne 6. 10. 2026.
 
 Cílové prostředí:
 

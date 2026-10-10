@@ -9,26 +9,15 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
  */
-#include "Copter.h"
-
-#if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
-bool ModeUTBAcro::init(bool ignore_checks)
+#pragma once
+#include "AP_UTB_config.h"
+#if AP_UTB_ENABLED
+#include <AP_Math/AP_Math.h>
+// AP-derived UTB shadow reference: static map only, no trainer/RATE_TC.
+class AP_UTB_Reference
 {
-    // This restriction also applies when ordinary mode-entry checks are skipped.
-    if (!enabled() || motors->armed() ||
-        motors->get_spool_state() != AP_Motors::SpoolState::SHUT_DOWN) {
-        return false;
-    }
-    return true;
-}
-
-bool ModeUTBAcro::enabled() const
-{
-    return copter.utb.enabled();
-}
-
-void ModeUTBAcro::run()
-{
-    copter.utb.update_state();
-}
-#endif
+public:
+    static bool rates(const Vector3f &sticks, float rp_rate_deg, float y_rate_deg,
+                      float rp_expo, float y_expo, Vector3f &target);
+};
+#endif // AP_UTB_ENABLED

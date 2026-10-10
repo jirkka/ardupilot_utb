@@ -10,6 +10,7 @@
 
 #include <AP_HAL/utility/RingBuffer.h>
 #include "AP_Logger_Backend.h"
+#include "AP_Logger_UTBBench.h"
 
 #if HAL_LOGGING_FILESYSTEM_ENABLED
 
@@ -25,6 +26,9 @@
 
 class AP_Logger_File : public AP_Logger_Backend
 {
+#if AP_UTB_BENCH_ENABLED && CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    UTBBench::MutexState _bench_mutex {1};
+#endif
 public:
     // constructor
     AP_Logger_File(AP_Logger &front,

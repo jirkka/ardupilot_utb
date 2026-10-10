@@ -442,7 +442,11 @@ bool AP_Logger_File::StartNewLogOK() const
 /* Write a block of data at current offset */
 bool AP_Logger_File::_WritePrioritisedBlock(const void *pBuffer, uint16_t size, bool is_critical)
 {
+#if AP_UTB_BENCH_ENABLED && CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    UTBBench::MutexProbe bench(semaphore, _bench_mutex, __AP_LINE__);
+#else
     WITH_SEMAPHORE(semaphore);
+#endif
 
 #if APM_BUILD_TYPE(APM_BUILD_Replay)
     if (AP::FS().write(_write_fd, pBuffer, size) != size) {

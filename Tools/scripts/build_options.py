@@ -41,6 +41,7 @@ class Feature:
 # dependencies  : Comma-separated list of feature labels that this feature depends on
 #                 (a single string with commas and no spaces). e.g., 'dependency1,dependency2'.
 BUILD_OPTIONS = [
+    Feature('Other', 'UTB_BENCH', 'AP_UTB_BENCH_ENABLED', 'Enable diagnostic UTB hardware benchmark', 0, None),
     Feature('Other', 'UTB', 'AP_UTB_ENABLED', 'Enable Copter UTB disarmed diagnostic skeleton', 0, None),
     Feature('AHRS', 'EKF3', 'HAL_NAVEKF3_AVAILABLE', 'Enable EKF3', 1, None),
     Feature('AHRS', 'EKF2', 'HAL_NAVEKF2_AVAILABLE', 'Enable EKF2', 0, None),

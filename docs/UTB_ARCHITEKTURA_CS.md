@@ -4,7 +4,7 @@
 
 Tato část popisuje skutečný skeleton patch. Architektonický návrh níže
 zůstává plánem dalších kroků; aktivní řízení z něj není implementované.
-Implementace byla vytvořena s asistencí AI nad commitem `36874030af`.
+Implementace vychází z commitu `36874030af`.
 
 ### Implementováno
 
@@ -135,7 +135,7 @@ doplněny `pymavlink`, `pytest`, `flake8` a jejich závislosti a do Ubuntu
 
 
 Stav této původní části: schválený architektonický návrh. Skutečný rozsah
-implementace a ověření je uveden výše; další etapy zůstávají plánem. Zpracováno s asistencí AI
+implementace a ověření je uveden výše; další etapy zůstávají plánem. Zpracováno
 7. 10. 2026 nad větví `ardupilot-4.7.1-utb`, commit `36874030af`.
 Zdrojem zjištění je skutečný kód této kopie; nelze ji zaměňovat za jinou
 verzi upstream ArduPilotu. Při původní architektonické analýze se firmware nepřekládal ani
@@ -576,3 +576,116 @@ virtuálních metod a chráněných dat. Jeho aktivní chování zatím ověřen
 Návrh proto nezaručuje bumpless fallback, správnost nového mixeru ani
 bezpečnost letu. Otevřené body v části H jsou podmínkou další aktivní etapy,
 ne důvodem oslabit existující kontroly.
+
+
+## K. Skutečný stav: SHADOW FÁZE 1 (8. 10. 2026)
+
+Tato část doplňuje historický návrh A–J. Schválená a implementovaná FÁZE 1
+je **SHADOW ONLY** dle verze 2 `UTB_CONTROL_THEORY_CS.md`. Dřívější formulace
+„Aktivní FÁZE 1“ v části I je původní budoucí návrh, nikoli realizovaný stav
+nebo povolení aktivního výstupu. Přepínání autority, vlastní motorový adaptér,
+aktivní UTB_ACRO, další režimy a FÁZE 2 zůstávají návrhem.
+
+**IMPLEMENTOVÁNO:** AP_UTB samostatný tříosý rate PID (default Ki=0),
+SHADOW ONLY directional jednokrokový anti-windup, diagnostický BF_X mixer,
+AP-derived UTB shadow reference, parametry SHADOW/LOG_RATE/gains a oddělená
+validita state/controller/mixer versus logging/observability. Runtime přijímá
+jen class=1/type=12, typ 18 neakceptuje. Neplatné motorové výsledky jsou nuly.
+Mixer zachovává poměr R/P/Y společným scale a může posunout collective;
+yaw nemá nižší prioritu. Allocator není schválen pro aktivní letový output.
+
+**INTEGRACE:** read-only AP rate target capture před existujícím AP rate
+controllerem, shadow fast task po AP motor outputu před AHRS a následným
+update_flight_mode. Jeden AP controller run zůstává jeden run. TimeUS/Seq,
+AP mode/capture timestamp/sequence/mode a RC timestamp umožňují offline
+alignment; AP target a UTB reference nejsou automaticky jeden logický sample.
+Čtyři snapshoty ve frontě, maximálně jedna sada na consumer průchod,
+UTBS status přibližně 1 Hz, UTBR/M/A/T sada experimentálně 1–400 Hz
+(default 200); log rate neřídí controller rate. Při logger výpadku za běhu
+matematika pokračuje, drops/missing jsou observability. Bez dostupného loggeru
+se nový experiment nespustí. FSTRATE nenulové nebo aktivní rate thread
+potlačí shadow. Opakovaný časový overrun potlačí pouze shadow.
+
+**OMEZENÍ AUTORITY:** UTB nemá žádné motorové setters/output/spool/limits,
+HAL/DShot zápisy ani druhé spuštění AP controlleru. AP_Motors chování,
+arming/failsafe a estimator zůstávají původní. UTB_ACRO je disarmovaná
+diagnostika, normální/force/RC arm i armed entry jsou odmítnuty.
+Při ENABLE=0 neběží UTB shadow/capture/log/status; compile-out je zachován.
+Nové vlastní EKF, position/altitude/AUTO ani UTB rate/expo parametry nevznikly.
+
+| Úroveň | Stav a rozsah |
+| --- | --- |
+| NÁVRH | Schválená matematika/architektura v2; aktivní výstup a další fáze pouze návrh |
+| IMPLEMENTOVÁNO | Výše uvedená SHADOW FÁZE 1, lokální patch |
+| UNIT OVĚŘENO | 26 C++ testů; podrobnosti a finální evidence v teorii, část 24 |
+| BUILD OVĚŘENO | SkystarsH7HD-bdshot a SITL, UTB on/off; finální tabulka v teorii, část 24 |
+| SITL OVĚŘENO | Shadow guards/logging/math, RC map, AP SYSID alignment, steady ground motor isolation a FÁZE 0 regrese |
+| HARDWARE OVĚŘENO | NE; firmware nebyl nahrán do FC, frame ani H743 load nebyly změřeny |
+| SKUTEČNÝ LET OVĚŘENO | NE; pouze AP řízený simulovaný SYSID let, nikoli uzavřená UTB regulační smyčka |
+
+Přesný seznam souborů/zásahů, logové formáty a otevřené otázky jsou
+v [UTB_CONTROL_THEORY_CS.md](UTB_CONTROL_THEORY_CS.md), části 19, 20 a 24.
+Příkazy a informace o instalacích jsou v [README_BUILD_WSL_CS.md](../README_BUILD_WSL_CS.md).
+Bez dalšího odsouhlasení nepokračovat další fází.
+
+
+## L. Aktuální hardening transport FÁZE 1
+
+Část K zachycuje první SHADOW patch; její FAST_TASK consumer byl při auditu
+shledán blokující přes AP logger backend. Aktuální revize jej odstraňuje.
+Flight main obsahuje jen read-only capture a shadow producer. Datová queue
+je fixed external-storage AP ByteBuffer/ObjectBuffer SPSC, čtyři položky,
+bez heapu/locku/wait. Status mailbox má pouze best-effort try-lock.
+Consumer běží v samostatném HAL workeru PRIORITY_IO,0 (ChibiOS 58 < main180),
+max čtyři sady/cyklus + sleep1ms. Všechny UTB backend write a GCS status
+operace jsou v workeru; producer na loggeru nikdy nečeká. Consumer nesmí
+číst main-owned snapshot/capture/controller; používá kopie a atomic feedback.
+Full = diagnostics drop, ne zpomalení nebo reset controlleru. Off/on používá
+epoch místo cross-thread clear. Při boot ENABLE=0 nevznikne worker ani
+UTB capture/control/queue/log činnost. Primary gyro change resetuje vlastní
+PID historii s PRIME/PRIMARY_GYRO_CHANGED; AP failover zůstává původní.
+
+PID/BF_X/reference/anti-windup a všechny arming zákazy zůstávají zachovány.
+Nový UTBQ ID18 eviduje pipeline counters/epoch/gyro; ID13–17 se nemění.
+Skutečné test/build výsledky a omezení jsou v teorii, oddíl25. Hardware,
+H743 CPU/logger load, stack reserve a skutečný let nejsou ověřené.
+FÁZE 2 a aktivní motor authority nezačaly.
+
+
+Hardening ověření: **31/31 UNIT PASS**, SITL shadow + primary gyro/SYSID/
+RC/isolation PASS, FÁZE 0 regrese ON/OFF PASS, SkystarsH7HD-bdshot a SITL
+build ON/OFF PASS, source audit producer/transport/motor/arming PASS.
+Stav softwarové SHADOW FÁZE 1 = **COMPLETE**. Hardware a skutečný let
+zůstávají **NEOVĚŘENO**; podrobná evidence/omezení v teorii 25.5–25.7.
+## M. FÁZE 1H-A — diagnostický hardware benchmark
+
+**Implementováno:** samostatný compile-time `AP_UTB_BENCH_ENABLED`, default 0,
+nezávislý na AP_UTB_ENABLED. BENCH OFF odstraní diagnostické třídy, parametry,
+log metadata, scheduler probe i exporter. BENCH ON funguje také při runtime
+UTB_ENABLE=0; proto lze porovnat A0/BENCH OFF s A/BENCH ON.
+
+Pro SkystarsH7HD-bdshot je relevantní SPI W25Q128 BLOCK logger,
+LOG_BACKEND_TYPE=4. Typ 1 je filesystem, který zde není aktivním backendem.
+Instrumentuje se jeho původní write_sem, bez změny acquire/release policy.
+Filesystem probe je pouze SITL; flash-chip/SPI zámky nejsou měřeny.
+
+Nové logy UBMT/UBHI/UBST/UBEP a omezená channel-0 telemetry pocházejí
+ze samostatného diagnostického exporteru. MAIN/UTB_WORKER/OTHER/UNKNOWN
+atribuce používá skutečnou identitu vlákna, nikoli prioritu. Snapshoty mají
+jednorázové atomic čtení bez retry; nejednoznačná kolize je UNKNOWN.
+Worker stack watermark používá místní ChibiOS stack_free API. Zachována
+je původní priorita, lifecycle, queue a failure policy shadow workeru.
+
+**Unit/SITL ověření:** konkrétní výsledky, buildy a source audit jsou
+v [software reportu](UTB_BENCH_SOFTWARE_REPORT_CS.md).
+**Hardware neověřeno:** mutex latence/PI, CPU a logger load, stack rezerva,
+exporter overhead, udržitelnost 200/400 Hz a skutečný frame na FC.
+Nulové potvrzené kolize neprokazují nulové blocking riziko; diagnostika sama
+přidává overhead a exporter je další logger contender.
+
+PID, D filtr, anti-windup, reference, BF_X mixer, arming, AP_Motors,
+HAL/DShot, EKF a FSTRATE se nemění. UTB nemá motorovou autoritu.
+Plán první session je [hardware bench postup](UTB_HARDWARE_BENCH_CS.md).
+MicoAir743v2 je samostatný target s SDMMC filesystem loggerem; současný
+BLOCK mutex probe pro jeho hardware neplatí. FÁZE 2 ani aktivní UTB_ACRO
+nejsou zahájeny. Firmware se na hardware nenahrával.
