@@ -1,0 +1,5 @@
+# DISARMED bench overlay; requires UTB-capable build and verified FRAME_CLASS=1, FRAME_TYPE=18.
+# A0: BENCH OFF; A/B: BENCH ON. No frame, motor, arming or failsafe changes.
+LOG_DISARMED,1
+UTB_ENABLE,1
+UTB_SHADOW,0
