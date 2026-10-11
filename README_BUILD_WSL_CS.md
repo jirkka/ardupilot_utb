@@ -1,5 +1,7 @@
 # ArduCopter pro kvadrokoptéru: sestavení a nahrání
 
+Pro orientaci ve zdrojovém kódu otevři [Mapu projektu](MAPA_PROJEKTU_CS.md).
+
 Návod pro připravené prostředí v tomto projektu. Vytvořeno s asistencí AI.
 
 ## 1. Otevři WSL
