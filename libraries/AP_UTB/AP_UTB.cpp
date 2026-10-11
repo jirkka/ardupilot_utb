@@ -406,19 +406,7 @@ void AP_UTB::update(const Inputs &input)
     _snapshot.effective_log_rate = elapsed > 0 ? (_written_sets.load() - _rate_start_written) * 1.0e6f / elapsed : 0;
     _snapshot.drops = _drops;
     _snapshot.missing = _missing;
-    bool selected = false;
-    if (rate != _last_log_rate) {
-        _last_log_us = 0;
-        _last_log_rate = rate;
-    }
-    if (rate >= 1 && rate <= 400 && (_last_log_us == 0 || input.time_us >= _last_log_us)) {
-        const uint64_t period_us = uint64_t(1.0e6f / rate);
-        _last_log_us = (_last_log_us == 0 ? input.time_us : _last_log_us) + period_us;
-        if (_last_log_us <= input.time_us) {
-            _last_log_us = input.time_us + period_us;
-        }
-        selected = true;
-    }
+    bool selected = select_log_sample(input.time_us, input.nominal_dt, rate);
     if (_snapshot.calculation == CalculationReason::PRIMARY_GYRO_CHANGED) {
         selected = true; // Preserve the one-cycle reset event when diagnostic capacity permits.
     }
@@ -431,6 +419,32 @@ void AP_UTB::update(const Inputs &input)
     _snapshot.missing = _missing.load();
     publish_diagnostics(_snapshot, selected);
 
+}
+
+bool AP_UTB::select_log_sample(uint64_t time_us, float nominal_dt, int16_t rate)
+{
+    if (rate != _last_log_rate) {
+        _last_log_us = 0;
+        _last_log_rate = rate;
+    }
+    if (rate < 1 || rate > 400) {
+        return false;
+    }
+    // At the nominal controller rate, capture every cycle despite timer jitter.
+    // Slower log rates retain the existing wall-time decimation.
+    if (isfinite(nominal_dt) && nominal_dt > 0 && rate * nominal_dt >= 1.0f) {
+        _last_log_us = 0;
+        return true;
+    }
+    if (_last_log_us == 0 || time_us >= _last_log_us) {
+        const uint64_t period_us = uint64_t(1.0e6f / rate);
+        _last_log_us = (_last_log_us == 0 ? time_us : _last_log_us) + period_us;
+        if (_last_log_us <= time_us) {
+            _last_log_us = time_us + period_us;
+        }
+        return true;
+    }
+    return false;
 }
 
 bool AP_UTB::publish_diagnostics(Snapshot &snapshot, bool selected)

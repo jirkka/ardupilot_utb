@@ -217,6 +217,7 @@ public:
         return _capture;
     }
     void update(const Inputs &input);
+    bool select_log_sample(uint64_t time_us, float nominal_dt, int16_t rate);
     // Pure diagnostic engine is also exercised with synthetic inputs in unit tests.
     void evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&gains)[3], Snapshot &snapshot);
     void reset_shadow();

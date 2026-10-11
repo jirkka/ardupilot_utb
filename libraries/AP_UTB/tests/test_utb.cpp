@@ -13,6 +13,63 @@
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 #if AP_UTB_ENABLED
+TEST(UTBLogSelection, FullRateCapturesEarlyAndLateCycles)
+{
+    AP_UTB utb;
+    for (uint32_t cycle = 0; cycle < 8000; cycle++) {
+        const int32_t jitter = cycle == 0 ? 0 : int32_t(cycle % 11) - 5;
+        const uint64_t stamp = 1000000 + uint64_t(cycle) * 2500 + jitter;
+        ASSERT_TRUE(utb.select_log_sample(stamp, 0.0025f, 400)) << cycle;
+    }
+}
+
+TEST(UTBLogSelection, LowerRatesAndFasterControllerKeepDecimation)
+{
+    AP_UTB utb;
+    for (uint32_t cycle = 0; cycle < 8000; cycle++) {
+        EXPECT_EQ(utb.select_log_sample(1000000 + uint64_t(cycle) * 2500, 0.0025f, 200), cycle % 2 == 0);
+    }
+    for (uint32_t cycle = 0; cycle < 8000; cycle++) {
+        EXPECT_EQ(utb.select_log_sample(30000000 + uint64_t(cycle) * 1250, 0.00125f, 400), cycle % 2 == 0);
+    }
+}
+
+TEST(UTBLogSelection, RateChangeAndShadowResetRestartSelection)
+{
+    AP_UTB utb;
+    EXPECT_TRUE(utb.select_log_sample(1000000, 0.0025f, 200));
+    EXPECT_FALSE(utb.select_log_sample(1002500, 0.0025f, 200));
+    EXPECT_TRUE(utb.select_log_sample(1004995, 0.0025f, 400));
+    EXPECT_TRUE(utb.select_log_sample(1007496, 0.0025f, 400));
+    EXPECT_TRUE(utb.select_log_sample(1009997, 0.0025f, 200));
+    EXPECT_FALSE(utb.select_log_sample(1012497, 0.0025f, 200));
+    utb.reset_shadow();
+    EXPECT_TRUE(utb.select_log_sample(1012498, 0.0025f, 200));
+}
+
+TEST(UTBLogSelection, DelaysDoNotCreateBackfilledSets)
+{
+    AP_UTB utb;
+    EXPECT_TRUE(utb.select_log_sample(1000000, 0.0025f, 200));
+    EXPECT_TRUE(utb.select_log_sample(1020000, 0.0025f, 200));
+    EXPECT_FALSE(utb.select_log_sample(1022500, 0.0025f, 200));
+    EXPECT_TRUE(utb.select_log_sample(1025000, 0.0025f, 200));
+}
+
+TEST(UTBLogSelection, InvalidRateAndClockBoundary)
+{
+    AP_UTB utb;
+    EXPECT_FALSE(utb.select_log_sample(UINT32_MAX, 0.0025f, 0));
+    EXPECT_FALSE(utb.select_log_sample(UINT32_MAX, 0.0025f, 401));
+    EXPECT_TRUE(utb.select_log_sample(UINT32_MAX - 1000ULL, 0.0025f, 400));
+    EXPECT_TRUE(utb.select_log_sample(UINT32_MAX + 1500ULL, 0.0025f, 400));
+    // Invalid nominal timing cannot select the full-rate shortcut.
+    EXPECT_TRUE(utb.select_log_sample(1000000, NAN, 200));
+    EXPECT_FALSE(utb.select_log_sample(1002500, NAN, 200));
+    EXPECT_FALSE(utb.select_log_sample(1002500, 0, 200));
+    EXPECT_FALSE(utb.select_log_sample(1002500, -1, 200));
+}
+
 TEST(UTBLogPacket, PreservesAllValuesAndMasks)
 {
     AP_UTB::Snapshot s;
