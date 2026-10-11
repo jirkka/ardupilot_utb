@@ -290,7 +290,7 @@ void AP_UTB::evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&
     const bool dt_valid = nominal_valid && isfinite(input.dt) && input.dt >= input.nominal_dt * 0.25f &&
                           input.dt <= input.nominal_dt * 4;
     const uint32_t age_us = nominal_valid ? uint32_t(MIN(0.1f, input.nominal_dt * 4) * 1.0e6f) : 0;
-    const bool state_valid = nominal_valid && input.state.valid(uint32_t(input.time_us), age_us) &&
+    const bool state_valid = nominal_valid && input.state.valid(input.validation_time_us, age_us) &&
                              input.state.imu_updated_us != _last_imu_us;
     _last_imu_us = input.state.imu_updated_us;
     if (state_valid) {

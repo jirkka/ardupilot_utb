@@ -44,6 +44,7 @@ void Copter::utb_shadow_update()
         return;
     }
     utb.sample_state(in.state);
+    in.validation_time_us = AP_HAL::micros();
     in.ap_target = utb.captured_target();
     in.ap_target.valid &= !in.fast_rate && in.ap_target.mode == in.mode;
     in.rc_input_ms = g2.rc_channels.last_input_ms();

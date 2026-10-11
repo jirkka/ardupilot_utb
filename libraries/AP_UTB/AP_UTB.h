@@ -70,6 +70,7 @@ public:
     };
     struct Inputs {
         AP_UTB_State state;
+        uint32_t validation_time_us = 0; // Monotonic time captured after sampling; time_us remains the log timestamp.
         Vector3f reference;
         TargetCapture ap_target;
         uint64_t time_us = 0;

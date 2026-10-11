@@ -448,6 +448,7 @@ static AP_UTB::Inputs engine_input()
     AP_UTB::Inputs in;
     in.state = zero_state();
     in.time_us = 1000;
+    in.validation_time_us = uint32_t(in.time_us);
     in.dt = in.nominal_dt = 0.0025f;
     in.thrust = 0.5f;
     in.frame_class = 1;
@@ -460,8 +461,111 @@ static AP_UTB::Inputs engine_input()
 static void advance(AP_UTB::Inputs &in)
 {
     in.time_us += 2500;
+    in.validation_time_us = uint32_t(in.time_us);
     in.state.sampled_us = in.time_us;
     in.state.imu_updated_us = in.time_us;
+}
+
+TEST(UTBHealth, FreshSampleAfterLogTimeUsesExplicitValidationTime)
+{
+    AP_UTB utb;
+    AP_UTB::Snapshot snapshot;
+    auto in = engine_input();
+    AP_UTB_RateController::Gains gains[3] {};
+    for (uint8_t cycle = 0; cycle < 2; cycle++) {
+        const uint64_t log_time = in.time_us;
+        in.state.sampled_us = uint32_t(log_time + 5);
+        in.state.imu_updated_us = uint32_t(log_time - 5);
+        in.validation_time_us = uint32_t(log_time + 10);
+        utb.evaluate(in, gains, snapshot);
+        ASSERT_TRUE(snapshot.flags & AP_UTB::STATE_VALID);
+        EXPECT_EQ(snapshot.input.time_us, log_time);
+        EXPECT_EQ(snapshot.input.validation_time_us, in.validation_time_us);
+        EXPECT_EQ(snapshot.calculation, cycle == 0 ? AP_UTB::CalculationReason::PRIMING : AP_UTB::CalculationReason::NONE);
+        if (cycle != 0) {
+            EXPECT_TRUE(snapshot.flags & AP_UTB::SHADOW_HEALTHY);
+        }
+        advance(in);
+    }
+}
+
+TEST(UTBHealth, ValidationTimeRejectsStaleSnapshotAndImu)
+{
+    for (bool stale_imu : {
+             false, true
+         }) {
+        AP_UTB utb;
+        AP_UTB::Snapshot snapshot;
+        auto in = engine_input();
+        AP_UTB_RateController::Gains gains[3] {};
+        in.time_us = 20000;
+        in.validation_time_us = 20010;
+        in.state.sampled_us = 20005;
+        in.state.imu_updated_us = 20000;
+        if (stale_imu) {
+            in.state.imu_updated_us = in.validation_time_us - 10001;
+        } else {
+            in.state.sampled_us = in.validation_time_us - 10001;
+        }
+        utb.evaluate(in, gains, snapshot);
+        EXPECT_EQ(snapshot.calculation, AP_UTB::CalculationReason::STATE_INVALID);
+        EXPECT_FALSE(snapshot.flags & AP_UTB::STATE_VALID);
+        EXPECT_FALSE(snapshot.flags & AP_UTB::CONTROLLER_EVALUATED);
+        EXPECT_FALSE(snapshot.flags & AP_UTB::MIXER_EVALUATED);
+    }
+}
+
+TEST(UTBHealth, NewValidationTimeDoesNotHideRepeatedImu)
+{
+    AP_UTB utb;
+    AP_UTB::Snapshot snapshot;
+    auto in = engine_input();
+    AP_UTB_RateController::Gains gains[3] {};
+    utb.evaluate(in, gains, snapshot);
+    ASSERT_TRUE(snapshot.flags & AP_UTB::STATE_VALID);
+    const uint32_t previous_imu = in.state.imu_updated_us;
+    advance(in);
+    in.state.imu_updated_us = previous_imu;
+    in.state.sampled_us += 5;
+    in.validation_time_us += 10;
+    utb.evaluate(in, gains, snapshot);
+    EXPECT_EQ(snapshot.calculation, AP_UTB::CalculationReason::STATE_INVALID);
+    EXPECT_FALSE(snapshot.flags & AP_UTB::STATE_VALID);
+    advance(in);
+    utb.evaluate(in, gains, snapshot);
+    EXPECT_EQ(snapshot.calculation, AP_UTB::CalculationReason::PRIMING);
+    advance(in);
+    utb.evaluate(in, gains, snapshot);
+    EXPECT_TRUE(snapshot.flags & AP_UTB::SHADOW_HEALTHY);
+}
+
+TEST(UTBHealth, ValidationTimeWrapPreservesFreshnessAndRejectsStaleImu)
+{
+    AP_UTB utb;
+    AP_UTB::Snapshot snapshot;
+    auto in = engine_input();
+    AP_UTB_RateController::Gains gains[3] {};
+    in.time_us = (uint64_t(1) << 32) - 8;
+    for (uint8_t cycle = 0; cycle < 2; cycle++) {
+        in.state.sampled_us = uint32_t(in.time_us + 3);
+        in.state.imu_updated_us = uint32_t(in.time_us - 3);
+        in.validation_time_us = uint32_t(in.time_us + 12);
+        utb.evaluate(in, gains, snapshot);
+        ASSERT_TRUE(snapshot.flags & AP_UTB::STATE_VALID);
+        EXPECT_EQ(snapshot.input.time_us, in.time_us);
+        EXPECT_EQ(snapshot.calculation, cycle == 0 ? AP_UTB::CalculationReason::PRIMING : AP_UTB::CalculationReason::NONE);
+        advance(in);
+    }
+    EXPECT_TRUE(snapshot.flags & AP_UTB::SHADOW_HEALTHY);
+
+    AP_UTB stale_utb;
+    in.time_us = uint64_t(1) << 32;
+    in.validation_time_us = 12;
+    in.state.sampled_us = 3;
+    in.state.imu_updated_us = uint32_t(in.validation_time_us - 10001);
+    stale_utb.evaluate(in, gains, snapshot);
+    EXPECT_EQ(snapshot.calculation, AP_UTB::CalculationReason::STATE_INVALID);
+    EXPECT_FALSE(snapshot.flags & AP_UTB::STATE_VALID);
 }
 
 TEST(UTBHealth, LoggingStartPolicyAndRuntimeLossAreSeparateFromMathematics)
