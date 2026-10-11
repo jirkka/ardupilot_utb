@@ -411,3 +411,39 @@ Výsledky a manifest: [software report](docs/UTB_BENCH_SOFTWARE_REPORT_CS.md).
 Implementována je pouze diagnostika. Unit/SITL výsledky jsou oddělené
 od dosud neověřených H743 časů, CPU/logger zátěže a stack rezervy.
 Firmware nebyl nahrán na FC; aktivní UTB_ACRO a FÁZE 2 nejsou povoleny.
+
+## Packed v1: diagnostika 400 Hz
+
+Nic nebylo doinstalováno. Použito stávající WSL/.venv, ARM GCC, gtest, astyle a flake8.
+Default UTB_LOG_FMT=0 zůstává původní formát. Nový firmware obsahuje oba formáty;
+pro menší tok je nutné explicitně zvolit UTB_LOG_FMT=1. C/D mají nadále
+UTB_ENABLE=1, UTB_SHADOW=1, UTB_LOG_RATE=200/400 a Skystars LOG_BACKEND_TYPE=4.
+Známá fyzická geometrie FRAME_CLASS=1/FRAME_TYPE=18 se tím nemění.
+
+```sh
+cd /home/jirka/ardupilot_utb
+export PATH="$PWD/.venv/bin:/opt/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH"
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB --enable-UTB_BENCH \
+  --extra-hwdef "$PWD/tmp/utb-1ha/bench-on.hwdef"
+./waf copter -j4
+# Archivovat před dalším configure/build:
+mkdir -p tmp/packed-bench/BENCH_ON
+cp build/SkystarsH7HD-bdshot/bin/arducopter.apj tmp/packed-bench/BENCH_ON/
+sha256sum tmp/packed-bench/BENCH_ON/arducopter.apj
+
+./waf configure --board sitl --enable-UTB --enable-UTB_BENCH
+./waf copter --targets tests/test_utb,tests/test_utb_bench -j4
+build/sitl/tests/test_utb
+build/sitl/tests/test_utb_bench
+.venv/bin/python -m unittest discover -s Tools/autotest/unittest -p test_utb_log_decode.py
+.venv/bin/python Tools/autotest/test_utb_shadow.py --binary build/sitl/bin/arducopter \
+  --output tmp/packed-sitl-new --packed
+.venv/bin/python Tools/autotest/utb_log_decode.py downloaded.bin --output decoded.jsonl
+```
+
+APJ git_identity obsahuje základ větve; konkrétní necommitnutou variantu identifikuje
+SHA-256 a zdrojový manifest. Úložiště této implementace a testů:
+`tmp/utb-packed-log-20261011/`. Před změnami uložen HEAD archive, tracked diff,
+status a samostatný archive všech untracked souborů; tmp/build/submoduly se nemění.
+Přesný formát, software evidence a HW omezení: [UTB_PACKED_LOG_CS.md](docs/UTB_PACKED_LOG_CS.md).
+Nový firmware na FC nebyl nahrán; nový formát je hardware NEOVĚŘEN.

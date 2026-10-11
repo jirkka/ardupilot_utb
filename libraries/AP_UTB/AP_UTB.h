@@ -105,6 +105,7 @@ public:
         uint32_t overruns = 0;
         float effective_log_rate = 0;
         uint16_t requested_log_rate = 0;
+        uint8_t log_format = 0;
     };
     // Fixed AP SPSC data transport; only the independent status mailbox uses try-lock.
     class Queue
@@ -265,6 +266,7 @@ private:
     AP_Int8 _enable;
     AP_Int8 _shadow;
     AP_Int16 _log_rate;
+    AP_Int8 _log_format;
     AP_Float _p[3];
     AP_Float _i[3];
     AP_Float _d[3];

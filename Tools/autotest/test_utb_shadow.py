@@ -12,6 +12,7 @@ import time
 from pymavlink import mavutil
 
 from test_utb_skeleton import SITL
+from utb_log_decode import expand_record
 
 
 class ShadowSITL(SITL):
@@ -66,6 +67,10 @@ def read_logs(directory):
             if msg is None:
                 break
             kind = msg.get_type()
+            if kind == "UTBC":
+                records.setdefault(kind, []).append(msg.to_dict())
+                for rec in expand_record(msg.to_dict()):
+                    records.setdefault(rec["mavpackettype"], []).append(rec)
             if kind in {"UTBS", "UTBR", "UTBM", "UTBA", "UTBT", "UTBQ", "RCOU", "PARM", "PIDR", "RATE", "PM", "SIDD", "UBEP"}:
                 records.setdefault(kind, []).append(msg.to_dict())
     return records
@@ -98,6 +103,11 @@ def exercise(sim):
     sim.duration(6)
     sim.param("UTB_LOG_RATE", 400)
     sim.duration(6)
+    if "UTB_LOG_FMT 1" in BASE:
+        sim.param("UTB_LOG_FMT", 0)
+        sim.duration(2)
+        sim.param("UTB_LOG_FMT", 1)
+        sim.duration(2)
     for param, value in (("FRAME_TYPE", 1), ("FRAME_CLASS", 2)):
         sim.param(param, value)
         sim.health(lambda flags, calc, obs, policy: calc == 6 and not flags & 64)
@@ -331,16 +341,24 @@ def source_audit(root):
 
 
 def main():
+    global BASE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--packed", action="store_true", help="exercise UTB_LOG_FMT=1")
     args = parser.parse_args()
+    if args.packed:
+        BASE += "UTB_LOG_FMT 1\n"
     root = Path(__file__).resolve().parents[2]
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     binary = args.binary.resolve()
     records, statuses = launch(binary, root, output, "shadow", BASE, exercise)
     result = {"source_audit": source_audit(root), "shadow": analyse(records), "health_states": statuses}
+    result["packed_packets"] = len(records.get("UTBC", []))
+    if args.packed:
+        assert result["packed_packets"] > 1000
+        assert len(records["UTBT"]) > result["packed_packets"], "Legacy format switch was not logged"
 
     def suppressed(sim):
         sim.health(lambda flags, calc, obs, policy: policy == 1 and not flags & (8 | 32))

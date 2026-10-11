@@ -171,44 +171,55 @@ bool Copter::utb_log_update()
     if (popped && utb.logging_requested() && s.epoch == utb.epoch()) {
         bool complete = true;
         const auto &in = s.input;
-        for (uint8_t axis = 0; axis < 3; axis++) {
-            const auto &a = s.control.axis[axis];
-            const float residual = a.raw - s.mixer.achieved[axis];
-            const uint8_t sat = (residual > 1.0e-5f ? 1 : 0) | (residual < -1.0e-5f ? 2 : 0) |
-                                (a.integration_blocked ? 4 : 0);
-            const log_UTBR rate = {
-                LOG_PACKET_HEADER_INIT(LOG_UTBR_MSG),
-                in.time_us, s.seq, in.mode, axis, in.reference[axis], in.state.rates_rads[axis],
-                a.error, a.p, a.i, a.d, a.raw, a.output, in.ap_target.target[axis],
-                uint8_t(s.control.valid), sat
+        if (s.log_format == 1) {
+            log_UTBC packed = {
+                LOG_PACKET_HEADER_INIT(LOG_UTBC_MSG),
+                in.time_us, s.seq, s.epoch, in.mode, in.ap_target.time_us, in.ap_target.seq,
+                in.ap_target.mode, uint8_t(in.ap_target.valid && in.ap_target.seq == s.seq),
+                in.rc_input_ms, {}, s.drops, s.missing, s.effective_log_rate
             };
-            complete &= logger.WriteBlock_first_succeed(&rate, sizeof(rate));
-        }
-        const auto &m = s.mixer;
-        const log_UTBM motors_log = {
-            LOG_PACKET_HEADER_INIT(LOG_UTBM_MSG),
-            in.time_us, s.seq, in.mode, s.control.command.x, s.control.command.y, s.control.command.z,
-            in.thrust, m.thrust[0], m.thrust[1], m.thrust[2], m.thrust[3], m.scale, m.collective_shift,
-            uint8_t(m.valid), m.lower_mask, m.upper_mask
-        };
-        complete &= logger.WriteBlock_first_succeed(&motors_log, sizeof(motors_log));
-        const log_UTBA achieved = {
-            LOG_PACKET_HEADER_INIT(LOG_UTBA_MSG),
-            in.time_us, s.seq, in.mode, m.achieved.x, m.achieved.y, m.achieved.z, m.achieved_thrust,
-            m.positive_limits, m.negative_limits, uint8_t(m.moments_scaled), uint8_t(m.collective_shifted)
-        };
-        complete &= logger.WriteBlock_first_succeed(&achieved, sizeof(achieved));
-        const log_UTBT timing = {
-            LOG_PACKET_HEADER_INIT(LOG_UTBT_MSG),
-            in.time_us, s.seq, in.mode, in.ap_target.time_us, in.ap_target.seq, in.ap_target.mode,
-            uint8_t(in.ap_target.valid && in.ap_target.seq == s.seq), in.rc_input_ms, in.dt,
-            s.execution_us, s.max_execution_us, s.requested_log_rate, s.effective_log_rate, s.drops, s.missing
-        };
-        complete &= logger.WriteBlock_first_succeed(&timing, sizeof(timing));
+            UTBLogPacket::encode(s, packed.data);
+            complete = logger.WriteBlock_first_succeed(&packed, sizeof(packed));
+        } else {
+            for (uint8_t axis = 0; axis < 3; axis++) {
+                const auto &a = s.control.axis[axis];
+                const float residual = a.raw - s.mixer.achieved[axis];
+                const uint8_t sat = (residual > 1.0e-5f ? 1 : 0) | (residual < -1.0e-5f ? 2 : 0) |
+                                    (a.integration_blocked ? 4 : 0);
+                const log_UTBR rate = {
+                    LOG_PACKET_HEADER_INIT(LOG_UTBR_MSG),
+                    in.time_us, s.seq, in.mode, axis, in.reference[axis], in.state.rates_rads[axis],
+                    a.error, a.p, a.i, a.d, a.raw, a.output, in.ap_target.target[axis],
+                    uint8_t(s.control.valid), sat
+                };
+                complete &= logger.WriteBlock_first_succeed(&rate, sizeof(rate));
+            }
+            const auto &m = s.mixer;
+            const log_UTBM motors_log = {
+                LOG_PACKET_HEADER_INIT(LOG_UTBM_MSG),
+                in.time_us, s.seq, in.mode, s.control.command.x, s.control.command.y, s.control.command.z,
+                in.thrust, m.thrust[0], m.thrust[1], m.thrust[2], m.thrust[3], m.scale, m.collective_shift,
+                uint8_t(m.valid), m.lower_mask, m.upper_mask
+            };
+            complete &= logger.WriteBlock_first_succeed(&motors_log, sizeof(motors_log));
+            const log_UTBA achieved = {
+                LOG_PACKET_HEADER_INIT(LOG_UTBA_MSG),
+                in.time_us, s.seq, in.mode, m.achieved.x, m.achieved.y, m.achieved.z, m.achieved_thrust,
+                m.positive_limits, m.negative_limits, uint8_t(m.moments_scaled), uint8_t(m.collective_shifted)
+            };
+            complete &= logger.WriteBlock_first_succeed(&achieved, sizeof(achieved));
+            const log_UTBT timing = {
+                LOG_PACKET_HEADER_INIT(LOG_UTBT_MSG),
+                in.time_us, s.seq, in.mode, in.ap_target.time_us, in.ap_target.seq, in.ap_target.mode,
+                uint8_t(in.ap_target.valid && in.ap_target.seq == s.seq), in.rc_input_ms, in.dt,
+                s.execution_us, s.max_execution_us, s.requested_log_rate, s.effective_log_rate, s.drops, s.missing
+            };
+            complete &= logger.WriteBlock_first_succeed(&timing, sizeof(timing));
 #if AP_UTB_BENCH_ENABLED
-        const log_UBEP epoch = { LOG_PACKET_HEADER_INIT(LOG_UBEP_MSG), in.time_us, s.seq, s.epoch };
-        complete &= logger.WriteBlock_first_succeed(&epoch, sizeof(epoch));
+            const log_UBEP epoch = { LOG_PACKET_HEADER_INIT(LOG_UBEP_MSG), in.time_us, s.seq, s.epoch };
+            complete &= logger.WriteBlock_first_succeed(&epoch, sizeof(epoch));
 #endif
+        }
         utb.log_result(complete);
     } else if (popped) {
         utb.log_discarded();

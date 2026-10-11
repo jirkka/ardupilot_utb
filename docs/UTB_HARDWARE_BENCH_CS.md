@@ -211,3 +211,9 @@ První navržená session: DISARMED bez vrtulí, záloha/readback/identita a fir
 Vyhodnotit A−A0 overhead, B−A lifecycle, C−B controller/logging, D−C frekvenci. Použít skutečné monotónní HW metriky, PM, jitter/overruns, main mutex acquire a worker hold, UNKNOWN, HWM/drops/partial sets, stack watermark/lifecycle a uložené complete sets přes celé předem zapsané okno. Žádný hardware bezpečnostní threshold nelze odvodit ze SITL. Stop při existujících podmínkách oddílu10, TIME_BUDGET, nedostupném loggeru nebo nevysvětleném zhoršení baseline; po zhoršení nepokračovat automaticky doD. Nulové confirmed collisions nejsou důkazem neblokování.
 
 4S i6S LiPo jsou používané varianty tohoto dronu. Benchmark bez motorového provozu nemění bateriové prahy ani failsafe; každý běh musí zaznamenat skutečný použitý pack, napětí a kalibraci. Bateriová ochrana pro lety bude posouzena zvlášť. Firmware upload, motor test, armování a fyzický benchmark nyní neproběhly.
+
+## 14. Volitelný packed formát pro throughput experiment
+
+Dosavadní H743 C/D a opakovaný COM5 test ukázaly omezení původního formátu na přibližně 331 complete sets/s při požadovaných 400 Hz. Implementován UTB_LOG_FMT=1 (242 B/sada místo 339 B BENCH ON), default 0. Změna je pouze v serializaci workeru. Nový H743 throughput, CPU/mutex a stack watermark NEOVĚŘENY. C/D packed varianty musí mít zaznamenaný LOG_FMT=1 i přesný firmware SHA; staré C/D profily se automaticky nemění.
+
+Podrobnosti, decoder, stav software testů a omezený DISARMED postup: [UTB_PACKED_LOG_CS.md](UTB_PACKED_LOG_CS.md).

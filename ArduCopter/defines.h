@@ -104,6 +104,9 @@ enum LoggingParameters {
     LOG_UBST_MSG,
     LOG_UBEP_MSG,
 #endif
+#if AP_UTB_ENABLED
+    LOG_UTBC_MSG = 31,
+#endif
 };
 
 #define MASK_LOG_ATTITUDE_FAST          (1<<0)

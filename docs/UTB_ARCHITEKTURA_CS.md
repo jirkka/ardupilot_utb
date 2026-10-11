@@ -697,3 +697,9 @@ IMPLEMENTOVÁNO: whitelist class1/type12 a18, jedna matematická implementace al
 UTB nadále nemá fyzický motorový output. AP_Motors, HAL, DShot, původní PID, arming a EKF nejsou dotčeny. Změna existuje pouze v testovací větvi; vývojová větev se nemění. Skystars export class1/type18 a všech1190 hodnot jsou zachovány. C/D overlay jsou oddělené profily pro DISARMED bench, nikdy změna frame nebo globální default.
 
 Unit/SITL/build ověření a jeho omezení viz [report](UTB_BFX_REV_REPORT_CS.md). Hardware timing/log throughput a fyzické zapojení NEOVĚŘENO. Aktivní UTB_ACRO a FÁZE2 nejsou součástí rozšíření.
+
+## O. Bezeztrátový packed shadow log
+
+Implementováno: volitelný UTB_LOG_FMT=1, log UTBC ID31, kompletní sada 242 B v jednom worker zápisu. Default 0 zachovává původní formát. PID/mixer/reference/state guards, priority, queue a motorová izolace se nemění. Nový formát na H743 NEOVĚŘEN; dosavadní hardware C/D měřily původní formát.
+
+Podrobnosti, decoder, stav software testů a omezený DISARMED postup: [UTB_PACKED_LOG_CS.md](UTB_PACKED_LOG_CS.md).

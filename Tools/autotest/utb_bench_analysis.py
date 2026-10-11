@@ -6,15 +6,17 @@ from collections import defaultdict
 import json
 from pathlib import Path
 from pymavlink import mavutil
+from utb_log_decode import expand_record
 
 
 def analyse(records, start_us=None, end_us=None):
     groups = defaultdict(lambda: defaultdict(list))
     epochs = defaultdict(list)
-    for rec in records:
-        name = rec.get("mavpackettype")
-        if name in {"UTBR", "UTBM", "UTBA", "UTBT", "UBEP"}:
-            groups[(int(rec["TimeUS"]), int(rec["Seq"]))][name].append(rec)
+    for raw in records:
+        for rec in expand_record(raw):
+            name = rec.get("mavpackettype")
+            if name in {"UTBR", "UTBM", "UTBA", "UTBT", "UBEP"}:
+                groups[(int(rec["TimeUS"]), int(rec["Seq"]))][name].append(rec)
     incomplete = 0
     for (stamp, seq), group in groups.items():
         if start_us is not None and stamp < start_us or end_us is not None and stamp >= end_us:

@@ -2,6 +2,8 @@
 #include <AP_UTB/AP_UTB.h>
 #include <AP_UTB/AP_UTB_MotorMixer.h>
 #include <AP_UTB/AP_UTB_Reference.h>
+#include <AP_UTB/AP_UTB_LogPacket.h>
+#include <cstring>
 #include <limits>
 #include <utility>
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
@@ -11,6 +13,110 @@
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 #if AP_UTB_ENABLED
+TEST(UTBLogPacket, PreservesAllValuesAndMasks)
+{
+    AP_UTB::Snapshot s;
+    s.control.valid = true;
+    for (uint8_t i = 0; i < 3; i++) {
+        s.input.reference[i] = 1.25f + i;
+        s.input.state.rates_rads[i] = -2.5f - i;
+        s.input.ap_target.target[i] = 3.75f + i;
+        auto &a = s.control.axis[i];
+        a.error = 4.25f + i;
+        a.p = 5.5f + i;
+        a.i = -6.25f - i;
+        a.d = -0.0f;
+        a.raw = i == 0 ? 1 : i == 1 ? -1 : 0;
+        a.output = 0.125f * i;
+        a.integration_blocked = i == 2;
+        s.control.command[i] = 0.25f * i;
+        s.mixer.achieved[i] = 0;
+    }
+    s.input.thrust = 0.75f;
+    for (uint8_t i = 0; i < 4; i++) {
+        s.mixer.thrust[i] = 0.125f * i;
+    }
+    s.mixer.scale = 0.5f;
+    s.mixer.collective_shift = -0.125f;
+    s.mixer.valid = true;
+    s.mixer.lower_mask = 5;
+    s.mixer.upper_mask = 10;
+    s.mixer.achieved_thrust = 0.625f;
+    s.mixer.positive_limits = 9;
+    s.mixer.negative_limits = 6;
+    s.mixer.moments_scaled = true;
+    s.mixer.collective_shifted = true;
+    s.input.dt = 0.0025f;
+    s.execution_us = 123;
+    s.max_execution_us = UINT32_MAX;
+    s.requested_log_rate = 400;
+    int16_t words[UTBLogPacket::WORDS];
+    UTBLogPacket::encode(s, words);
+    UTBLogPacket::Payload decoded;
+    memcpy(&decoded, words, sizeof(decoded));
+    for (uint8_t i = 0; i < 3; i++) {
+        const float expected[] = {s.input.reference[i], s.input.state.rates_rads[i], s.control.axis[i].error,
+                                  s.control.axis[i].p, s.control.axis[i].i, s.control.axis[i].d,
+                                  s.control.axis[i].raw, s.control.axis[i].output, s.input.ap_target.target[i]
+                                 };
+        EXPECT_EQ(memcmp(&decoded.axis[i], expected, sizeof(expected)), 0);
+        EXPECT_EQ(decoded.axis[i].valid, 1);
+        EXPECT_EQ(decoded.axis[i].saturation, i == 0 ? 1 : i == 1 ? 2 : 4);
+        EXPECT_FLOAT_EQ(decoded.command[i], s.control.command[i]);
+        EXPECT_FLOAT_EQ(decoded.achieved[i], s.mixer.achieved[i]);
+    }
+    EXPECT_FLOAT_EQ(decoded.collective, s.input.thrust);
+    EXPECT_EQ(memcmp(decoded.motor, s.mixer.thrust, sizeof(decoded.motor)), 0);
+    EXPECT_FLOAT_EQ(decoded.scale, 0.5f);
+    EXPECT_FLOAT_EQ(decoded.shift, -0.125f);
+    EXPECT_EQ(decoded.mixer_valid, 1);
+    EXPECT_EQ(decoded.lower, 5);
+    EXPECT_EQ(decoded.upper, 10);
+    EXPECT_FLOAT_EQ(decoded.achieved_collective, 0.625f);
+    EXPECT_EQ(decoded.positive, 9);
+    EXPECT_EQ(decoded.negative, 6);
+    EXPECT_EQ(decoded.scaled, 1);
+    EXPECT_EQ(decoded.shifted, 1);
+    EXPECT_FLOAT_EQ(decoded.dt, s.input.dt);
+    EXPECT_EQ(decoded.execution_us, 123U);
+    EXPECT_EQ(decoded.requested, 400);
+    EXPECT_EQ(decoded.max_execution_us, UINT32_MAX);
+    EXPECT_EQ(decoded.version, 1);
+    EXPECT_EQ(reinterpret_cast<uint8_t *>(words)[191], 1);
+}
+
+TEST(UTBLogPacket, DeterministicAndDoesNotMutateSnapshot)
+{
+    AP_UTB::Snapshot s;
+    const auto before = s;
+    int16_t first[UTBLogPacket::WORDS], second[UTBLogPacket::WORDS];
+    UTBLogPacket::encode(s, first);
+    UTBLogPacket::encode(s, second);
+    EXPECT_EQ(memcmp(first, second, sizeof(first)), 0);
+    EXPECT_EQ(memcmp(&s, &before, sizeof(s)), 0);
+    UTBLogPacket::Payload decoded;
+    memcpy(&decoded, first, sizeof(decoded));
+    EXPECT_EQ(decoded.axis[0].valid, 0);
+    EXPECT_EQ(decoded.mixer_valid, 0);
+    EXPECT_EQ(decoded.version, 1);
+}
+
+TEST(UTBLogPacket, PreservesFloatBitPatterns)
+{
+    AP_UTB::Snapshot s;
+    const uint32_t patterns[] = {0x80000000U, 0x7fc12345U, 0x7f800000U};
+    for (uint8_t i = 0; i < 3; i++) {
+        memcpy(&s.control.axis[i].d, &patterns[i], sizeof(float));
+    }
+    int16_t words[UTBLogPacket::WORDS];
+    UTBLogPacket::encode(s, words);
+    for (uint8_t i = 0; i < 3; i++) {
+        uint32_t actual;
+        memcpy(&actual, reinterpret_cast<uint8_t *>(words) + 38 * i + 20, sizeof(actual));
+        EXPECT_EQ(actual, patterns[i]);
+    }
+}
+
 static AP_UTB_State valid_state(uint32_t time_us)
 {
     AP_UTB_State state;

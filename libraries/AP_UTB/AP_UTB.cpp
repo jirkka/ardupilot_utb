@@ -163,6 +163,13 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
     AP_GROUPINFO("B_FAIL", 20, AP_UTB, _bench_fail, 0),
 #endif
 #endif
+    // @Param: LOG_FMT
+    // @DisplayName: UTB diagnostic log format
+    // @Description: Full writes separate legacy messages. Packed v1 preserves every sample field in one UTBC packet; decode with utb_log_decode.py. Changes only worker serialization, never controller rate or motor authority.
+    // @Values: 0:Full,1:Packed v1
+    // @User: Advanced
+    AP_GROUPINFO("LOG_FMT", 21, AP_UTB, _log_format, 0),
+
     AP_GROUPEND
 };
 
@@ -254,6 +261,7 @@ void AP_UTB::evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&
 {
     s = {};
     s.input = input;
+    s.log_format = _log_format.get() == 1 ? 1 : 0;
     s.seq = ++_seq;
     const bool geometry_changed = _context_valid &&
                                   (input.frame_class != _last_class || input.frame_type != _last_type);

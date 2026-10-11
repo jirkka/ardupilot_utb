@@ -13,6 +13,7 @@
 #include <AP_UTB/AP_UTB_config.h>
 #if AP_UTB_ENABLED && HAL_LOGGING_ENABLED
 #include <AP_Logger/LogStructure.h>
+#include <AP_UTB/AP_UTB_LogPacket.h>
 
 // @LoggerMessage: UTBS
 // @Description: Shadow diagnostic health and policy; flags never grant motor authority
@@ -220,7 +221,43 @@ struct PACKED log_UTBQ {
     uint32_t discarded;
 };
 
+// @LoggerMessage: UTBC
+// @Description: Lossless packed shadow set version 1; decode with Tools/autotest/utb_log_decode.py
+// @Field: TimeUS: Original shadow timestamp in microseconds since boot
+// @Field: Seq: Shadow cycle sequence number
+// @Field: Epoch: Experiment generation
+// @Field: Md: ArduPilot flight mode number
+// @Field: APUS: AP target capture timestamp in microseconds
+// @Field: APS: AP target capture sequence
+// @Field: APM: AP mode at capture
+// @Field: Cap: Capture validity including sequence match
+// @Field: RCms: Last accepted RC input timestamp in milliseconds
+// @Field: D0: First 64 bytes of versioned lossless payload represented as signed int16 words
+// @Field: D1: Middle 64 bytes of payload
+// @Field: D2: Last 64 bytes of payload including version byte
+// @Field: Dr: Bounded queue drops
+// @Field: Ms: Backend admission failures
+// @Field: Eff: Enqueued sets per experiment second, not persisted rate
+struct PACKED log_UTBC {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint32_t seq;
+    uint32_t epoch;
+    uint8_t mode;
+    uint64_t ap_time_us;
+    uint32_t ap_seq;
+    uint8_t ap_mode;
+    uint8_t capture_valid;
+    uint32_t rc_input_ms;
+    int16_t data[UTBLogPacket::WORDS];
+    uint32_t drops;
+    uint32_t missing;
+    float effective;
+};
+static_assert(sizeof(log_UTBC) == 242 && LOG_UTBC_MSG < 32, "UTBC wire size or vehicle ID changed");
+
 #define UTB_LOG_STRUCTURES \
+    { LOG_UTBC_MSG, sizeof(log_UTBC), "UTBC", "QIIBQIBBIaaaIIf", "TimeUS,Seq,Epoch,Md,APUS,APS,APM,Cap,RCms,D0,D1,D2,Dr,Ms,Eff", "s---s---s-----z", "F---F---C------" }, \
     { LOG_UTBQ_MSG, sizeof(log_UTBQ), "UTBQ", "QIIIIIIBBIBI", "TimeUS,Seq,ReqN,EnqN,WrN,Drop,Miss,HWM,Depth,Epoch,Gy,Gone", "s-----------", "F-----------" }, \
     { LOG_UTBS_MSG, sizeof(log_UTBS), "UTBS", "QIBHBBBfIIHfIIII", "TimeUS,Seq,Md,Flg,Calc,Obs,Pol,Dt,Ex,Max,Req,Eff,Dr,Miss,Ov,LM", "s------ssszz---s", "F-------FF-----F" }, \
     { LOG_UTBR_MSG, sizeof(log_UTBR), "UTBR", "QIBBfffffffffBB", "TimeUS,Seq,Md,Ax,Des,Meas,Err,P,I,D,Raw,Out,AP,Val,Sat", "s---EEE-----E--", "F--------------" }, \
