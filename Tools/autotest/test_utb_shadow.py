@@ -279,7 +279,7 @@ def reference_map(binary, root, output):
             "expected_reference_rads": expected, "samples_verified_per_axis": 100}
 
 
-def isolation(binary, root, output):
+def isolation(binary, root, output, model="bfx"):
     measured = {}
     for shadow in (0, 1):
         def action(sim):
@@ -301,7 +301,7 @@ def isolation(binary, root, output):
             sim.arm(force=True, disarm=True)
             measured[shadow] = {"disarmed": disarmed, "armed_idle": idle}
         records, _ = launch(binary, root, output, f"isolation-{shadow}",
-                            BASE + f"UTB_SHADOW {shadow}\n", action)
+                            BASE + f"UTB_SHADOW {shadow}\n", action, model=model)
         assert records.get("RCOU"), "Missing output log"
         if shadow:
             assert any(abs(m["Raw"]) > 0.01 and m["Val"] for m in records.get("UTBR", [])), "No UTB demand"
