@@ -1,6 +1,11 @@
 # FÁZE 1H-C – Interní reference pro DISARMED SHADOW bez RC
 
-Stav k 12. 10. 2026. Větev `test/skystars-5inch`.
+Stav softwarové přípravy k 12. 10. 2026. Větev `test/skystars-5inch`.
+Tento dokument zachovává výsledky před fyzickým testem. Následné
+H743 ověření nenulového PID a interní reference je samostatně doložené
+v [hardware reportu](UTB_SYNTHETIC_H743_VALIDATION_CS.md), včetně
+startup/download omezení. Níže uvedené hardware neověřeno platí pro
+okamžik dokončení této přípravy.
 Firmware a C++/SITL výsledky odpovídají source commitu
 `f9cc3bcc0f13e3b19bcf9b7b04b5151cd57f767f`.
 Následující dokumentační commit nemění firmware.
