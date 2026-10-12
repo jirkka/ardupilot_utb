@@ -8,7 +8,7 @@ Dosavadní H743 měření původního formátu: kolem 331 kompletních sad/s př
 
 Návrhový odhad: BENCH ON sada klesá z 339 na 242 B (o 28,61 %), 400 sad/s z 135600 na 96800 B/s. Při dosavadním ostatním toku asi 21 kB/s by celkový tok byl kolem 118 kB/s, pod pozorovanými přibližně 131 kB/s. Tento odhad neprokazuje udržitelnost během flash erase ani na zaplněném médiu. BENCH OFF původní sada má 320 B; packed obsahuje epoch i bez BENCH.
 
-**Hardware nový formát NEOVĚŘEN.** Výsledky unit/SITL a buildů jsou v závěru tohoto dokumentu. Nový firmware nebyl nahrán. Aktivní UTB_ACRO ani FÁZE 2 nejsou povoleny.
+**Hardware částečně ověřeno 11. 10. 2026:** firmware `34990b72` nahrán. C: 4000 platných sad / 20 s = 200 Hz. D: 2000 úplných sad / 5 s = 400 Hz pouze transport, všechny neplatné kvůli nezdravému EKF; plánovaný zdravý D test STOP. Podrobnosti, startup ztráty a omezení: [hardware report](UTB_PACKED_HW_20261011_CS.md). Aktivní UTB_ACRO ani FÁZE 2 nejsou povoleny.
 
 ## Přenos a zachování hodnot
 
@@ -55,7 +55,7 @@ RateController, MotorMixer, Reference, State validity, arming, FSTRATE, AP_Motor
 
 ## Navržený první hardware experiment
 
-Firmware identifikovat přesným SHA-256, targetem a zdrojovým manifestem; APJ git_identity nadále obsahuje základ ba793af1 a sám neodlišuje necommitnutý patch. Použít výhradně archivovaný BENCH_ON artefakt, nikoli poslední soubor v přepisovaném build adresáři.
+Firmware identifikovat přesným SHA-256, targetem a zdrojovým manifestem. Historické softwarové APJ níže obsahují základ ba793af1; nový hardware artefakt obsahuje commit 34990b72 a jeho přesný SHA je v hardware reportu. Použít výhradně archivovaný BENCH_ON artefakt, nikoli poslední soubor v přepisovaném build adresáři.
 
 1. Nejdříve schválit nahrání nového artefaktu. Bez vrtulí, DISARMED; záloha parametrů i všech dosavadních flash logů. Ověřit RC a známou skutečnou FRAME_CLASS=1/FRAME_TYPE=18; nepřepisovat geometrii ani gains.
 2. Logger Skystars: LOG_BACKEND_TYPE=4, LOG_DISARMED=1; stejné původní LOG_BITMASK, LOG_FILE_BUFSIZE, ostatní log rate a BENCH export. Žádné zvýšení priorit nebo zmenšení AP logování.
@@ -93,8 +93,7 @@ předimplementačního checkpointu. Ignorované tmp artefakty nejsou zdrojové s
 
 ## Firmware artefakty
 
-Všechny varianty mají board_id=1075 a základní git_identity=ba793af1. Zdroje jsou
-necommitnutý patch nad HEAD `ba793af194004418d7ff3e3460ae8f48df53fab8`, větev
+Následující historické softwarové varianty mají board_id=1075 a git_identity=ba793af1. Při těchto buildech šlo o necommitnutý patch nad HEAD `ba793af194004418d7ff3e3460ae8f48df53fab8`, větev
 `test/skystars-5inch`. Nebyl vytvořen nový commit ani push.
 APJ image byl dekomprimován a porovnán se zachovaným BIN; shoda všech čtyř variant.
 
@@ -163,8 +162,17 @@ funkční kontrola PASS: 11761 kompletních UTBC, z toho 3761 s platným mixerem
 Epoch je přenesena uvnitř UTBC bez závislosti na BENCH. Tento samostatný SITL
 běh rovněž neprokazuje H743 throughput.
 
-Stále HARDWARE NEOVĚŘENO: sustained/burst 400Hz persistence na BLOCK,
-flash erase/chip-full dopad, nové maximum acquire/hold a jejich nepřímý dopad
-na main, H743 CPU/jitter/PM, skutečný watermark workeru, parser/tool workflow
-v používané GCS a dlouhodobé chování. AP logger interní locking rizika
-se tímto patchem neodstraňují. Nic nebylo doinstalováno ani nahráno na FC.
+Navazující [hardware session 11. 10. 2026](UTB_PACKED_HW_20261011_CS.md) částečně ověřila 200Hz validní SHADOW a 5s 400Hz transport, mutex časy, CPU/jitter a stack watermark. Zdravý 400Hz výpočet nebyl ověřen: D STOP kvůli EKF unhealthy; evidovány startup ztráty a dlouhé periody během downloadu po C. Dlouhodobé chování, chip-full dopad a let zůstávají NEOVĚŘENO. AP logger interní locking rizika se tímto patchem neodstraňují. Nic nebylo doinstalováno.
+
+## Plná frekvence a aktuální H743 ověření
+
+Commit acf04efa99 vybírá při požadavku na plnou nominální frekvenci každý
+skutečný shadow cyklus; nižší rate zachovává původní wall-time decimation.
+Serializace, formát V1, default LOG_FMT=0, controller matematika, guards a motorová
+izolace se nemění. Nový BENCH_ON APJ je nahraný a CRC/identita ověřené.
+Hardware: 20s DISARMED C 200 Hz = 4 000 platných sad, D 400 Hz = 8 000
+platných sad, bez Seq mezery u D, PM.NLon=0 a bez přírůstku pipeline/logger
+ztrát v oknech. Firmware/data SHA, software regrese, startup ztráty a download
+prodlevy jsou v [aktuálním reportu](UTB_400_RECOVERY_20261011_CS.md).
+Testy probíhají před downloadem; před dalším experimentem nový zdravý start.
+Dlouhodobé a letové ověření zůstává otevřené.

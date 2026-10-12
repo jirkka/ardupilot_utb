@@ -1,8 +1,8 @@
 # FÁZE 1H-A: hardware benchmark SHADOW UTB
 
-DESIGN: schválený BLOCK návrh. IMPLEMENTED: instrumentace pod AP_UTB_BENCH_ENABLED. Výsledky UNIT/SITL/BUILD VERIFIED jsou v závěrečném softwarovém reportu. **SKYSTARS HARDWARE VERIFIED: NEOVĚŘENO. MICOAIR HARDWARE VERIFIED: NEOVĚŘENO. FLIGHT VERIFIED: NEOVĚŘENO.**
+DESIGN: schválený BLOCK návrh. IMPLEMENTED: instrumentace pod AP_UTB_BENCH_ENABLED. UNIT/SITL/BUILD VERIFIED v softwarovém reportu. **SKYSTARS HARDWARE VERIFIED: OMEZENÝ 20s DISARMED PACKED C/D, 4 000/8 000 platných sad při 200/400 Hz; startup/download omezení trvají. [Aktuální evidence](UTB_400_RECOVERY_20261011_CS.md). MICOAIR HARDWARE VERIFIED: NEOVĚŘENO. FLIGHT VERIFIED: NEOVĚŘENO.**
 
-Žádný fyzický benchmark, upload ani let nebyl proveden. Skystars H7 Dual Gyro je testovací deska; finální MicoAir H743 V2 45A AIO AM32 potřebuje samostatné ověření.
+Při vzniku původního návrhu nebyl fyzický benchmark ani upload proveden; aktuální částečné hardware ověření je uvedeno výše. Let nebyl proveden. Skystars H7 Dual Gyro je testovací deska; finální MicoAir H743 V2 45A AIO AM32 potřebuje samostatné ověření.
 
 ## 1. Skutečný backend
 
@@ -214,6 +214,24 @@ Vyhodnotit A−A0 overhead, B−A lifecycle, C−B controller/logging, D−C fre
 
 ## 14. Volitelný packed formát pro throughput experiment
 
-Dosavadní H743 C/D a opakovaný COM5 test ukázaly omezení původního formátu na přibližně 331 complete sets/s při požadovaných 400 Hz. Implementován UTB_LOG_FMT=1 (242 B/sada místo 339 B BENCH ON), default 0. Změna je pouze v serializaci workeru. Nový H743 throughput, CPU/mutex a stack watermark NEOVĚŘENY. C/D packed varianty musí mít zaznamenaný LOG_FMT=1 i přesný firmware SHA; staré C/D profily se automaticky nemění.
+Dosavadní H743 C/D a opakovaný COM5 test ukázaly omezení původního formátu na přibližně 331 complete sets/s při požadovaných 400 Hz. Implementován UTB_LOG_FMT=1 (242 B/sada místo 339 B BENCH ON), default 0. Změna je pouze v serializaci workeru. Nová [H743 session](UTB_PACKED_HW_20261011_CS.md) částečně ověřila throughput 200 Hz, krátký nevalidní 400Hz transport, CPU/mutex a stack watermark; zdravý D byl zastaven a startup/download omezení zůstávají otevřená. C/D packed varianty musí mít zaznamenaný LOG_FMT=1 i přesný firmware SHA; staré C/D profily se automaticky nemění.
 
 Podrobnosti, decoder, stav software testů a omezený DISARMED postup: [UTB_PACKED_LOG_CS.md](UTB_PACKED_LOG_CS.md).
+
+## 15. Postup ověřeného packed C/D capture
+
+Nový firmware acf04efa99 zaznamenává při plné nominální frekvenci každý
+skutečný cyklus; měření 200/400 Hz provést celé před downloadem.
+Host capture ověří STATE_VALID před experimentem, nejprve zapne logger při
+SHADOW=0 a potom provede C/D s warmupem a předem určenými okny. Po obou
+vypne SHADOW/LOG_DISARMED a teprve potom lze stáhnout BIN. Po downloadu
+před dalším měřením nový zdravý start a kontrola validity. Menší download
+požadavky samy neodstraňují synchronní BLOCK IO/boundary hledání. Logger
+policy, zámky, priority a EKF se nemění.
+
+20s C/D výsledek: 200,00/400,00 Hz, všechny controller/mixer sady validní,
+PM.NLon=0 a žádný přírůstek drops/missing v oknech. Startup měl PM.NLon=1,
+MaxT=5 370 us; logger-OFF state probe měl 17 neuložených vybraných diagnostik.
+Tyto skutečnosti nejsou zahrnuté do tvrzení bezeztrátového stabilního okna.
+FW/hash, přesné příkazy, stop pravidla, metriky a omezení: [report](UTB_400_RECOVERY_20261011_CS.md).
+Původní A0/A/B srovnání se tímto opakováním C/D nenahrazuje.

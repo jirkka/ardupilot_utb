@@ -700,6 +700,18 @@ Unit/SITL/build ověření a jeho omezení viz [report](UTB_BFX_REV_REPORT_CS.md
 
 ## O. Bezeztrátový packed shadow log
 
-Implementováno: volitelný UTB_LOG_FMT=1, log UTBC ID31, kompletní sada 242 B v jednom worker zápisu. Default 0 zachovává původní formát. PID/mixer/reference/state guards, priority, queue a motorová izolace se nemění. Nový formát na H743 NEOVĚŘEN; dosavadní hardware C/D měřily původní formát.
+Implementováno: volitelný UTB_LOG_FMT=1, log UTBC ID31, kompletní sada 242 B v jednom worker zápisu. Default 0 zachovává původní formát. PID/mixer/reference/state guards, priority, queue a motorová izolace se nemění. Historická první session měla D STOP kvůli EKF unhealthy: [původní report](UTB_PACKED_HW_20261011_CS.md). Navazující firmware acf04efa99 ověřil 20s DISARMED C/D, 4 000/8 000 platných sad při 200/400 Hz. FC ponecháno SHADOW=0/LOG_DISARMED=0. Startup/download omezení, data a scope: [aktuální report](UTB_400_RECOVERY_20261011_CS.md). Dlouhodobá udržitelnost, nenulové gains a let zůstávají neověřené.
 
 Podrobnosti, decoder, stav software testů a omezený DISARMED postup: [UTB_PACKED_LOG_CS.md](UTB_PACKED_LOG_CS.md).
+
+## P. Plná nominální frekvence diagnostických sad
+
+IMPLEMENTOVÁNO: AP_UTB::select_log_sample odděluje plnou nominální frekvenci
+(jedna sada pro každý skutečný cyklus) od původního wall-time výběru nižších
+rates. Není změněna controller cadence, PID, reference, mixer, state validity,
+queue, worker, log formát ani motorová autorita. UNIT/SITL/BUILD OVĚŘENO
+pro nový zdrojový commit acf04efa99. HARDWARE OVĚŘENO: 20s DISARMED C/D
+na Skystars H743, 4 000/8 000 platných sad při 200/400 Hz a bez ztrát v oknech.
+Logger startup a synchronní download mají nadále dlouhé periody; hardware bench
+probíhá celý před stahováním. LET/HARDWARE dlouhodobá zátěž a nenulové gains
+NEOVĚŘENO. Evidence a rozsah: [report](UTB_400_RECOVERY_20261011_CS.md).

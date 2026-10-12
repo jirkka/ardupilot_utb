@@ -410,7 +410,8 @@ Přesné ostatní build/test příkazy a první DISARMED postup bez vrtulí:
 Výsledky a manifest: [software report](docs/UTB_BENCH_SOFTWARE_REPORT_CS.md).
 Implementována je pouze diagnostika. Unit/SITL výsledky jsou oddělené
 od dosud neověřených H743 časů, CPU/logger zátěže a stack rezervy.
-Firmware nebyl nahrán na FC; aktivní UTB_ACRO a FÁZE 2 nejsou povoleny.
+Při původním software ověření instrumentace firmware nebyl nahrán na FC.
+Navazující hardware stav je v packed sekci níže; aktivní UTB_ACRO a FÁZE 2 nejsou povoleny.
 
 ## Packed v1: diagnostika 400 Hz
 
@@ -441,9 +442,30 @@ build/sitl/tests/test_utb_bench
 .venv/bin/python Tools/autotest/utb_log_decode.py downloaded.bin --output decoded.jsonl
 ```
 
-APJ git_identity obsahuje základ větve; konkrétní necommitnutou variantu identifikuje
-SHA-256 a zdrojový manifest. Úložiště této implementace a testů:
+Historické softwarové APJ identifikuje SHA-256 a zdrojový manifest. Hardware build
+11. 10. 2026 má git_identity 34990b72 (commit 34990b72985ec97e06dc0db9fa6657e901c120b4). Úložiště této implementace a testů:
 `tmp/utb-packed-log-20261011/`. Před změnami uložen HEAD archive, tracked diff,
 status a samostatný archive všech untracked souborů; tmp/build/submoduly se nemění.
 Přesný formát, software evidence a HW omezení: [UTB_PACKED_LOG_CS.md](docs/UTB_PACKED_LOG_CS.md).
-Nový firmware na FC nebyl nahrán; nový formát je hardware NEOVĚŘEN.
+Firmware 34990b72 byl nahrán na FC přes COM5. C 200 Hz: 4000 validních sad za 20 s.
+D 400 Hz: 2000 úplných, ale nevalidních sad za 5 s; zdravý D test zastaven pro
+EKF unhealthy. FC ponecháno DISARMED, SHADOW=0 a LOG_DISARMED=0.
+Přesný APJ/hash, příkazy, raw logy, startup ztráty a download omezení:
+[hardware report 11. 10. 2026](docs/UTB_PACKED_HW_20261011_CS.md).
+
+## Revize plné 400Hz diagnostiky
+
+Commit acf04efa99a478a03e1d2d8847f0ddc0b0a4c973 mění pouze výběr logových sad:
+plná nominální frekvence ukládá každý cyklus, nižší rate zachovává původní
+časové dělení. Nový Skystars UTB_ON/BENCH_ON/PACKED_FULL_RATE APJ je v
+`tmp/utb-400-recovery-20261011_173711/SkystarsH7HD-bdshot-acf04efa99-UTB_ON-BENCH_ON-PACKED_FULL_RATE/`.
+SHA-256 APJ: `41c42eb92550a23266c6548b81ccc95f0e6e6642af28816220835217198616f5`.
+Build používá stále stejnou venv a `/opt/gcc-arm-none-eabi-10-2020-q4-major`;
+PATH nastavit podle ukázek výše. Nic nebylo doinstalováno.
+
+Build/unit/SITL a hardware C/D PASS: 47 UTB, 12 BENCH, 12 Python testů;
+20s DISARMED 200 Hz = 4 000 platných sad, 400 Hz = 8 000 platných sad.
+Firmware nahrán a CRC/identita ověřené. Zachované motor/arming zákazy; FC
+po testu SHADOW=0 a LOG_DISARMED=0. Capture se provede před stahováním
+logu. Nový host nástroj a přesné příkazy, celý manifest, data/hashes i
+startup/download omezení: [aktuální report](docs/UTB_400_RECOVERY_20261011_CS.md).
