@@ -18,6 +18,9 @@
 #include <atomic>
 #include <AP_HAL/utility/RingBuffer.h>
 #include "AP_UTB_MotorMixer.h"
+#if AP_UTB_BENCH_ENABLED
+#include "AP_UTB_SyntheticReference.h"
+#endif
 
 class AP_UTB
 {
@@ -87,6 +90,15 @@ public:
         bool reference_valid = false;
         bool acro_available = true;
         bool logging_available = false;
+#if AP_UTB_BENCH_ENABLED
+        uint32_t synthetic_cycle = 0;
+        uint8_t reference_source = 0; // 0: RC, 1: internal reference requested (possibly invalid).
+        uint8_t synthetic_profile = 0;
+        uint8_t synthetic_phase = 0;
+        uint8_t synthetic_status = 0;
+        bool watchdog = false;
+        bool bench_safe = false;
+#endif
     };
     struct Snapshot {
         Inputs input;
@@ -241,6 +253,11 @@ public:
     }
     bool publish_diagnostics(Snapshot &snapshot, bool selected);
 #if AP_UTB_BENCH_ENABLED
+    bool synthetic_requested() const
+    {
+        return _synthetic_request.get() != 0;
+    }
+    void prepare_synthetic(Inputs &input);
     uint32_t bench_wait_us() const
     {
         return MAX(0, _bench_wait.get());
@@ -259,6 +276,9 @@ public:
     static const AP_Param::GroupInfo var_info[];
 private:
 #if AP_UTB_BENCH_ENABLED
+    AP_Int8 _synthetic_request;
+    AP_UTB_SyntheticReference _synthetic;
+    int8_t _last_synthetic_request = 0;
     AP_Int32 _bench_wait;
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     AP_Int8 _bench_fail;

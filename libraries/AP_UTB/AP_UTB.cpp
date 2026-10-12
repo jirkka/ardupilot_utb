@@ -146,6 +146,13 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
     AP_GROUPINFO("RAT_YAW_D_HZ", 18, AP_UTB, _d_hz[2], 0),
 
 #if AP_UTB_BENCH_ENABLED
+    // @Param: B_SYNTH
+    // @DisplayName: Disarmed internal shadow reference
+    // @Description: BENCH only. 400 zero-reference preroll cycles then a finite 8000-cycle sequence, amplitude 0.3 rad/s. Requires healthy real sensors, 400 Hz and logger availability; faults or completion latch off until set to zero. Profile 2 is rejected outside SITL. Never grants motor authority.
+    // @Values: 0:RC reference,1:Small internal sequence,2:SITL saturation sequence
+    // @User: Advanced
+    AP_GROUPINFO("B_SYNTH", 22, AP_UTB, _synthetic_request, 0),
+
     // @Param: B_WAIT_US
     // @DisplayName: Benchmark diagnostic acquire threshold
     // @Description: Counts main BLOCK logger acquire durations above this threshold. Zero disables only the exceed counter. Not a flight safety limit.
@@ -230,6 +237,11 @@ bool AP_UTB::Queue::read_status(Snapshot &value)
 
 void AP_UTB::reset_shadow()
 {
+#if AP_UTB_BENCH_ENABLED
+    if (synthetic_requested()) {
+        _synthetic.abort();
+    }
+#endif
     _controller.reset();
     ++_epoch;
     _capture = {};
@@ -358,6 +370,12 @@ void AP_UTB::update(const Inputs &input)
 {
     _logging_requested.store(shadow_requested());
     if (!shadow_requested()) {
+#if AP_UTB_BENCH_ENABLED
+        if (!synthetic_requested()) {
+            _synthetic.update(0, false, false, false, input.mode);
+            _last_synthetic_request = 0;
+        }
+#endif
         if (_was_requested) {
             reset_shadow();
         }
@@ -374,6 +392,15 @@ void AP_UTB::update(const Inputs &input)
         gains[j] = {_p[j].get(), _i[j].get(), _d[j].get(), _imax[j].get(), _d_hz[j].get()};
     }
     evaluate(input, gains, _snapshot);
+#if AP_UTB_BENCH_ENABLED
+    if ((input.synthetic_status == uint8_t(AP_UTB_SyntheticReference::Status::RUNNING) ||
+         input.synthetic_status == uint8_t(AP_UTB_SyntheticReference::Status::PREROLL)) &&
+        (_snapshot.policy != PolicyReason::NONE ||
+         (_snapshot.calculation != CalculationReason::NONE && _snapshot.calculation != CalculationReason::PRIMING))) {
+        _synthetic.abort();
+        _snapshot.input.synthetic_status = uint8_t(AP_UTB_SyntheticReference::Status::ABORTED);
+    }
+#endif
     _state = input.state;
     if (!(_snapshot.flags & STATE_VALID)) {
         _snapshot.input.state.rates_rads.zero();
@@ -413,6 +440,17 @@ void AP_UTB::update(const Inputs &input)
     // Commit all metadata before publication; the consumer only sees complete copies.
     _snapshot.execution_us = AP_HAL::micros() - start;
     record_execution(_snapshot.execution_us, input.nominal_dt);
+#if AP_UTB_BENCH_ENABLED
+    if (_budget_latched && input.reference_source != 0) {
+        _synthetic.abort();
+        _controller.reset();
+        _snapshot.control = {};
+        _snapshot.mixer = {};
+        _snapshot.flags &= ~(CONTROLLER_VALID | MIXER_VALID | SHADOW_HEALTHY);
+        _snapshot.policy = PolicyReason::TIME_BUDGET;
+        _snapshot.input.synthetic_status = uint8_t(AP_UTB_SyntheticReference::Status::ABORTED);
+    }
+#endif
     _snapshot.max_execution_us = _max_execution_us;
     _snapshot.overruns = _overruns;
     _snapshot.drops = _drops.load();
@@ -420,6 +458,36 @@ void AP_UTB::update(const Inputs &input)
     publish_diagnostics(_snapshot, selected);
 
 }
+
+#if AP_UTB_BENCH_ENABLED
+void AP_UTB::prepare_synthetic(Inputs &in)
+{
+    if (_synthetic_request.get() != _last_synthetic_request) {
+        _controller.reset();
+        ++_epoch;
+        _last_synthetic_request = _synthetic_request.get();
+    }
+    if (!synthetic_requested()) {
+        _synthetic.update(0, false, false, false, in.mode);
+        return;
+    }
+    const bool timing = isfinite(in.nominal_dt) && in.nominal_dt <= 0.0025f && in.nominal_dt >= 0.0025f && isfinite(in.dt) &&
+                        in.dt >= in.nominal_dt * 0.25f && in.dt <= in.nominal_dt * 4;
+    const bool eligible = enabled() && shadow_requested() && timing && !in.fast_rate && in.acro_available && in.bench_safe &&
+                          AP_UTB_MotorMixer::supports_frame(in.frame_class, in.frame_type) &&
+                          in.state.valid(in.validation_time_us, 10000) &&
+                          in.state.imu_updated_us != _last_imu_us && in.logging_available && !_budget_latched;
+    const auto sample = _synthetic.update(uint8_t(_synthetic_request.get()), eligible, in.armed, in.watchdog, in.mode);
+    in.reference_source = synthetic_requested() ? 1 : 0;
+    in.synthetic_profile = _synthetic_request.get();
+    in.synthetic_cycle = sample.cycle;
+    in.synthetic_phase = sample.phase;
+    in.synthetic_status = uint8_t(sample.status);
+    in.reference = sample.rates;
+    in.reference_valid = sample.valid;
+    in.thrust = sample.valid ? 0.5f : 0;
+}
+#endif
 
 bool AP_UTB::select_log_sample(uint64_t time_us, float nominal_dt, int16_t rate)
 {

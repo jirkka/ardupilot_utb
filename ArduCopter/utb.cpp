@@ -38,8 +38,15 @@ void Copter::utb_shadow_update()
     in.frame_class = g2.frame_class.get();
     in.frame_type = g.frame_type.get();
     in.fast_rate = using_rate_thread || get_fast_rate_type() != FastRateType::FAST_RATE_DISABLED;
+#if AP_UTB_BENCH_ENABLED
+    in.watchdog = hal.util->was_watchdog_reset();
+    in.bench_safe = !any_failsafe_triggered() && g.failsafe_throttle.get() != FS_THR_DISABLED;
+#endif
     if (utb.time_budget_latched()) {
         in.logging_available = utb.logging_available();
+#if AP_UTB_BENCH_ENABLED
+        utb.prepare_synthetic(in);
+#endif
         utb.update(in);
         return;
     }
@@ -49,6 +56,17 @@ void Copter::utb_shadow_update()
     in.ap_target.valid &= !in.fast_rate && in.ap_target.mode == in.mode;
     in.rc_input_ms = g2.rc_channels.last_input_ms();
     in.logging_available = utb.logging_available();
+#if !MODE_ACRO_ENABLED
+    in.acro_available = false;
+#endif
+#if AP_UTB_BENCH_ENABLED
+    const bool synthetic = utb.synthetic_requested();
+    utb.prepare_synthetic(in);
+    if (synthetic) {
+        utb.update(in);
+        return;
+    }
+#endif
 #if MODE_ACRO_ENABLED
     const RC_Channel *channels[] = {channel_roll, channel_pitch, channel_yaw};
     bool calibration_valid = true;
@@ -236,6 +254,23 @@ bool Copter::utb_log_update()
     static uint8_t last_observation;
     static uint8_t last_policy;
     const uint64_t now = AP_HAL::micros64();
+#if AP_UTB_BENCH_ENABLED
+    static uint64_t last_reference_us;
+    static uint32_t last_reference_key = UINT32_MAX;
+    const auto &reference = current.input;
+    const uint32_t reference_key = reference.reference_source | (uint32_t(reference.synthetic_profile) << 8) |
+                                   (uint32_t(reference.synthetic_phase) << 16) | (uint32_t(reference.synthetic_status) << 24);
+    if (reference_key != last_reference_key || now - last_reference_us >= 1000000U) {
+        const log_UTBX metadata = { LOG_PACKET_HEADER_INIT(LOG_UTBX_MSG), reference.time_us, current.seq,
+                                    utb.logging_requested() ? current.epoch : utb.epoch(), reference.synthetic_cycle, reference.reference_source,
+                                    reference.synthetic_profile, reference.synthetic_phase, reference.synthetic_status
+                                  };
+        if (logger.WriteBlock_first_succeed(&metadata, sizeof(metadata))) {
+            last_reference_us = now;
+            last_reference_key = reference_key;
+        }
+    }
+#endif
     const uint16_t flags = utb.logging_requested() ? current.flags : AP_UTB::ENABLED | AP_UTB::LOGGING_AVAILABLE;
     const uint8_t calculation = uint8_t(current.calculation);
     const uint8_t observation = uint8_t(current.observation);

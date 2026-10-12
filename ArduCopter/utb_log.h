@@ -256,7 +256,36 @@ struct PACKED log_UTBC {
 };
 static_assert(sizeof(log_UTBC) == 242 && LOG_UTBC_MSG < 32, "UTBC wire size or vehicle ID changed");
 
+#if AP_UTB_BENCH_ENABLED
+// @LoggerMessage: UTBX
+// @Description: Real-gyro internal reference identity, state changes and 1 Hz anchors; no synthetic sensors
+// @Field: TimeUS: Original shadow sample timestamp
+// @Field: Seq: Shadow cycle anchor
+// @Field: Epoch: Experiment generation
+// @Field: Cycle: Generator cycle associated with Seq, 0 through 8000
+// @Field: Src: 0 RC, 1 internal reference requested; check Test status
+// @Field: Prof: 0 off, 1 small reference, 2 SITL saturation reference
+// @Field: Phase: Sequence phase 0 through 9
+// @Field: Test: 0 off, 1 waiting, 2 running, 3 complete, 4 aborted, 5 zero-reference preroll
+struct PACKED log_UTBX {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint32_t seq;
+    uint32_t epoch;
+    uint32_t cycle;
+    uint8_t source;
+    uint8_t profile;
+    uint8_t phase;
+    uint8_t test_status;
+};
+#define UTB_REFERENCE_LOG_STRUCTURES \
+    { LOG_UTBX_MSG, sizeof(log_UTBX), "UTBX", "QIIIBBBB", "TimeUS,Seq,Epoch,Cycle,Src,Prof,Phase,Test", "s-------", "F-------" },
+#else
+#define UTB_REFERENCE_LOG_STRUCTURES
+#endif
+
 #define UTB_LOG_STRUCTURES \
+    UTB_REFERENCE_LOG_STRUCTURES \
     { LOG_UTBC_MSG, sizeof(log_UTBC), "UTBC", "QIIBQIBBIaaaIIf", "TimeUS,Seq,Epoch,Md,APUS,APS,APM,Cap,RCms,D0,D1,D2,Dr,Ms,Eff", "s---s---s-----z", "F---F---C------" }, \
     { LOG_UTBQ_MSG, sizeof(log_UTBQ), "UTBQ", "QIIIIIIBBIBI", "TimeUS,Seq,ReqN,EnqN,WrN,Drop,Miss,HWM,Depth,Epoch,Gy,Gone", "s-----------", "F-----------" }, \
     { LOG_UTBS_MSG, sizeof(log_UTBS), "UTBS", "QIBHBBBfIIHfIIII", "TimeUS,Seq,Md,Flg,Calc,Obs,Pol,Dt,Ex,Max,Req,Eff,Dr,Miss,Ov,LM", "s------ssszz---s", "F-------FF-----F" }, \

@@ -103,6 +103,9 @@ enum LoggingParameters {
     LOG_UBHI_MSG,
     LOG_UBST_MSG,
     LOG_UBEP_MSG,
+#if AP_UTB_ENABLED
+    LOG_UTBX_MSG,
+#endif
 #endif
 #if AP_UTB_ENABLED
     LOG_UTBC_MSG = 31,
