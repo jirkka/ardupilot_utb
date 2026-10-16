@@ -106,6 +106,9 @@ public:
         UTB_ACRO =     40,  // UTB disarmed-only diagnostic skeleton (local fork)
 #endif
 
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        UTB_RATE_SITL = 41, // experimental rate authority, simulation only
+#endif
         // Mode number 30 reserved for "offboard" for external/lua control.
 
         // Mode number 127 reserved for the "drone show mode" in the Skybrush
@@ -450,6 +453,90 @@ public:
 protected:
     const char *name() const override { return "UTB Acro (disarmed)"; }
     const char *name4() const override { return "UTB0"; }
+};
+#endif
+
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+class ModeUTBRateSITL : public Mode
+{
+public:
+    using Mode::Mode;
+    Number mode_number() const override
+    {
+        return Number::UTB_RATE_SITL;
+    }
+    bool init(bool ignore_checks) override;
+    void exit() override;
+    void run() override;
+    bool enabled() const override;
+    bool requires_position() const override
+    {
+        return false;
+    }
+    bool has_manual_throttle() const override
+    {
+        return true;
+    }
+    bool allows_arming(AP_Arming::Method method) const override;
+    bool is_autopilot() const override
+    {
+        return false;
+    }
+    bool allows_entry_in_rc_failsafe() const override
+    {
+        return false;
+    }
+    float throttle_hover() const override
+    {
+        return _hover;
+    }
+    void rate_control(float dt);
+    void log_cycle();
+protected:
+    const char *name() const override
+    {
+        return "UTB Rate SITL";
+    }
+    const char *name4() const override
+    {
+        return "UTBS";
+    }
+private:
+    void zero_rpy();
+    void capture_allocation();
+    AP_UTB_SITLAttitude _attitude;
+    AP_UTB_SITLAttitude::Config _angle_config;
+    AP_UTB_SITLAttitude::Result _angle_result;
+    Vector3f _angle_reference;
+    uint32_t _ap_angle_calls = 0;
+    int8_t _angle_source = 0;
+    float _angle_amplitude = 0, _yaw_rate = 0, _throttle_offset = 0;
+    float _entry_height = 0, _height = 0, _vertical_speed = 0;
+    AP_UTB_SITLRate _rate;
+    AP_UTB_RateController::Result _result;
+    AP_UTB_State _sample;
+    Vector3f _reference;
+    Vector3f _target;
+    Vector3f _p, _i, _d;
+    Vector3f _raw_applied, _raw_previous;
+    AP_UTB_SITLAllocation::Result _allocation;
+    uint32_t _command_seq = 0, _previous_raw_seq = 0;
+    bool _raw_valid = false, _previous_raw_valid = false;
+    uint64_t _time_us = 0;
+    uint32_t _seq = 0;
+    uint32_t _cycle = 0;
+    uint32_t _ap_calls = 0;
+    uint32_t _motor_calls = 0;
+    uint32_t _execution_us = 0;
+    int8_t _owner = 0;
+    int8_t _profile = 0;
+    int8_t _delay = 0;
+    int8_t _antiwindup = 0;
+    float _amplitude = 0;
+    float _hover = 0.35f;
+    float _dt = 0;
+    bool _running = false;
+    bool _complete = false;
 };
 #endif
 

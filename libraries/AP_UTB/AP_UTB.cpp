@@ -177,6 +177,102 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("LOG_FMT", 21, AP_UTB, _log_format, 0),
 
+#if AP_UTB_RATE_SITL_AVAILABLE
+    // @Param: S_OWNER
+    // @DisplayName: Experimental SITL rate owner
+    // @Description: SITL only. Enables explicit GCS entry into mode 41. Authority is fixed at entry; changes invalidate the experiment. No hardware output capability.
+    // @Values: 0:Disabled,1:UTB PID,2:AP PID comparison
+    // @User: Advanced
+    AP_GROUPINFO("S_OWNER", 23, AP_UTB, _sitl_owner, 0),
+
+    // @Param: S_PROFILE
+    // @DisplayName: Finite SITL reference profile
+    // @Description: SITL only. Rate profiles use 3200 cycles or 8000 for long yaw. Explicit S_ATT uses 5600 cycles and supports profiles 0/1/2/4/5/6. Fixed at entry. No altitude or position control.
+    // @Values: 0:Zero,1:Roll,2:Pitch,3:Yaw,4:Combined,5:Roll sine,6:Roll sign changes,7:Long yaw
+    // @User: Advanced
+    AP_GROUPINFO("S_PROFILE", 24, AP_UTB, _sitl_profile, 0),
+
+    // @Param: S_RUN
+    // @DisplayName: Start finite SITL reference
+    // @Description: SITL only. Start after virtual arming and full spool. Completed sequence stays at zero reference; mode exit is required before another run. Does not arm or change modes.
+    // @Values: 0:Waiting,1:Start
+    // @User: Advanced
+    AP_GROUPINFO("S_RUN", 25, AP_UTB, _sitl_run, 0),
+
+    // @Param: S_AMP
+    // @DisplayName: SITL rate amplitude
+    // @Description: SITL only. Rate-only amplitude, fixed at entry. Attitude experiments use S_ANG instead. Not a flight tune or hardware safety limit.
+    // @Range: 0 0.3
+    // @Units: rad/s
+    // @User: Advanced
+    AP_GROUPINFO("S_AMP", 26, AP_UTB, _sitl_amplitude, 0),
+
+    // @Param: S_DLY
+    // @DisplayName: SITL normalized RPY command delay
+    // @Description: SITL only. One 400Hz cycle of explicit adapter transport delay for both comparison owners. Fixed at entry, reset on inactivity. Not ESC or hardware delay calibration.
+    // @Values: 0:No delay,1:One cycle
+    // @User: Advanced
+    AP_GROUPINFO("S_DLY", 27, AP_UTB, _sitl_delay, 0),
+
+    // @Param: S_AW
+    // @DisplayName: Experimental SITL allocation feedback
+    // @Description: SITL only. Uses verified BF_X_REV pre-linearization allocation for directional integration gating. Unknown, stale, boost or slew-mismatched feedback stops. Requires scripting disabled. Default retains saturation stop. No physical torque feedback.
+    // @Values: 0:Saturation stop,1:Verified allocation gating
+    // @User: Advanced
+    AP_GROUPINFO("S_AW", 28, AP_UTB, _sitl_antiwindup, 0),
+
+    // @Param: S_ATT
+    // @DisplayName: SITL attitude source
+    // @Description: SITL only. Explicit experimental outer loop, fixed at entry. Zero preserves rate-only experiments. Available only on the simulator.
+    // @Values: 0:Rate only,1:UTB reduced rotation P,2:AP attitude comparison
+    // @User: Advanced
+    AP_GROUPINFO("S_ATT", 29, AP_UTB, _sitl_attitude, 0),
+
+    // @Param: S_ANG
+    // @DisplayName: SITL angle amplitude
+    // @Description: SITL only. Finite reference amplitude. Combined roll/pitch vector must remain within five degrees. Not a hardware tune.
+    // @Range: 0 5
+    // @Units: deg
+    // @User: Advanced
+    AP_GROUPINFO("S_ANG", 30, AP_UTB, _sitl_angle, 0),
+
+    // @Param: S_ARP
+    // @DisplayName: SITL roll angle P
+    // @Description: SITL only. Reduced rotation roll gain, fixed at entry. Simulator only.
+    // @Range: 1 6
+    // @User: Advanced
+    AP_GROUPINFO("S_ARP", 31, AP_UTB, _sitl_angle_roll_p, 2),
+
+    // @Param: S_APP
+    // @DisplayName: SITL pitch angle P
+    // @Description: SITL only. Reduced rotation pitch gain, fixed at entry. Simulator only.
+    // @Range: 1 6
+    // @User: Advanced
+    AP_GROUPINFO("S_APP", 32, AP_UTB, _sitl_angle_pitch_p, 2),
+
+    // @Param: S_RMAX
+    // @DisplayName: SITL tilt rate limit
+    // @Description: SITL only. Common roll/pitch rate norm limit. Fixed at entry, simulator only.
+    // @Range: 0.05 0.3
+    // @Units: rad/s
+    // @User: Advanced
+    AP_GROUPINFO("S_RMAX", 33, AP_UTB, _sitl_angle_rate_max, 0.3),
+
+    // @Param: S_YRATE
+    // @DisplayName: SITL attitude yaw rate
+    // @Description: SITL only. Body yaw rate for the UTB outer loop, no heading hold. AP comparison uses its original Euler yaw rate semantics.
+    // @Range: -0.1 0.1
+    // @Units: rad/s
+    // @User: Advanced
+    AP_GROUPINFO("S_YRATE", 34, AP_UTB, _sitl_yaw_rate, 0),
+
+    // @Param: S_TOFF
+    // @DisplayName: SITL throttle perturbation
+    // @Description: SITL only. Constant normalized throttle offset for bounded attitude experiments. No altitude controller. Fixed at entry.
+    // @Range: -0.001 0.001
+    // @User: Advanced
+    AP_GROUPINFO("S_TOFF", 35, AP_UTB, _sitl_throttle_offset, 0),
+#endif
     AP_GROUPEND
 };
 

@@ -1410,8 +1410,8 @@ void AP_MotorsMatrix::disable_yaw_torque(void)
     }
 }
 
-#if APM_BUILD_TYPE(APM_BUILD_UNKNOWN)
-// examples can pull values direct
+#if APM_BUILD_TYPE(APM_BUILD_UNKNOWN) || CONFIG_HAL_BOARD == HAL_BOARD_SITL
+// Read-only allocation access for examples and simulation diagnostics.
 float AP_MotorsMatrix::get_thrust_rpyt_out(uint8_t i) const
 {
     if (i < AP_MOTORS_MAX_NUM_MOTORS) {

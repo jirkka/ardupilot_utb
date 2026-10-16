@@ -274,7 +274,75 @@ public:
 #endif
 #endif
     static const AP_Param::GroupInfo var_info[];
+#if AP_UTB_RATE_SITL_AVAILABLE
+    int8_t sitl_attitude() const
+    {
+        return _sitl_attitude.get();
+    }
+    float sitl_angle() const
+    {
+        return _sitl_angle.get();
+    }
+    float sitl_angle_roll_p() const
+    {
+        return _sitl_angle_roll_p.get();
+    }
+    float sitl_angle_pitch_p() const
+    {
+        return _sitl_angle_pitch_p.get();
+    }
+    float sitl_angle_rate_max() const
+    {
+        return _sitl_angle_rate_max.get();
+    }
+    float sitl_yaw_rate() const
+    {
+        return _sitl_yaw_rate.get();
+    }
+    float sitl_throttle_offset() const
+    {
+        return _sitl_throttle_offset.get();
+    }
+    int8_t sitl_antiwindup() const { return _sitl_antiwindup.get(); }
+    int8_t sitl_owner() const
+    {
+        return _sitl_owner.get();
+    }
+    int8_t sitl_profile() const
+    {
+        return _sitl_profile.get();
+    }
+    bool sitl_run() const
+    {
+        return _sitl_run.get() == 1;
+    }
+    int8_t sitl_delay() const
+    {
+        return _sitl_delay.get();
+    }
+    float sitl_amplitude() const
+    {
+        return _sitl_amplitude.get();
+    }
+    void sitl_gains(AP_UTB_RateController::Gains (&gains)[3]) const
+    {
+        for (uint8_t i = 0; i < 3; i++) {
+            gains[i] = {_p[i].get(), _i[i].get(), _d[i].get(), _imax[i].get(), _d_hz[i].get()};
+        }
+    }
+#endif
 private:
+#if AP_UTB_RATE_SITL_AVAILABLE
+    AP_Int8 _sitl_attitude;
+    AP_Float _sitl_angle, _sitl_angle_roll_p, _sitl_angle_pitch_p, _sitl_angle_rate_max;
+    AP_Float _sitl_yaw_rate, _sitl_throttle_offset;
+    AP_Int8 _sitl_antiwindup;
+    AP_Int8 _sitl_owner;
+    AP_Int8 _sitl_profile;
+    AP_Int8 _sitl_run;
+    AP_Float _sitl_amplitude;
+    AP_Int8 _sitl_delay;
+#endif
 #if AP_UTB_BENCH_ENABLED
     AP_Int8 _synthetic_request;
     AP_UTB_SyntheticReference _synthetic;

@@ -47,7 +47,7 @@ public:
     bool configure(const Gains (&gains)[3], float nominal_dt);
     void reset();
     Result update(const AP_UTB_State &state, const Vector3f &target_rads, float dt_s);
-    // SHADOW ONLY: feedback from the previous completed allocation, never AP limits.
+    // Caller-verified normalized allocation only; never infer a physical achieved torque from limit flags.
     void feedback(const Result &result, const Vector3f &achieved);
 private:
     Gains _gains[3];

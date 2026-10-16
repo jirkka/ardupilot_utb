@@ -76,6 +76,7 @@ enum DevOptions {
 };
 
 //  Logging parameters - only 32 messages are available to the vehicle here.
+#include <AP_UTB/AP_UTB_config.h>
 enum LoggingParameters {
     LOG_CONTROL_TUNING_MSG,
     LOG_DATA_INT16_MSG,
@@ -109,6 +110,14 @@ enum LoggingParameters {
 #endif
 #if AP_UTB_ENABLED
     LOG_UTBC_MSG = 31,
+#endif
+#if AP_UTB_RATE_SITL_AVAILABLE
+    LOG_UARX_MSG = 24,
+    LOG_UAMT_MSG = 25,
+    LOG_UAFB_MSG = 26,
+    LOG_UALT_MSG = 27,
+    LOG_UAAT_MSG = 28,
+    LOG_UAST_MSG = 29,
 #endif
 };
 

@@ -73,6 +73,10 @@
 #include <AP_Winch/AP_Winch_config.h>
 #include <AP_SurfaceDistance/AP_SurfaceDistance.h>
 #include <AP_UTB/AP_UTB_config.h>
+#if AP_UTB_RATE_SITL_AVAILABLE
+#include <AP_UTB/AP_UTB_SITLRate.h>
+#include <AP_UTB/AP_UTB_SITLAttitude.h>
+#endif
 #include <AP_Logger/AP_Logger_UTBBench.h>
 #if AP_UTB_ENABLED
 #include <AP_UTB/AP_UTB.h>
@@ -209,6 +213,9 @@ public:
     friend class ModeAcro;
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     friend class ModeUTBAcro;
+#endif
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    friend class ModeUTBRateSITL;
 #endif
     friend class ModeAcro_Heli;
     friend class ModeAltHold;
@@ -653,7 +660,16 @@ private:
         FAST_RATE_FIXED               = 3,
     };
 
-    FastRateType get_fast_rate_type() const { return FastRateType(g2.att_enable.get()); }
+    FastRateType get_fast_rate_type() const
+    {
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        // No rate thread may start while the simulation experiment owns this slot.
+        if (flightmode == &mode_utb_rate_sitl) {
+            return FastRateType::FAST_RATE_DISABLED;
+        }
+#endif
+        return FastRateType(g2.att_enable.get());
+    }
 
     // returns true if option is enabled for this vehicle
     bool option_is_enabled(FlightOption option) const {
@@ -772,7 +788,15 @@ private:
     // endif AP_INERTIALSENSOR_FAST_SAMPLE_WINDOW_ENABLED
 
 #if AC_CUSTOMCONTROL_MULTI_ENABLED
-    void run_custom_controller() { custom_control.update(); }
+    void run_custom_controller()
+    {
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        if (flightmode == &mode_utb_rate_sitl) {
+            return;
+        }
+#endif
+        custom_control.update();
+    }
 #endif
 
     // avoidance.cpp
@@ -1052,6 +1076,9 @@ private:
 #endif
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     ModeUTBAcro mode_utb_acro;
+#endif
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    ModeUTBRateSITL mode_utb_rate_sitl;
 #endif
     ModeAltHold mode_althold;
 #if MODE_AUTO_ENABLED
