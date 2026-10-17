@@ -2,6 +2,7 @@
 
 def build(bld):
     vehicle = bld.path.name
+    sources = bld.path.ant_glob(['*.S', '*.c', '*.cpp']) + bld.srcnode.ant_glob('libraries/AP_UTB/Copter/*.cpp')
     bld.ap_stlib(
         name=vehicle + '_libs',
         ap_vehicle=vehicle,
@@ -31,6 +32,7 @@ def build(bld):
 
     bld.ap_program(
         program_name='arducopter',
+        source=sources,
         program_groups=['bin', 'copter'],
         use=vehicle + '_libs',
         defines=['FRAME_CONFIG=MULTICOPTER_FRAME'],
@@ -38,6 +40,7 @@ def build(bld):
 
     bld.ap_program(
         program_name='arducopter-heli',
+        source=sources,
         program_groups=['bin', 'heli'],
         use=vehicle + '_libs',
         defines=['FRAME_CONFIG=HELI_FRAME'],

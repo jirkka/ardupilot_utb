@@ -163,7 +163,7 @@ Jde o **AP-derived UTB shadow reference**, bez traineru a bez dynamic RATE_TC.
 Převzetí této source convention nefixuje budoucí UTB_ACRO na AP parametry.
 Thrust je AP ACRO statická pilotní throttle mapa; zde nebyla upravována.
 
-[Bridge](../ArduCopter/utb.cpp), řádky 16–83, odebírá scheduler dt/h₀,
+[Bridge](../libraries/AP_UTB/Copter/utb.cpp), řádky 16–83, odebírá scheduler dt/h₀,
 read-only AP target capture, sampled state a RC reference. `validation_time_us`
 je na řádku 47 až za sample. Na [Copter.cpp](../ArduCopter/Copter.cpp),
 řádcích 124–129, shadow následuje po AP motor output a před read_AHRS;
@@ -250,7 +250,7 @@ Je pouze diagnostický a není schválen pro aktivní letový output.
 
 ## 5. Nezávislý model a tolerance
 
-[utb_math_reference.py](../Tools/autotest/utb_math_reference.py) používá Python
+[utb_math_reference.py](../Tools/utb/tools/utb_math_reference.py) používá Python
 standard library a reálnou double aritmetiku. Geometrie se vytváří z poloh/spinů,
 alokace jako projekce do dosažitelného intervalu, inverse jako transpozice
 ortogonálních sloupců, součty přes math.fsum. Nejprve se kvantují pouze vstupy
@@ -379,7 +379,7 @@ Virtuální arming patří původnímu AP controlleru; UTB požadavek je součas
 nenulový, ale neovlivní tyto výstupy. Nejde o bitovou ekvivalenci každého
 transientu nebo skutečného letu při rozdílném scheduling.
 
-[ModeUTBAcro::init](../ArduCopter/mode_utb_acro.cpp), řádky 15–22, odmítá armed
+[ModeUTBAcro::init](../libraries/AP_UTB/Copter/mode_utb_acro.cpp), řádky 15–22, odmítá armed
 a jiný spool než SHUT_DOWN; `run()` na řádcích 30–32 pouze vzorkuje stav.
 [mode.h](../ArduCopter/mode.h), řádek 446, vrací allows_arming=false.
 Původní restrictions zůstaly byte-for-byte beze změny.

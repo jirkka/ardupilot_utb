@@ -1,7 +1,7 @@
 #include "Copter.h"
-#include "utb_bench_log.h"
-#include "utb_log.h"
-#include "utb_sitl_log.h"
+#include <AP_UTB/Copter/utb_bench_log.h>
+#include <AP_UTB/Copter/utb_log.h>
+#include <AP_UTB/Copter/utb_sitl_log.h>
 #include <AP_InertialSensor/AP_InertialSensor_rate_config.h>
 
 #if HAL_LOGGING_ENABLED

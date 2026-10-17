@@ -1,3 +1,15 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       test_utb_synthetic.cpp
+///  @brief      Analytické/lifecycle regrese příslušné komponenty; 4 deklarovaných TEST případů.
+///  @author     Jiri Kovar
+///  @version    2026-10-16
+///  @date       2026-10-16
+//--------------------------------------------------------------------------------------------------------------------
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include <AP_gtest.h>
 #include <AP_UTB/AP_UTB_SyntheticReference.h>
 #include <cstdio>
@@ -5,7 +17,25 @@
 
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 #if AP_UTB_ENABLED && AP_UTB_BENCH_ENABLED
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
 using Generator = AP_UTB_SyntheticReference;
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Data type, constant, macro definition
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify offline reference vectors.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSynthetic, OfflineReferenceVectors).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSynthetic, OfflineReferenceVectors)
 {
     const char *path = getenv("UTB_REFERENCE_OUTPUT");
@@ -23,6 +53,14 @@ TEST(UTBSynthetic, OfflineReferenceVectors)
     }
     EXPECT_EQ(fclose(output), 0);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify complete finite sequence and latch.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSynthetic, CompleteFiniteSequenceAndLatch).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSynthetic, CompleteFiniteSequenceAndLatch)
 {
     Generator generator;
@@ -51,6 +89,14 @@ TEST(UTBSynthetic, CompleteFiniteSequenceAndLatch)
     EXPECT_EQ(generator.update(1, true, false, false, 0).cycle, 0U);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify faults do not automatically resume.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSynthetic, FaultsDoNotAutomaticallyResume).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSynthetic, FaultsDoNotAutomaticallyResume)
 {
     for (unsigned fault = 0; fault < 5; fault++) {
@@ -67,6 +113,14 @@ TEST(UTBSynthetic, FaultsDoNotAutomaticallyResume)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify analytical points and saturation profile.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSynthetic, AnalyticalPointsAndSaturationProfile).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSynthetic, AnalyticalPointsAndSaturationProfile)
 {
     EXPECT_FLOAT_EQ(Generator::signal(200, 1).x, 0.3f);
@@ -85,3 +139,24 @@ TEST(UTBSynthetic, AnalyticalPointsAndSaturationProfile)
 }
 #endif
 AP_GTEST_MAIN()
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions

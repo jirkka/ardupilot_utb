@@ -1,3 +1,12 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       test_utb_sitl_rate.cpp
+///  @brief      Analytické/lifecycle regrese příslušné komponenty; 9 deklarovaných TEST případů.
+///  @author     Jiri Kovar
+///  @version    2026-10-16
+///  @date       2026-10-16
+//--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -9,11 +18,28 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
  */
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include <AP_gtest.h>
 #include <AP_UTB/AP_UTB_SITLRate.h>
 #include <limits>
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 #if AP_UTB_RATE_SITL_AVAILABLE
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Inputs.
+///
+///  @param[in]  stamp Stamp.
+///  @return     AP_UTB_SITLRate::Inputs.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB_SITLRate::Inputs inputs(uint32_t
+///              stamp = 100000).
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB_SITLRate::Inputs inputs(uint32_t stamp = 100000)
 {
     AP_UTB_SITLRate::Inputs in;
@@ -26,9 +52,27 @@ static AP_UTB_SITLRate::Inputs inputs(uint32_t stamp = 100000)
     in.frame_class = 1; in.frame_type = 18;
     return in;
 }
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
 static const AP_UTB_RateController::Gains gains[3] = {
     {0.31f, 0.23f, 0.004f, 0.19f, 20}, {0.31f, 0.23f, 0.004f, 0.19f, 20}, {0.31f, 0.23f, 0.004f, 0.19f, 20}
 };
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify default and explicit configuration.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL, DefaultAndExplicitConfiguration).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, DefaultAndExplicitConfiguration)
 {
     AP_UTB_SITLRate rate;
@@ -43,6 +87,14 @@ TEST(UTBSITL, DefaultAndExplicitConfiguration)
     EXPECT_GT(out.axis[0].i, 0);
     EXPECT_EQ(rate.calls(), 2U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify apbaseline does not execute utbpid.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL, APBaselineDoesNotExecuteUTBPID).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, APBaselineDoesNotExecuteUTBPID)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains));
@@ -50,6 +102,14 @@ TEST(UTBSITL, APBaselineDoesNotExecuteUTBPID)
     EXPECT_TRUE(rate.step(inputs(102500), false).valid);
     EXPECT_EQ(rate.calls(), 0U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify faults latch and reset requires configuration.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL, FaultsLatchAndResetRequiresConfiguration).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, FaultsLatchAndResetRequiresConfiguration)
 {
     for (uint8_t fault = 1; fault <= 8; fault++) {
@@ -73,6 +133,15 @@ TEST(UTBSITL, FaultsLatchAndResetRequiresConfiguration)
         ASSERT_TRUE(rate.configure(gains)); EXPECT_TRUE(rate.step(inputs(110000), true).priming);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify allocator limits only fault after armed full spool.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL,
+///              AllocatorLimitsOnlyFaultAfterArmedFullSpool).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, AllocatorLimitsOnlyFaultAfterArmedFullSpool)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains));
@@ -84,6 +153,15 @@ TEST(UTBSITL, AllocatorLimitsOnlyFaultAfterArmedFullSpool)
     EXPECT_FALSE(rate.step(in, true).valid);
     EXPECT_EQ(rate.fault(), AP_UTB_SITLRate::Fault::SATURATION);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify arming and spool transitions reprime integral and d.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL,
+///              ArmingAndSpoolTransitionsReprimeIntegralAndD).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, ArmingAndSpoolTransitionsReprimeIntegralAndD)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains));
@@ -94,6 +172,14 @@ TEST(UTBSITL, ArmingAndSpoolTransitionsReprimeIntegralAndD)
     EXPECT_TRUE(out.priming); EXPECT_FLOAT_EQ(out.axis[0].i, 0); EXPECT_FLOAT_EQ(out.axis[0].d, 0);
     in = inputs(107500); in.armed = in.full_spool = true; EXPECT_TRUE(rate.step(in, true).priming);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify stale state and clock wrap.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL, StaleStateAndClockWrap).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, StaleStateAndClockWrap)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains));
@@ -101,6 +187,14 @@ TEST(UTBSITL, StaleStateAndClockWrap)
     in = inputs(1499); EXPECT_TRUE(rate.step(in, true).valid);
     in = inputs(3999); in.now_us += 10001; EXPECT_FALSE(rate.step(in, true).valid);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify nonfinite inputs never produce valid output.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL, NonfiniteInputsNeverProduceValidOutput).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, NonfiniteInputsNeverProduceValidOutput)
 {
     for (bool target : {
@@ -116,6 +210,14 @@ TEST(UTBSITL, NonfiniteInputsNeverProduceValidOutput)
         EXPECT_FALSE(rate.step(in, true).valid);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify finite reference profiles and balanced signs.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL, FiniteReferenceProfilesAndBalancedSigns).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, FiniteReferenceProfilesAndBalancedSigns)
 {
     for (uint8_t profile = 0; profile <= 7; profile++) {
@@ -139,6 +241,14 @@ TEST(UTBSITL, FiniteReferenceProfilesAndBalancedSigns)
     EXPECT_FLOAT_EQ(AP_UTB_SITLRate::reference(7, 7199, 0.15f).z, -0.15f);
     EXPECT_FLOAT_EQ(AP_UTB_SITLRate::reference(7, 7200, 0.15f).z, 0);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify bounded transport delay and reset.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSITL, BoundedTransportDelayAndReset).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSITL, BoundedTransportDelayAndReset)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains));
@@ -152,3 +262,18 @@ TEST(UTBSITL, BoundedTransportDelayAndReset)
 }
 #endif
 AP_GTEST_MAIN()
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Data type, constant, macro definition
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes

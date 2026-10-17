@@ -42,13 +42,13 @@ Rozdíl proti ověřenému checkpointu, včetně nových untracked souborů; pů
 | [ArduCopter/Log.cpp](../ArduCopter/Log.cpp) | modified | Registrace čtyř guardovaných bench logů. |
 | [ArduCopter/defines.h](../ArduCopter/defines.h) | modified | Připojení nových vehicle log IDs bez změny původních. |
 | [ArduCopter/system.cpp](../ArduCopter/system.cpp) | modified | Inicializace diagnostiky při bootu. |
-| [ArduCopter/utb.cpp](../ArduCopter/utb.cpp) | modified | Producer/consumer wall time, worker lifecycle/heartbeat/stack a UBEP; původní worker policy zachována. |
-| [ArduCopter/utb_bench.cpp](../ArduCopter/utb_bench.cpp) | added | Samostatný omezený diagnostický exporter a konzistentní config snapshot. |
-| [ArduCopter/utb_bench_log.h](../ArduCopter/utb_bench_log.h) | added | UBMT, UBHI, UBST a UBEP formáty/metadatové popisy. |
-| [ArduCopter/utb_bench_platform.cpp](../ArduCopter/utb_bench_platform.cpp) | added | Skutečná thread identity a ChibiOS watermark přes existující API. |
+| [ArduCopter/utb.cpp](../libraries/AP_UTB/Copter/utb.cpp) | modified | Producer/consumer wall time, worker lifecycle/heartbeat/stack a UBEP; původní worker policy zachována. |
+| [ArduCopter/utb_bench.cpp](../libraries/AP_UTB/Copter/utb_bench.cpp) | added | Samostatný omezený diagnostický exporter a konzistentní config snapshot. |
+| [ArduCopter/utb_bench_log.h](../libraries/AP_UTB/Copter/utb_bench_log.h) | added | UBMT, UBHI, UBST a UBEP formáty/metadatové popisy. |
+| [ArduCopter/utb_bench_platform.cpp](../libraries/AP_UTB/Copter/utb_bench_platform.cpp) | added | Skutečná thread identity a ChibiOS watermark přes existující API. |
 | [README_BUILD_WSL_CS.md](../README_BUILD_WSL_CS.md) | modified | Reprodukovatelné build příkazy, archivace profilů a instalace. |
-| [Tools/autotest/test_utb_bench.py](../Tools/autotest/test_utb_bench.py) | added | SITL A/B/C-D/failure/outage regrese a čtyři offline parser testy. |
-| [Tools/autotest/utb_bench_analysis.py](../Tools/autotest/utb_bench_analysis.py) | added | Počet kompletních trvale uložených sad a frekvence z BIN/time-window. |
+| [Tools/autotest/test_utb_bench.py](../Tools/utb/tools/test_utb_bench.py) | added | SITL A/B/C-D/failure/outage regrese a čtyři offline parser testy. |
+| [Tools/autotest/utb_bench_analysis.py](../Tools/utb/tools/utb_bench_analysis.py) | added | Počet kompletních trvale uložených sad a frekvence z BIN/time-window. |
 | [Tools/scripts/build_options.py](../Tools/scripts/build_options.py) | modified | Nezávislá UTB_BENCH feature, default 0. |
 | [docs/UTB_ARCHITEKTURA_CS.md](../docs/UTB_ARCHITEKTURA_CS.md) | modified | Oddělený stav implementace, software ověření a neověřeného hardware. |
 | [docs/UTB_BENCH_SOFTWARE_REPORT_CS.md](../docs/UTB_BENCH_SOFTWARE_REPORT_CS.md) | added | Tento výsledkový report, manifest, firmware identifikace a Git stav. |

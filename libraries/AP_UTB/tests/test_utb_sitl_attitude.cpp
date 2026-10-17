@@ -1,14 +1,43 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       test_utb_sitl_attitude.cpp
+///  @brief      Analytické/lifecycle regrese příslušné komponenty; 14 deklarovaných TEST případů.
+///  @author     Jiri Kovar
+///  @version    2026-10-16
+///  @date       2026-10-16
+//--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
  */
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include <AP_gtest.h>
 #include <AP_UTB/AP_UTB_SITLAttitude.h>
 #include <AP_UTB/AP_UTB_SITLRate.h>
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 #if AP_UTB_RATE_SITL_AVAILABLE
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      State.
+///
+///  @param[in]  r R.
+///  @param[in]  p P.
+///  @param[in]  y Y.
+///  @param[in]  stamp Stamp.
+///  @return     AP_UTB_State.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB_State state(float r = 0, float p
+///              = 0, float y = 0, uint32_t stamp = 100000).
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB_State state(float r = 0, float p = 0, float y = 0, uint32_t stamp = 100000)
 {
     AP_UTB_State s;
@@ -18,6 +47,19 @@ static AP_UTB_State state(float r = 0, float p = 0, float y = 0, uint32_t stamp 
     s.primary_gyro = 0;
     return s;
 }
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify default off and reset.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, DefaultOffAndReset).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, DefaultOffAndReset)
 {
     AP_UTB_SITLAttitude c;
@@ -30,6 +72,14 @@ TEST(UTBAttitude, DefaultOffAndReset)
     ASSERT_TRUE(c.configure({}));
     EXPECT_TRUE(c.update(state(), {}, .0025f, 100010).valid);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify zero and yaw rate without heading hold.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, ZeroAndYawRateWithoutHeadingHold).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, ZeroAndYawRateWithoutHeadingHold)
 {
     for (float yaw : {
@@ -42,6 +92,15 @@ TEST(UTBAttitude, ZeroAndYawRateWithoutHeadingHold)
         EXPECT_FLOAT_EQ(out.rates.z, .05f);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify signed analytic single axis and return to level.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude,
+///              SignedAnalyticSingleAxisAndReturnToLevel).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, SignedAnalyticSingleAxisAndReturnToLevel)
 {
     for (uint8_t axis = 0; axis < 2; axis++) {
@@ -67,6 +126,15 @@ TEST(UTBAttitude, SignedAnalyticSingleAxisAndReturnToLevel)
         }
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify combined independent rotation matrix reference.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude,
+///              CombinedIndependentRotationMatrixReference).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, CombinedIndependentRotationMatrixReference)
 {
     // Independent double-precision 321 matrix columns and dot products.
@@ -95,6 +163,14 @@ TEST(UTBAttitude, CombinedIndependentRotationMatrixReference)
         EXPECT_NEAR(out.error.x, -y*k, 1.0e-7); EXPECT_NEAR(out.error.y, x*k, 1.0e-7);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify quaternion sign and yaw wrap invariant.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, QuaternionSignAndYawWrapInvariant).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, QuaternionSignAndYawWrapInvariant)
 {
     auto s = state(.02f, -.03f, 3.14f);
@@ -106,6 +182,14 @@ TEST(UTBAttitude, QuaternionSignAndYawWrapInvariant)
     const auto opposite = b.update(s, {}, .0025f, 100010);
     EXPECT_NEAR((out.rates-opposite.rates).length(), 0, 1.0e-7f);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify norm clamp preserves direction.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, NormClampPreservesDirection).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, NormClampPreservesDirection)
 {
     AP_UTB_SITLAttitude c; ASSERT_TRUE(c.configure({6, 6, .05f}));
@@ -115,6 +199,14 @@ TEST(UTBAttitude, NormClampPreservesDirection)
     EXPECT_NEAR(out.rates.x/out.rates.y, out.error.x/out.error.y, 1.0e-6f);
     EXPECT_FLOAT_EQ(out.rates.z, .1f);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify invalid quaternion and state health.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, InvalidQuaternionAndStateHealth).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, InvalidQuaternionAndStateHealth)
 {
     for (uint8_t fault = 0; fault < 7; fault++) {
@@ -133,6 +225,14 @@ TEST(UTBAttitude, InvalidQuaternionAndStateHealth)
         EXPECT_FALSE(c.update(state(), {}, .0025f, 100010).valid);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify invalid dt.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, InvalidDt).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, InvalidDt)
 {
     for (float dt : {
@@ -143,6 +243,14 @@ TEST(UTBAttitude, InvalidDt)
         EXPECT_EQ(c.fault(), AP_UTB_SITLAttitude::Fault::DT);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify invalid reference and singularity rejected.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, InvalidReferenceAndSingularityRejected).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, InvalidReferenceAndSingularityRejected)
 {
     for (Vector3f ref : {
@@ -157,6 +265,14 @@ TEST(UTBAttitude, InvalidReferenceAndSingularityRejected)
     EXPECT_FALSE(c.update(state(0, radians(90.0f)), {}, .0025f, 100010).valid);
     EXPECT_EQ(c.fault(), AP_UTB_SITLAttitude::Fault::ENVELOPE);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify repeated insprimary and clock wrap.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, RepeatedINSPrimaryAndClockWrap).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, RepeatedINSPrimaryAndClockWrap)
 {
     AP_UTB_SITLAttitude c; ASSERT_TRUE(c.configure({}));
@@ -168,6 +284,14 @@ TEST(UTBAttitude, RepeatedINSPrimaryAndClockWrap)
     auto s = state(0, 0, 0, 102500); s.primary_gyro = 1;
     EXPECT_FALSE(c.update(s, {}, .0025f, 102510).valid);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify configuration freeze and invalid gain.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, ConfigurationFreezeAndInvalidGain).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, ConfigurationFreezeAndInvalidGain)
 {
     AP_UTB_SITLAttitude c; ASSERT_TRUE(c.configure({}));
@@ -177,6 +301,14 @@ TEST(UTBAttitude, ConfigurationFreezeAndInvalidGain)
     EXPECT_FALSE(c.configure({2, 7, .3f}));
     EXPECT_FALSE(c.configure({2, 2, .31f}));
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify finite references and original rate path.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, FiniteReferencesAndOriginalRatePath).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, FiniteReferencesAndOriginalRatePath)
 {
     for (uint8_t p : {
@@ -191,6 +323,15 @@ TEST(UTBAttitude, FiniteReferencesAndOriginalRatePath)
     EXPECT_FLOAT_EQ(AP_UTB_SITLRate::reference(1, 400, .15f).x, .15f);
     EXPECT_EQ(AP_UTB_SITLRate::duration_cycles(1), 3200U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify attitude fault stops existing inner before its next update.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude,
+///              AttitudeFaultStopsExistingInnerBeforeItsNextUpdate).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, AttitudeFaultStopsExistingInnerBeforeItsNextUpdate)
 {
     AP_UTB_SITLAttitude outer; ASSERT_TRUE(outer.configure({}));
@@ -213,6 +354,14 @@ TEST(UTBAttitude, AttitudeFaultStopsExistingInnerBeforeItsNextUpdate)
     EXPECT_TRUE(outer.update(state(), {}, .0025f, 100010).valid);
     EXPECT_FALSE(inner.step(in, true).valid);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify valid outer does not bypass inner frame fault.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAttitude, ValidOuterDoesNotBypassInnerFrameFault).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAttitude, ValidOuterDoesNotBypassInnerFrameFault)
 {
     AP_UTB_SITLAttitude outer; ASSERT_TRUE(outer.configure({}));
@@ -232,3 +381,24 @@ TEST(UTBAttitude, ValidOuterDoesNotBypassInnerFrameFault)
 }
 #endif
 AP_GTEST_MAIN()
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Data type, constant, macro definition
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes

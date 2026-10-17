@@ -1,7 +1,9 @@
 # UTB: současný funkční stav
 
-Stav FÁZE 2E k 16. 10. 2026. Platí pro pracovní strom nad HEAD
-`687f825d228b12a64d36651072aed19356178217`, nikoli pro samotný HEAD.
+Stav k **17. 10. 2026**, větev `test/skystars-5inch`. Tento dokument je
+součástí lokálního checkpointu organizace a čitelnosti nad rodičem
+`5a32da404dafd19546439bf6886ab9adb831f4c0`. Přesný commit dokumentu lze
+zjistit příkazem `git log -1 --format=%H -- docs/UTB_PROJECT_STATUS_CS.md`.
 [Rozcestník](UTB_README_CS.md) · [Mapa implementace](UTB_FILE_MAP_CS.md) ·
 [Git a ověření kontinuity](UTB_GIT_CONSOLIDATION_CS.md).
 
@@ -18,11 +20,49 @@ UNVERIFIED = nedoložené. Build úspěch sám není H743 validace.
 | Aktivní rate a attitude SITL | SOURCE/UNIT/SITL | Mode 41, guard `AP_UTB_RATE_SITL_AVAILABLE`, výhradní dispatch a původní AP_Motors. 37 attitude sessions + 2 RATE regrese v 2C. |
 | Definovaná politika saturace | SOURCE/UNIT/SITL | **Default `UTB_S_AW=0` je SATURATION stop.** Volitelné `S_AW=1` používá ověřený normalized allocation feedback. Není výchozím aktivním anti-windupem; [2B kontrakt](UTB_RATE_ANTIWINDUP_CS.md). |
 | Matematická validace | UNIT/SITL/H743 SHADOW | Nezávislé PID/mixer rovnice, float meze, rotace, allocation projection a recurrence. Hodnoty nejsou fyzikální torque měření. |
-| Testy a reprodukce | UNIT/SITL/BUILD | [2C souhrn](UTB_PHASE_2C_SUMMARY_CS.md): 79 C++/128 Python testů, sedm build variant a guards. Nově spuštěné 2E versus převzaté důkazy rozlišuje Git audit. |
+| Testy a reprodukce | UNIT/SITL/BUILD | Nejnovější regrese ze 17. 10.: **98 C++ / 128 Python testů**, 30 946 matematických vzorků / 29 scénářů, shodný CSV výstup se starším C++ executablem; [přehled zdrojů](UTB_SOURCE_GUIDE_CS.md). Historický [2C souhrn](UTB_PHASE_2C_SUMMARY_CS.md) dokládá širší experimentální matici. |
 
 „Hotovo“ znamená implementovaný a ověřený experimentální kontrakt. Celkový
 aktivní autopilot UTB pro hardware dokončený není. Výchozí firmware gains,
 S_OWNER/S_RUN/S_ATT zůstávají nulové; zvolené SITL gains nastavují runnery.
+
+## Nejnovější ověření softwaru, 17. 10. 2026
+
+- C++ a Python zdroje byly uspořádané a okomentované, pracovní deklarace
+  sjednocené; byly odstraněné dva zbytečné interní ukazatele. Matematické
+  výrazy, bezpečnostní kontroly a pořadí controller volání se neměnily.
+- C++ je v `libraries/AP_UTB/`, Copter adaptéry v `Copter/`, C++ testy v
+  `tests/`. Python je samostatně v `Tools/utb/tools/` a `Tools/utb/tests/`.
+  Nezávislá BENCH instrumentace zůstává u AP_Logger kvůli UTB OFF baseline.
+- Prošlo 47 core + 9 allocation + 12 benchmark + 14 attitude + 9 rate +
+  3 synthetic + 4 matematické C++ testy, celkem **98**. Python: **128**.
+- Finální SITL regrese: DISARMED integrace, RATE roll/pitch po 3200 sadách,
+  attitude roll s 5600 sadami, SHADOW 200/400 Hz a UTB OFF runtime absence.
+  SHADOW dosáhl přibližně 200,0009 / 399,9933 Hz v měřených SITL úsecích.
+  Test záměrně vypíná logger, vyvolává plnou frontu a kontroluje nekompletní
+  sady; jeho drops nejsou výsledek stabilního hardware benchmarku.
+- Sestaveno SITL UTB ON/BENCH ON, SITL UTB ON/BENCH OFF, SITL UTB OFF/BENCH OFF,
+  H743 UTB ON/BENCH ON a H743 UTB ON/BENCH ON bez logování. Aktivní UTB SITL
+  symboly na H743 chybějí i při vynuceném build option.
+- Param/logger metadata, flake8 a diff check prošly. Astyle upravených částí
+  prošel; původní jednořádkový getter `sitl_antiwindup()` v AP_UTB.h má
+  doloženou starší formátovací odchylku, která se neměnila.
+- H743 text je oproti předchozímu layout buildu větší o 12 B, BSS o 4 B.
+  Tři porovnané producer/worker/consumer funkce mají stejné compiler stack
+  operace. To nedokládá skutečný stack watermark ani WCET na hardware.
+
+Důkazy a SHA-256: [report](../tmp/utb-readable-20261017_084027/REPORT_CS.md),
+[ověření](../tmp/utb-readable-20261017_084027/verification-summary.json),
+[finální buildy](../tmp/utb-readable-20261017_084027/final-build-results.json).
+Tyto ignorované archivy je nutné přenášet zvlášť; nový clone je neobsahuje.
+
+Buildy a testy proběhly před lokálním commitem nad shodnými C++ a Python
+zdroji. Archivovaný APJ má původní build identitu z pracovního stromu nad
+`5a32da404d`; vytvoření commitu jeho metadata zpětně nemění. Při současném
+checkpointu se firmware nepřekládá znovu, nenahrává ani fyzicky netestuje.
+Aktuální uspořádání zdrojů je software/build/SITL ověřené; jeho hardware
+časování a stack watermark zůstávají neověřené. Předchozí fyzické výsledky
+níže se vztahují výhradně k tehdy zaznamenaným firmware a konfiguracím.
 
 ## Částečně ověřeno
 
@@ -52,6 +92,21 @@ Předchozí BP je použita pro kontinuitu projektu a plánování. Příslušný
 výšky/XY není tímto auditem dodán ani ověřen; nelze uvádět její konkrétní
 algoritmy, funkce nebo kompatibilitu jako hotové.
 
+## Plánované navazující kroky
+
+Jde o návrh pořadí práce, nikoli o povolení aktivního hardware řízení:
+
+1. Dořešit diagnostiku logger/download/EKF, sdílené mutexy a zopakovat
+   vymezená DISARMED měření časování/stacku pro zvolený finální firmware.
+2. Doložit fyzikální parametry a dynamiku skutečného 5″ dronu; dále ověřit
+   saturaci, anti-windup a robustnost v odpovídajícím simulačním kontraktu.
+3. Samostatně navrhnout a schválit přechod k aktivnímu hardware ověřování.
+   Současné H743 buildy takový přechod neumožňují.
+4. Po stabilizaci nižších smyček navrhnout heading hold, výšku a XY řízení.
+   Případný kód z původní BP musí nejdříve projít source auditem a adaptací.
+5. Vlastní AUTO, trajektorie, překážky a výukové UI řešit jako další oddělené
+   návrhy; v současném AP_UTB nejsou implementované.
+
 ## Historické reporty a zdánlivé rozpory
 
 Věcný obsah původních reportů zůstává zachovaný. Audit 2E výslovně eviduje
@@ -67,5 +122,6 @@ reportu kvůli úplnému staging diff checku. Rozpor se vykládá podle fáze a 
 | [Throughput audit](UTB_LOGGER_THROUGHPUT_AUDIT_CS.md): původní vícezprávový 400Hz tok problematický | Pozdější packed transport a cycle selection mají [samostatný recovery report](UTB_400_RECOVERY_20261011_CS.md). Nelze přenést výsledek na libovolné schéma loggeru. |
 | [2C](UTB_ATTITUDE_SITL_VALIDATION_CS.md): 79 testů versus [2B](UTB_PHASE_2B_SUMMARY_CS.md): 69 | Různé sady: 2B zahrnuje 4 independent math testy; 2C hlavní sada je 47+9+9+14. Nejde o ztracené testy. |
 
-FÁZE 2E nepřidává regulátor ani opravu loggeru. Připravuje pouze mapu,
-stav, zálohu a konsolidační commit ke schválení.
+FÁZE 2E ani navazující úprava organizace nepřidávají nový regulátor nebo
+opravu loggeru. Původní konsolidační commit je `5a32da404d`; tento navazující
+lokální checkpoint ukládá uspořádání, komentáře, čitelnost a aktuální stav.

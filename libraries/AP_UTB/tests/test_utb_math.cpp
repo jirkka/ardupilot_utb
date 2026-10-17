@@ -1,3 +1,15 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       test_utb_math.cpp
+///  @brief      Analytické/lifecycle regrese příslušné komponenty; 4 deklarovaných TEST případů.
+///  @author     Jiri Kovar
+///  @version    2026-10-16
+///  @date       2026-10-16
+//--------------------------------------------------------------------------------------------------------------------
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include <AP_gtest.h>
 #include <AP_UTB/AP_UTB.h>
 #include <AP_UTB/AP_UTB_LogPacket.h>
@@ -11,6 +23,19 @@ const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 #if AP_UTB_ENABLED
 // Host-only fixture transport. Production classes are linked without modifications.
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify offline vectors.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMath, OfflineVectors).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMath, OfflineVectors)
 {
     const char *input_path = getenv("UTB_MATH_INPUT");
@@ -75,6 +100,14 @@ TEST(UTBMath, OfflineVectors)
     EXPECT_EQ(fclose(output), 0);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify sustained saturation and recovery.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMath, SustainedSaturationAndRecovery).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMath, SustainedSaturationAndRecovery)
 {
     for (float sign : {
@@ -107,6 +140,15 @@ TEST(UTBMath, SustainedSaturationAndRecovery)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify format rate and backend loss do not change mathematics.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMath,
+///              FormatRateAndBackendLossDoNotChangeMathematics).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMath, FormatRateAndBackendLossDoNotChangeMathematics)
 {
     AP_UTB engine[2];
@@ -173,6 +215,14 @@ TEST(UTBMath, FormatRateAndBackendLossDoNotChangeMathematics)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify host wall benchmark.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMath, HostWallBenchmark).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMath, HostWallBenchmark)
 {
     AP_UTB_State state;
@@ -211,3 +261,30 @@ TEST(UTBMath, HostWallBenchmark)
 #endif // AP_UTB_ENABLED
 
 AP_GTEST_MAIN()
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Data type, constant, macro definition
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions

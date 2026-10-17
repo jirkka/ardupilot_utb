@@ -1,14 +1,17 @@
 # UTB: vlastní regulační vrstva v ArduPilot Copter
 
-Stav k 16. 10. 2026, větev `test/skystars-5inch`, HEAD
-`687f825d228b12a64d36651072aed19356178217` a navazující pracovní strom.
-Dokumenty FÁZE 2E popisují současný stav; nemění firmware.
+Stav k 17. 10. 2026, větev `test/skystars-5inch`. Navazující lokální
+checkpoint nad `5a32da404dafd19546439bf6886ab9adb831f4c0` ukládá organizaci,
+čitelnost a aktuální dokumentaci. Funkční rozsah shrnuje stav projektu.
 
 Projekt vytváří přehlednou a samostatně testovatelnou regulační vrstvu pro
 výuku a experimenty s multikoptérou. ArduPilot 4.7.1 zajišťuje senzory,
 odhad stavu, plánování, bezpečnostní infrastrukturu a výstupní cestu.
 Vlastní UTB matematika umožňuje sledovat jednotlivé členy regulátoru a
 porovnat výsledek s nezávislým modelem i původním řízením ArduPilotu.
+
+[Společný index zdrojů a komentářový vzor](UTB_SOURCE_GUIDE_CS.md) seskupuje
+vlastní UTB části a popisuje navazující komentářovou úpravu po checkpointu 2E.
 
 Začít lze [mapou všech souborů](UTB_FILE_MAP_CS.md),
 [přehledem dokončených a otevřených částí](UTB_PROJECT_STATUS_CS.md) a
@@ -55,7 +58,7 @@ i při vynucení build option `UTB_RATE_SITL`.
 | Aktivní rate SITL | [2A](UTB_ACTIVE_SITL_VALIDATION_CS.md), [2B](UTB_PHASE_2B_SUMMARY_CS.md), [gains a omezení](UTB_RATE_PID_OPTIMIZATION_CS.md). |
 | Anti-windup | [2B kontrakt](UTB_RATE_ANTIWINDUP_CS.md): volitelný `S_AW=1` v podporované SITL alokaci. Výchozí `S_AW=0` při saturaci zastavuje; nejde o výchozí zapnutý aktivní anti-windup. |
 | Aktivní attitude SITL | [2C](UTB_ATTITUDE_SITL_VALIDATION_CS.md): 37 skutečných sessions, 207200 úplných attitude sad; vedle toho dvě RATE regrese. Vše v omezené obálce. |
-| Nejnovější software základ | [Souhrn 2C](UTB_PHASE_2C_SUMMARY_CS.md): 79 C++/128 Python testů, sedm build variant. Nové opakování a převzaté důkazy rozlišuje [audit 2E](UTB_GIT_CONSOLIDATION_CS.md). |
+| Nejnovější software základ | [Stav k 17. 10.](UTB_PROJECT_STATUS_CS.md): 98 C++ / 128 Python testů, 30 946 matematických vzorků, finální SITL a H743 build/guard kontroly. Historický [souhrn 2C](UTB_PHASE_2C_SUMMARY_CS.md) dokládá širší matici attitude experimentů. |
 
 Výsledky nedokazují letovou způsobilost aktivního UTB na H743. Sdílené logger
 mutexy, startup ztráty a download/EKF problém jsou otevřené. Hardwarové
@@ -73,7 +76,7 @@ Jejich hodnoty a aktivní konfigurace se během experimentu zmrazují.
 C++ testy jsou v [AP_UTB/tests](../libraries/AP_UTB/tests/wscript), benchmark
 test v [AP_Logger/tests](../libraries/AP_Logger/tests/test_utb_bench.cpp).
 Python unit testy a skutečné SITL runnery jsou jednotlivě popsané v mapě.
-Offline model [utb_closed_loop.py](../Tools/autotest/utb_closed_loop.py) je jiný
+Offline model [utb_closed_loop.py](../Tools/utb/tools/utb_closed_loop.py) je jiný
 druh důkazu než skutečné řízení procesu ArduPilot SITL.
 
 Experimentální BIN/tlog, CSV, grafy, JSON metriky, buildy a hash manifesty
@@ -85,7 +88,7 @@ zůstávají v ignorovaném `tmp/`. Například:
 
 Tyto relativní odkazy jsou funkční v tomto checkoutu. Samotný nový clone
 ignorované experimentální archivy neobsahuje; musí se přenést samostatně
-včetně manifestů. Malý verzovatelný [demo plant](../Tools/autotest/utb_1he_demo_plant.json)
+včetně manifestů. Malý verzovatelný [demo plant](../Tools/utb/tools/utb_1he_demo_plant.json)
 obsahuje demonstrační data, nikoli identifikovaný fyzický dron.
 
 ## Sestavení v existujícím WSL prostředí
@@ -128,11 +131,11 @@ build/sitl/tests/test_utb_sitl_rate
 build/sitl/tests/test_utb_sitl_attitude
 build/sitl/tests/test_utb_ap_allocation
 UTB_AUDIT_EVIDENCE="$PWD/tmp/utb-1hd-offline-20261012_162639/download-audit/evidence.json" \
-  .venv/bin/python -B -m unittest discover -s Tools/autotest/unittest -p 'test_utb*.py' -v
-.venv/bin/python -B Tools/autotest/test_utb_active_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-basic --suite basic --speedup 2
-.venv/bin/python -B Tools/autotest/utb_attitude_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-disarmed --suite disarmed
-.venv/bin/python -B Tools/autotest/utb_attitude_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-rate --suite rate
-.venv/bin/python -B Tools/autotest/utb_attitude_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-attitude --suite preliminary
+  .venv/bin/python -B -m unittest discover -s Tools/utb/tests -p 'test_utb*.py' -v
+.venv/bin/python -B Tools/utb/tools/test_utb_active_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-basic --suite basic --speedup 2
+.venv/bin/python -B Tools/utb/tools/utb_attitude_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-disarmed --suite disarmed
+.venv/bin/python -B Tools/utb/tools/utb_attitude_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-rate --suite rate
+.venv/bin/python -B Tools/utb/tools/utb_attitude_sitl.py --binary build/sitl/bin/arducopter --output tmp/NEW-attitude --suite preliminary
 ```
 
 Python archive regression potřebuje uvedený archivní fixture; bez něj mohou
@@ -144,7 +147,9 @@ Hardwarové capture/download nástroje se pro tyto SITL kontroly nespouštějí.
 
 ## Další vývoj
 
-Nejprve dokončit Git checkpoint po schválení [návrhu](UTB_GIT_CONSOLIDATION_CS.md).
+Konsolidační checkpoint byl vytvořen lokálně jako `5a32da404dafd19546439bf6886ab9adb831f4c0`.
+[Návrh a audit](UTB_GIT_CONSOLIDATION_CS.md) zachycují jeho původní obsah.
+Navazující komentáře a soustředění kódu v AP_UTB jsou zatím necommitnuté.
 Výšku a případně později X/Y plánujeme adaptovat z předchozí bakalářské práce.
 Její příslušný source je dosud neověřený externí vstup; algoritmy, rozhraní
 a licenční/provenienční návaznost musí být posouzené až po dodání zdrojů.

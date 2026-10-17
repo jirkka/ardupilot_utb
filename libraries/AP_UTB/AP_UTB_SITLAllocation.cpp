@@ -1,3 +1,12 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       AP_UTB_SITLAllocation.cpp
+///  @brief      Read-only rekonstrukce přiděleného normalized AP povelu Bᵀ(T/G), finite/linearity/sequence validace.
+///  @author     Jiri Kovar
+///  @version    2026-10-17
+///  @date       2026-10-17
+//--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -9,10 +18,33 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
  */
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include "AP_UTB_SITLAllocation.h"
 #if AP_UTB_RATE_SITL_AVAILABLE
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Reconstruct normalized AP allocation and reject unsupported or inconsistent captures.
+///
+///  @param[in]  c C.
+///  @return     AP_UTB_SITLAllocation::Result.
+///
+///  @details    Public class member. Declaration/definition: AP_UTB_SITLAllocation::Result
+///              AP_UTB_SITLAllocation::reconstruct(const Capture &c).
+//--------------------------------------------------------------------------------------------------------------------
 AP_UTB_SITLAllocation::Result AP_UTB_SITLAllocation::reconstruct(const Capture &c)
 {
+    // Index průchodu pevnou kolekcí.
+    uint8_t a;
+    // Index průchodu pevnou kolekcí.
+    uint8_t m;
+
+    // Návratový výsledek; platnost se nastaví až po úspěšném výpočtu.
     Result result;
     result.capture = c;
     if (!c.factors_available || c.boost || !c.armed || !c.full_spool || !isfinite(c.gain) || c.gain <= 0 ||
@@ -22,7 +54,7 @@ AP_UTB_SITLAllocation::Result AP_UTB_SITLAllocation::reconstruct(const Capture &
     const Vector3f expected[] = {{-.5f, -.5f, .5f}, {-.5f, .5f, -.5f},
         {.5f, -.5f, -.5f}, {.5f, .5f, .5f}
     };
-    for (uint8_t m = 0; m < 4; m++) {
+    for (m = 0; m < 4; m++) {
         if (c.factors[m].is_nan() || c.factors[m].is_inf() || (c.factors[m] - expected[m]).length() > 1.0e-6f ||
             !isfinite(c.collective[m]) || fabsf(c.collective[m] - 1) > 1.0e-6f ||
             !isfinite(c.thrust[m]) || c.thrust[m] < -1.0e-6f || c.thrust[m] > 1 + 1.0e-6f ||
@@ -31,7 +63,7 @@ AP_UTB_SITLAllocation::Result AP_UTB_SITLAllocation::reconstruct(const Capture &
         }
         result.allocated += c.factors[m] * (c.thrust[m] / c.gain);
     }
-    for (uint8_t a = 0; a < 3; a++) {
+    for (a = 0; a < 3; a++) {
         if (fabsf(c.command[a]) > 1 || fabsf(result.allocated[a]) > 1 + 1.0e-5f ||
             (c.pid_valid && fabsf(constrain_float(c.raw[a], -1, 1) - c.command[a]) > 1.0e-6f)) {
             return result;
@@ -43,3 +75,30 @@ AP_UTB_SITLAllocation::Result AP_UTB_SITLAllocation::reconstruct(const Capture &
     return result;
 }
 #endif // AP_UTB_RATE_SITL_AVAILABLE
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Data type, constant, macro definition
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions

@@ -1,3 +1,12 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       test_utb_bench.cpp
+///  @brief      Analytické/lifecycle regrese příslušné komponenty; 12 deklarovaných TEST případů.
+///  @author     Jiri Kovar
+///  @version    2026-10-16
+///  @date       2026-10-16
+//--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -9,13 +18,34 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
  */
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include <AP_gtest.h>
 #include <AP_Logger/AP_Logger_UTBBench.h>
 #if AP_UTB_BENCH_ENABLED
 const AP_HAL::HAL &hal = AP_HAL::get_HAL();
 #include <thread>
 #include <chrono>
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
 using namespace UTBBench;
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Data type, constant, macro definition
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify stats and bins.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, StatsAndBins).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, StatsAndBins)
 {
     Stats stats;
@@ -31,11 +61,27 @@ TEST(UTBBench, StatsAndBins)
     EXPECT_EQ(s.bins[0], 2U); EXPECT_EQ(s.bins[1], 1U);
     EXPECT_EQ(s.bins[2], 1U); EXPECT_EQ(s.bins[BINS-1], 1U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify sum carry without64 bit atomic.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, SumCarryWithout64BitAtomic).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, SumCarryWithout64BitAtomic)
 {
     Stats stats; stats.record(UINT32_MAX); stats.record(1);
     Sample s; ASSERT_TRUE(stats.read(s)); EXPECT_EQ(s.sum, uint64_t(1) << 32);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify identity.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, Identity).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, Identity)
 {
     EXPECT_EQ(classify(0, true, 0), Thread::MAIN);
@@ -44,6 +90,14 @@ TEST(UTBBench, Identity)
     EXPECT_EQ(classify(0, false, 12), Thread::UNKNOWN);
     EXPECT_EQ(classify(12, false, 0), Thread::OTHER);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify overlap and unknown.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, OverlapAndUnknown).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, OverlapAndUnknown)
 {
     Interval i;
@@ -52,6 +106,14 @@ TEST(UTBBench, OverlapAndUnknown)
     i.end(120); EXPECT_TRUE(i.overlap(110, 130));
     EXPECT_FALSE(i.overlap(120, 130)); EXPECT_FALSE(i.overlap(80, 100));
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify timer wrap.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, TimerWrap).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, TimerWrap)
 {
     Interval i; i.begin(UINT32_MAX - 20); i.end(5);
@@ -59,6 +121,14 @@ TEST(UTBBench, TimerWrap)
     EXPECT_FALSE(i.overlap(6, 20));
     EXPECT_EQ(uint32_t(5 - (UINT32_MAX - 20)), 26U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify atomic snapshot consistency.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, AtomicSnapshotConsistency).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, AtomicSnapshotConsistency)
 {
     Stats stats; std::atomic<bool> done{false};
@@ -78,6 +148,14 @@ TEST(UTBBench, AtomicSnapshotConsistency)
     writer.join(); EXPECT_GT(reads, 0U);
     Sample s; ASSERT_TRUE(stats.read(s)); EXPECT_EQ(s.count, 100000U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify lifecycle failure.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, LifecycleFailure).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, LifecycleFailure)
 {
     const uint32_t attempts_before = create_attempts.load();
@@ -89,20 +167,54 @@ TEST(UTBBench, LifecycleFailure)
     EXPECT_EQ(create_attempts.load(), attempts_before + 1U);
     EXPECT_EQ(create_failures.load(), failures_before + 1U);
 }
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
 class CountingSemaphore : public AP_HAL::Semaphore
 {
 public:
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // End Data type, constant, macro definition
+    //====================================================================================================================
+    // Public functions
+    //--------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Take.
+    ///
+    ///  @param[in]  timeout Timeout.
+    ///  @return     bool.
+    ///
+    ///  @details    Public class member. Declaration/definition: bool take(uint32_t timeout).
+    //--------------------------------------------------------------------------------------------------------------------
     bool take(uint32_t timeout) override
     {
         takes++;
         last_timeout = timeout;
         return true;
     }
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Take nonblocking.
+    ///
+    ///  @param[in]  None
+    ///  @return     bool.
+    ///
+    ///  @details    Public class member. Declaration/definition: bool take_nonblocking().
+    //--------------------------------------------------------------------------------------------------------------------
     bool take_nonblocking() override
     {
         tries++;
         return true;
     }
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Give.
+    ///
+    ///  @param[in]  None
+    ///  @return     bool.
+    ///
+    ///  @details    Public class member. Declaration/definition: bool give().
+    //--------------------------------------------------------------------------------------------------------------------
     bool give() override
     {
         gives++;
@@ -110,6 +222,19 @@ public:
     }
     uint32_t takes = 0, tries = 0, gives = 0, last_timeout = UINT32_MAX;
 };
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify original acquire release policy.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, OriginalAcquireReleasePolicy).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, OriginalAcquireReleasePolicy)
 {
     CountingSemaphore sem;
@@ -123,6 +248,14 @@ TEST(UTBBench, OriginalAcquireReleasePolicy)
     }
     EXPECT_EQ(sem.gives, 1U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify scheduler wrap and deadline.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, SchedulerWrapAndDeadline).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, SchedulerWrapAndDeadline)
 {
     const uint32_t before = deadlines.load();
@@ -139,6 +272,14 @@ TEST(UTBBench, SchedulerWrapAndDeadline)
     EXPECT_EQ(jitter.sum, 1U);
     EXPECT_EQ(deadlines.load(), before + 1U);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify host only overhead.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, HostOnlyOverhead).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, HostOnlyOverhead)
 {
     Stats stats;
@@ -157,6 +298,14 @@ TEST(UTBBench, HostOnlyOverhead)
     const double read_ns = std::chrono::duration<double, std::nano>(end - middle).count() / iterations;
     printf("HOST_ONLY record_ns=%.2f read_ns=%.2f; includes host scheduling, not H743 timing\n", record_ns, read_ns);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify config frame consistency.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, ConfigFrameConsistency).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, ConfigFrameConsistency)
 {
     Frame<4> frame;
@@ -175,6 +324,14 @@ TEST(UTBBench, ConfigFrameConsistency)
     } while (!done.load());
     writer.join();
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify stack watermark.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBBench, StackWatermark).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBBench, StackWatermark)
 {
     stack_sample(3072, 1200); stack_sample(3072, 1300); stack_sample(3072, 800);
@@ -182,3 +339,24 @@ TEST(UTBBench, StackWatermark)
 }
 #endif
 AP_GTEST_MAIN()
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions

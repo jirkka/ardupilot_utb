@@ -1,3 +1,15 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       test_utb.cpp
+///  @brief      Analytické/lifecycle regrese příslušné komponenty; 47 deklarovaných TEST případů.
+///  @author     Jiri Kovar
+///  @version    2026-10-16
+///  @date       2026-10-16
+//--------------------------------------------------------------------------------------------------------------------
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include <AP_gtest.h>
 #include <AP_UTB/AP_UTB.h>
 #include <AP_UTB/AP_UTB_MotorMixer.h>
@@ -13,6 +25,19 @@
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 #if AP_UTB_ENABLED
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify full rate captures early and late cycles.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogSelection, FullRateCapturesEarlyAndLateCycles).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogSelection, FullRateCapturesEarlyAndLateCycles)
 {
     AP_UTB utb;
@@ -23,6 +48,15 @@ TEST(UTBLogSelection, FullRateCapturesEarlyAndLateCycles)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify lower rates and faster controller keep decimation.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogSelection,
+///              LowerRatesAndFasterControllerKeepDecimation).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogSelection, LowerRatesAndFasterControllerKeepDecimation)
 {
     AP_UTB utb;
@@ -34,6 +68,15 @@ TEST(UTBLogSelection, LowerRatesAndFasterControllerKeepDecimation)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify rate change and shadow reset restart selection.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogSelection,
+///              RateChangeAndShadowResetRestartSelection).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogSelection, RateChangeAndShadowResetRestartSelection)
 {
     AP_UTB utb;
@@ -47,6 +90,14 @@ TEST(UTBLogSelection, RateChangeAndShadowResetRestartSelection)
     EXPECT_TRUE(utb.select_log_sample(1012498, 0.0025f, 200));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify delays do not create backfilled sets.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogSelection, DelaysDoNotCreateBackfilledSets).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogSelection, DelaysDoNotCreateBackfilledSets)
 {
     AP_UTB utb;
@@ -56,6 +107,14 @@ TEST(UTBLogSelection, DelaysDoNotCreateBackfilledSets)
     EXPECT_TRUE(utb.select_log_sample(1025000, 0.0025f, 200));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify invalid rate and clock boundary.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogSelection, InvalidRateAndClockBoundary).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogSelection, InvalidRateAndClockBoundary)
 {
     AP_UTB utb;
@@ -70,6 +129,14 @@ TEST(UTBLogSelection, InvalidRateAndClockBoundary)
     EXPECT_FALSE(utb.select_log_sample(1002500, -1, 200));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify preserves all values and masks.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogPacket, PreservesAllValuesAndMasks).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogPacket, PreservesAllValuesAndMasks)
 {
     AP_UTB::Snapshot s;
@@ -142,6 +209,14 @@ TEST(UTBLogPacket, PreservesAllValuesAndMasks)
     EXPECT_EQ(reinterpret_cast<uint8_t *>(words)[191], 1);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify deterministic and does not mutate snapshot.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogPacket, DeterministicAndDoesNotMutateSnapshot).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogPacket, DeterministicAndDoesNotMutateSnapshot)
 {
     AP_UTB::Snapshot s;
@@ -158,6 +233,14 @@ TEST(UTBLogPacket, DeterministicAndDoesNotMutateSnapshot)
     EXPECT_EQ(decoded.version, 1);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify preserves float bit patterns.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBLogPacket, PreservesFloatBitPatterns).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBLogPacket, PreservesFloatBitPatterns)
 {
     AP_UTB::Snapshot s;
@@ -174,6 +257,20 @@ TEST(UTBLogPacket, PreservesFloatBitPatterns)
     }
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Valid state.
+///
+///  @param[in]  time_us Sample/log timestamp in microseconds.
+///  @return     AP_UTB_State.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB_State valid_state(uint32_t
+///              time_us).
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB_State valid_state(uint32_t time_us)
 {
     AP_UTB_State state;
@@ -186,6 +283,19 @@ static AP_UTB_State valid_state(uint32_t time_us)
     return state;
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify rejects missing and stale inputs.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBState, RejectsMissingAndStaleInputs).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBState, RejectsMissingAndStaleInputs)
 {
     AP_UTB_State state;
@@ -203,6 +313,14 @@ TEST(UTBState, RejectsMissingAndStaleInputs)
     EXPECT_FALSE(state.valid(1000, 100));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify handles clock wrap.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBState, HandlesClockWrap).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBState, HandlesClockWrap)
 {
     const AP_UTB_State state = valid_state(UINT32_MAX - 10);
@@ -210,6 +328,14 @@ TEST(UTBState, HandlesClockWrap)
     EXPECT_FALSE(state.valid(10, 20));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify rejects invalid numbers and quaternion.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBState, RejectsInvalidNumbersAndQuaternion).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBState, RejectsInvalidNumbersAndQuaternion)
 {
     AP_UTB_State state = valid_state(1000);
@@ -225,6 +351,15 @@ TEST(UTBState, RejectsInvalidNumbersAndQuaternion)
     EXPECT_FALSE(state.valid(1000, 100));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify uninitialised provider clears previous snapshot.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBState,
+///              UninitialisedProviderClearsPreviousSnapshot).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBState, UninitialisedProviderClearsPreviousSnapshot)
 {
     AP_UTB_APStateProvider provider;
@@ -233,6 +368,14 @@ TEST(UTBState, UninitialisedProviderClearsPreviousSnapshot)
     EXPECT_FALSE(state.valid(1000, 100));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify disabled and unhealthy by default.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSkeleton, DisabledAndUnhealthyByDefault).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSkeleton, DisabledAndUnhealthyByDefault)
 {
     AP_UTB manager;
@@ -242,11 +385,33 @@ TEST(UTBSkeleton, DisabledAndUnhealthyByDefault)
     EXPECT_FALSE(manager.state().valid(0, 100));
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Proportional.
+///
+///  @param[in]  gain Gain.
+///  @return     AP_UTB_RateController::Gains.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB_RateController::Gains
+///              proportional(float gain).
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB_RateController::Gains proportional(float gain)
 {
     return {gain, 0, 0, 0, 0};
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Zero state.
+///
+///  @param[in]  None
+///  @return     AP_UTB_State.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB_State zero_state().
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB_State zero_state()
 {
     auto state = valid_state(1000);
@@ -254,6 +419,19 @@ static AP_UTB_State zero_state()
     return state;
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify proportional signs and independent axes.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate, ProportionalSignsAndIndependentAxes).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, ProportionalSignsAndIndependentAxes)
 {
     for (float gain : {
@@ -273,6 +451,14 @@ TEST(UTBRate, ProportionalSignsAndIndependentAxes)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify integral accumulation and both clamps.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate, IntegralAccumulationAndBothClamps).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, IntegralAccumulationAndBothClamps)
 {
     for (float sign : {
@@ -292,6 +478,15 @@ TEST(UTBRate, IntegralAccumulationAndBothClamps)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify measurement derivative backward euler and variable dt.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate,
+///              MeasurementDerivativeBackwardEulerAndVariableDt).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, MeasurementDerivativeBackwardEulerAndVariableDt)
 {
     AP_UTB_RateController c;
@@ -313,6 +508,14 @@ TEST(UTBRate, MeasurementDerivativeBackwardEulerAndVariableDt)
     EXPECT_NEAR(second.axis[0].d, -0.1f * (1 - beta2) * expected1, 1.0e-6f);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify invalid dt state and numbers reset history.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate, InvalidDtStateAndNumbersResetHistory).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, InvalidDtStateAndNumbersResetHistory)
 {
     AP_UTB_RateController c;
@@ -349,6 +552,14 @@ TEST(UTBRate, InvalidDtStateAndNumbersResetHistory)
     EXPECT_TRUE(c.update(zero_state(), {}, 0.0025f).priming);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify config guards and change priming.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate, ConfigGuardsAndChangePriming).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, ConfigGuardsAndChangePriming)
 {
     AP_UTB_RateController c;
@@ -374,6 +585,15 @@ TEST(UTBRate, ConfigGuardsAndChangePriming)
     EXPECT_FALSE(c.configure(gains, 0.0025f));
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify directional anti windup both directions and one step delay.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate,
+///              DirectionalAntiWindupBothDirectionsAndOneStepDelay).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, DirectionalAntiWindupBothDirectionsAndOneStepDelay)
 {
     for (float sign : {
@@ -405,6 +625,14 @@ TEST(UTBRate, DirectionalAntiWindupBothDirectionsAndOneStepDelay)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify inclusive dt guards and finite overflow.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate, InclusiveDtGuardsAndFiniteOverflow).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, InclusiveDtGuardsAndFiniteOverflow)
 {
     AP_UTB_RateController c;
@@ -420,6 +648,14 @@ TEST(UTBRate, InclusiveDtGuardsAndFiniteOverflow)
     EXPECT_TRUE(c.update(zero_state(), {}, 0.0025f).priming);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify tiny positive integral is not treated as zero.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate, TinyPositiveIntegralIsNotTreatedAsZero).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, TinyPositiveIntegralIsNotTreatedAsZero)
 {
     AP_UTB_RateController c;
@@ -429,6 +665,15 @@ TEST(UTBRate, TinyPositiveIntegralIsNotTreatedAsZero)
     EXPECT_GT(c.update(zero_state(), {1, 0, 0}, 0.01f).axis[0].i, 0);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify reset derivative history and reject filter overflow.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate,
+///              ResetDerivativeHistoryAndRejectFilterOverflow).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, ResetDerivativeHistoryAndRejectFilterOverflow)
 {
     AP_UTB_RateController c;
@@ -447,6 +692,15 @@ TEST(UTBRate, ResetDerivativeHistoryAndRejectFilterOverflow)
     EXPECT_FALSE(c.update(state, {}, 0.0025f).valid);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify mixer saturation feedback and independent integrators.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate,
+///              MixerSaturationFeedbackAndIndependentIntegrators).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, MixerSaturationFeedbackAndIndependentIntegrators)
 {
     AP_UTB_RateController c;
@@ -468,6 +722,22 @@ TEST(UTBRate, MixerSaturationFeedbackAndIndependentIntegrators)
     }
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Allocate.
+///
+///  @param[in]  thrust Normalized diagnostic collective request.
+///  @param[in]  command Normalized R/P/Y request.
+///  @param[in]  frame_type Configured AP frame type.
+///  @return     AP_UTB_MotorMixer::Result.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB_MotorMixer::Result
+///              allocate(float thrust, const Vector3f &command, uint8_t frame_type = 12).
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB_MotorMixer::Result allocate(float thrust, const Vector3f &command, uint8_t frame_type = 12)
 {
     AP_UTB_RateController::Result control;
@@ -476,6 +746,19 @@ static AP_UTB_MotorMixer::Result allocate(float thrust, const Vector3f &command,
     return AP_UTB_MotorMixer().mix(control, thrust, 1, frame_type);
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify zero equal and signed axes.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMixer, ZeroEqualAndSignedAxes).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMixer, ZeroEqualAndSignedAxes)
 {
     for (float thrust : {
@@ -508,6 +791,14 @@ TEST(UTBMixer, ZeroEqualAndSignedAxes)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify allocation priority and masks.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMixer, AllocationPriorityAndMasks).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMixer, AllocationPriorityAndMasks)
 {
     auto result = allocate(0.95f, {0.4f, 0, 0});
@@ -534,6 +825,14 @@ TEST(UTBMixer, AllocationPriorityAndMasks)
     EXPECT_EQ(result.negative_limits, 8);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify roundtrip bounds and equal yaw priority.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMixer, RoundtripBoundsAndEqualYawPriority).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMixer, RoundtripBoundsAndEqualYawPriority)
 {
     for (int roll = -10; roll <= 10; roll++) {
@@ -557,6 +856,15 @@ TEST(UTBMixer, RoundtripBoundsAndEqualYawPriority)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify invalid frame domain and numbers are finite zeros.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMixer,
+///              InvalidFrameDomainAndNumbersAreFiniteZeros).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMixer, InvalidFrameDomainAndNumbersAreFiniteZeros)
 {
     AP_UTB_RateController::Result control;
@@ -584,6 +892,14 @@ TEST(UTBMixer, InvalidFrameDomainAndNumbersAreFiniteZeros)
     control.valid = false;
     EXPECT_FALSE(mixer.mix(control, 0.5f, 1, 12).valid);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify circular map and apexpo boundaries.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBReference, CircularMapAndAPExpoBoundaries).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBReference, CircularMapAndAPExpoBoundaries)
 {
     Vector3f ref;
@@ -606,6 +922,19 @@ TEST(UTBReference, CircularMapAndAPExpoBoundaries)
     EXPECT_FLOAT_EQ(ref.length(), 0);
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Engine input.
+///
+///  @param[in]  None
+///  @return     AP_UTB::Inputs.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB::Inputs engine_input().
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB::Inputs engine_input()
 {
     AP_UTB::Inputs in;
@@ -621,6 +950,14 @@ static AP_UTB::Inputs engine_input()
     return in;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Advance the offline plant state by the configured numerical integration step.
+///
+///  @param[in]  in Explicit input snapshot.
+///  @return     None.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static void advance(AP_UTB::Inputs &in).
+//--------------------------------------------------------------------------------------------------------------------
 static void advance(AP_UTB::Inputs &in)
 {
     in.time_us += 2500;
@@ -629,6 +966,20 @@ static void advance(AP_UTB::Inputs &in)
     in.state.imu_updated_us = in.time_us;
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify fresh sample after log time uses explicit validation time.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth,
+///              FreshSampleAfterLogTimeUsesExplicitValidationTime).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, FreshSampleAfterLogTimeUsesExplicitValidationTime)
 {
     AP_UTB utb;
@@ -652,6 +1003,14 @@ TEST(UTBHealth, FreshSampleAfterLogTimeUsesExplicitValidationTime)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify validation time rejects stale snapshot and imu.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, ValidationTimeRejectsStaleSnapshotAndImu).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, ValidationTimeRejectsStaleSnapshotAndImu)
 {
     for (bool stale_imu : {
@@ -678,6 +1037,14 @@ TEST(UTBHealth, ValidationTimeRejectsStaleSnapshotAndImu)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify new validation time does not hide repeated imu.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, NewValidationTimeDoesNotHideRepeatedImu).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, NewValidationTimeDoesNotHideRepeatedImu)
 {
     AP_UTB utb;
@@ -702,6 +1069,15 @@ TEST(UTBHealth, NewValidationTimeDoesNotHideRepeatedImu)
     EXPECT_TRUE(snapshot.flags & AP_UTB::SHADOW_HEALTHY);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify validation time wrap preserves freshness and rejects stale imu.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth,
+///              ValidationTimeWrapPreservesFreshnessAndRejectsStaleImu).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, ValidationTimeWrapPreservesFreshnessAndRejectsStaleImu)
 {
     AP_UTB utb;
@@ -731,6 +1107,15 @@ TEST(UTBHealth, ValidationTimeWrapPreservesFreshnessAndRejectsStaleImu)
     EXPECT_FALSE(snapshot.flags & AP_UTB::STATE_VALID);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify logging start policy and runtime loss are separate from mathematics.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth,
+///              LoggingStartPolicyAndRuntimeLossAreSeparateFromMathematics).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, LoggingStartPolicyAndRuntimeLossAreSeparateFromMathematics)
 {
     AP_UTB utb;
@@ -762,6 +1147,14 @@ TEST(UTBHealth, LoggingStartPolicyAndRuntimeLossAreSeparateFromMathematics)
     EXPECT_GT(snapshot.control.axis[0].i, previous_i);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify frame fast rate stale and mode reset recovery.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, FrameFastRateStaleAndModeResetRecovery).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, FrameFastRateStaleAndModeResetRecovery)
 {
     AP_UTB utb;
@@ -812,6 +1205,14 @@ TEST(UTBHealth, FrameFastRateStaleAndModeResetRecovery)
     EXPECT_EQ(snapshot.calculation, AP_UTB::CalculationReason::PRIMING);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify dt failure does not make fresh state invalid.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, DtFailureDoesNotMakeFreshStateInvalid).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, DtFailureDoesNotMakeFreshStateInvalid)
 {
     AP_UTB utb;
@@ -831,6 +1232,14 @@ TEST(UTBHealth, DtFailureDoesNotMakeFreshStateInvalid)
     EXPECT_EQ(snapshot.calculation, AP_UTB::CalculationReason::DT_INVALID);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify consecutive execution budget latch and reset.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, ConsecutiveExecutionBudgetLatchAndReset).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, ConsecutiveExecutionBudgetLatchAndReset)
 {
     AP_UTB utb;
@@ -855,6 +1264,14 @@ TEST(UTBHealth, ConsecutiveExecutionBudgetLatchAndReset)
     EXPECT_EQ(snapshot.calculation, AP_UTB::CalculationReason::PRIMING);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify bounded overflow and fifo.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBQueue, BoundedOverflowAndFifo).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBQueue, BoundedOverflowAndFifo)
 {
     RecordProperty("SnapshotBytes", int(sizeof(AP_UTB::Snapshot)));
@@ -877,6 +1294,11 @@ TEST(UTBQueue, BoundedOverflowAndFifo)
     EXPECT_FALSE(queue.pop(s));
 }
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
 // Denying try-lock proves the queue never falls back to a waiting semaphore API.
 class UTBDeniedSemaphore : public AP_HAL::Semaphore
 {
@@ -884,22 +1306,64 @@ public:
     uint32_t attempts = 0;
     uint32_t blocking = 0;
     bool allow = false;
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // End Data type, constant, macro definition
+    //====================================================================================================================
+    // Public functions
+    //--------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Take.
+    ///
+    ///  @param[in]  uint32_t Uint32 t.
+    ///  @return     bool.
+    ///
+    ///  @details    Public class member. Declaration/definition: bool take(uint32_t).
+    //--------------------------------------------------------------------------------------------------------------------
     bool take(uint32_t) override
     {
         blocking++;
         return false;
     }
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Take nonblocking.
+    ///
+    ///  @param[in]  None
+    ///  @return     bool.
+    ///
+    ///  @details    Public class member. Declaration/definition: bool take_nonblocking().
+    //--------------------------------------------------------------------------------------------------------------------
     bool take_nonblocking() override
     {
         attempts++;
         return allow;
     }
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Give.
+    ///
+    ///  @param[in]  None
+    ///  @return     bool.
+    ///
+    ///  @details    Public class member. Declaration/definition: bool give().
+    //--------------------------------------------------------------------------------------------------------------------
     bool give() override
     {
         return true;
     }
 };
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify contention never calls blocking take.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBQueue, ContentionNeverCallsBlockingTake).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBQueue, ContentionNeverCallsBlockingTake)
 {
     UTBDeniedSemaphore sem;
@@ -916,6 +1380,14 @@ TEST(UTBQueue, ContentionNeverCallsBlockingTake)
     EXPECT_EQ(sem.blocking, 0U);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify full queue does not reset controller.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, FullQueueDoesNotResetController).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, FullQueueDoesNotResetController)
 {
     AP_UTB utb;
@@ -940,6 +1412,14 @@ TEST(UTBHealth, FullQueueDoesNotResetController)
     EXPECT_EQ(utb.pipeline().high_water, 4U);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify backend failure only changes observation.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, BackendFailureOnlyChangesObservation).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, BackendFailureOnlyChangesObservation)
 {
     AP_UTB utb;
@@ -976,6 +1456,14 @@ TEST(UTBHealth, BackendFailureOnlyChangesObservation)
     EXPECT_TRUE(sample.flags & AP_UTB::SHADOW_OBSERVABLE);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify primary gyro change primes all history.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth, PrimaryGyroChangePrimesAllHistory).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, PrimaryGyroChangePrimesAllHistory)
 {
     AP_UTB utb;
@@ -1008,6 +1496,14 @@ TEST(UTBHealth, PrimaryGyroChangePrimesAllHistory)
 }
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify concurrent copies remain coherent.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBQueue, ConcurrentCopiesRemainCoherent).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBQueue, ConcurrentCopiesRemainCoherent)
 {
     AP_UTB::Queue queue;
@@ -1046,6 +1542,15 @@ TEST(UTBQueue, ConcurrentCopiesRemainCoherent)
 #endif
 
 // Verify the actual API under ArduPilot build flags, including single-precision constants.
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify actual apexpo at parameter boundary.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBSourceConvention,
+///              ActualAPExpoAtParameterBoundary).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBSourceConvention, ActualAPExpoAtParameterBoundary)
 {
     EXPECT_DOUBLE_EQ(double(0.95f), 0.94999998807907104);
@@ -1056,6 +1561,14 @@ TEST(UTBSourceConvention, ActualAPExpoAtParameterBoundary)
 
 
 #if AP_UTB_ENABLED
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify both geometries signed axes and inverse.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMixer, BothGeometriesSignedAxesAndInverse).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMixer, BothGeometriesSignedAxesAndInverse)
 {
     // Independent literal columns from AP MotorDef + per-axis normalization.
@@ -1114,6 +1627,14 @@ TEST(UTBMixer, BothGeometriesSignedAxesAndInverse)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify reversed yaw saturation and finite domain.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBMixer, ReversedYawSaturationAndFiniteDomain).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBMixer, ReversedYawSaturationAndFiniteDomain)
 {
     const auto scaled = allocate(0.5f, {1, 1, 1}, 18);
@@ -1163,6 +1684,14 @@ TEST(UTBMixer, ReversedYawSaturationAndFiniteDomain)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify both geometries directional yaw anti windup.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBRate, BothGeometriesDirectionalYawAntiWindup).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBRate, BothGeometriesDirectionalYawAntiWindup)
 {
     for (uint8_t type : {
@@ -1191,6 +1720,15 @@ TEST(UTBRate, BothGeometriesDirectionalYawAntiWindup)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify geometry transition resets history and diagnostic epoch.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBHealth,
+///              GeometryTransitionResetsHistoryAndDiagnosticEpoch).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBHealth, GeometryTransitionResetsHistoryAndDiagnosticEpoch)
 {
     AP_UTB utb;
@@ -1241,3 +1779,18 @@ TEST(UTBHealth, GeometryTransitionResetsHistoryAndDiagnosticEpoch)
 #endif // AP_UTB_ENABLED
 
 AP_GTEST_MAIN()
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes

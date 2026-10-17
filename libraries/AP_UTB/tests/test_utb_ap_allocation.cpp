@@ -1,3 +1,12 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       test_utb_ap_allocation.cpp
+///  @brief      Analytické/lifecycle regrese příslušné komponenty; 9 deklarovaných TEST případů.
+///  @author     Jiri Kovar
+///  @version    2026-10-16
+///  @date       2026-10-16
+//--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -9,6 +18,9 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
  */
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include <AP_gtest.h>
 #include <AP_UTB/AP_UTB_SITLRate.h>
 #include <AP_Motors/AP_MotorsMatrix.h>
@@ -16,17 +28,56 @@
 
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 #if AP_UTB_RATE_SITL_AVAILABLE
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
 static SRV_Channels channels;
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
 // Invoke the real allocator only. No output(), output_to_motors() or HAL writes.
 class MatrixProbe : public AP_MotorsMatrix
 {
 public:
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // End Data type, constant, macro definition
+    //====================================================================================================================
+    // Public functions
+    //--------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Matrix probe.
+    ///
+    ///  @param[in]  None
+    ///  @return     None (constructor/destructor).
+    ///
+    ///  @details    Public class member. Declaration/definition: MatrixProbe().
+    //--------------------------------------------------------------------------------------------------------------------
     MatrixProbe() : AP_MotorsMatrix(400)
     {
         setup_motors(MOTOR_FRAME_QUAD, MOTOR_FRAME_TYPE_BF_X_REV);
         set_dt_s(.0025f);
     }
+    //--------------------------------------------------------------------------------------------------------------------
+    ///  @brief      Allocate.
+    ///
+    ///  @param[in]  raw Raw.
+    ///  @param[in]  seq Sample sequence identifier.
+    ///  @param[in]  stamp Stamp.
+    ///  @param[in]  throttle Throttle.
+    ///  @param[in]  average Average.
+    ///  @param[in]  headroom Headroom.
+    ///  @param[in]  ceiling Ceiling.
+    ///  @return     AP_UTB_SITLAllocation::Result.
+    ///
+    ///  @details    Public class member. Declaration/definition: AP_UTB_SITLAllocation::Result allocate(const Vector3f &raw,
+    ///              uint32_t seq, uint32_t stamp, float throttle = .3f, float average = .3f, float headroom = .2f, float
+    ///              ceiling = 1).
+    //--------------------------------------------------------------------------------------------------------------------
     AP_UTB_SITLAllocation::Result allocate(const Vector3f &raw, uint32_t seq, uint32_t stamp,
                                            float throttle = .3f, float average = .3f, float headroom = .2f,
                                            float ceiling = 1)
@@ -57,8 +108,28 @@ public:
         return AP_UTB_SITLAllocation::reconstruct(c);
     }
 };
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
 static MatrixProbe matrix;
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Input.
+///
+///  @param[in]  seq Sample sequence identifier.
+///  @param[in]  jitter Jitter.
+///  @return     AP_UTB_SITLRate::Inputs.
+///
+///  @details    File-local helper (internal linkage). Declaration/definition: static AP_UTB_SITLRate::Inputs input(uint32_t
+///              seq, float jitter = 0).
+//--------------------------------------------------------------------------------------------------------------------
 static AP_UTB_SITLRate::Inputs input(uint32_t seq, float jitter = 0)
 {
     AP_UTB_SITLRate::Inputs in;
@@ -70,8 +141,27 @@ static AP_UTB_SITLRate::Inputs input(uint32_t seq, float jitter = 0)
     in.frame_class = 1; in.frame_type = 18; in.armed = in.full_spool = true;
     return in;
 }
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
 static const AP_UTB_RateController::Gains gains[3] = {{3, 1, 0, .6f, 20}, {3, 1, 0, .6f, 20}, {3, 1, 0, .6f, 20}};
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify actual linear allocation and yaw headroom.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              ActualLinearAllocationAndYawHeadroom).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, ActualLinearAllocationAndYawHeadroom)
 {
     auto f = matrix.allocate({.1f, -.2f, .3f}, 1, 102500, .5f, .5f);
@@ -80,11 +170,29 @@ TEST(UTBAPAllocation, ActualLinearAllocationAndYawHeadroom)
     ASSERT_TRUE(f.valid); EXPECT_TRUE(f.capture.limits & 4); EXPECT_GT(f.residual.z, .1f);
     EXPECT_GT(f.residual.x, .1f); EXPECT_GT(f.residual.y, .1f);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify collective only limit is not invented moment loss.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              CollectiveOnlyLimitIsNotInventedMomentLoss).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, CollectiveOnlyLimitIsNotInventedMomentLoss)
 {
     const auto f = matrix.allocate({}, 1, 102500, 1, 1, .2f, .8f);
     ASSERT_TRUE(f.valid); EXPECT_TRUE(f.capture.limits & 16); EXPECT_LT(f.allocated.length(), 1.0e-6f);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify long saturation blocks growth and sign reversal unwinds.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              LongSaturationBlocksGrowthAndSignReversalUnwinds).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, LongSaturationBlocksGrowthAndSignReversalUnwinds)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains, true));
@@ -111,6 +219,15 @@ TEST(UTBAPAllocation, LongSaturationBlocksGrowthAndSignReversalUnwinds)
     in = input(10004); in.target.z = -.05f; result = rate.step(in, true);
     EXPECT_FALSE(result.axis[2].integration_blocked);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify controller clipping is included and reverse can unwind.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              ControllerClippingIsIncludedAndReverseCanUnwind).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, ControllerClippingIsIncludedAndReverseCanUnwind)
 {
     AP_UTB_RateController::Gains clipped[3] = {{5, 1, 0, .6f, 20}, {5, 1, 0, .6f, 20}, {5, 1, 0, .6f, 20}};
@@ -139,6 +256,15 @@ TEST(UTBAPAllocation, ControllerClippingIsIncludedAndReverseCanUnwind)
         rate.capture_allocation(f); previous_i = result.axis[2].i;
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify simultaneous roll pitch and short saturation recovery.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              SimultaneousRollPitchAndShortSaturationRecovery).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, SimultaneousRollPitchAndShortSaturationRecovery)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains, true));
@@ -159,6 +285,15 @@ TEST(UTBAPAllocation, SimultaneousRollPitchAndShortSaturationRecovery)
     }
     EXPECT_TRUE(blocked); EXPECT_TRUE(recovered);
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify unknown boost slew nonfinite and wrong basis rejected.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              UnknownBoostSlewNonfiniteAndWrongBasisRejected).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, UnknownBoostSlewNonfiniteAndWrongBasisRejected)
 {
     const auto good = matrix.allocate({.1f, .1f, .1f}, 1, 102500);
@@ -175,6 +310,15 @@ TEST(UTBAPAllocation, UnknownBoostSlewNonfiniteAndWrongBasisRejected)
         EXPECT_FALSE(AP_UTB_SITLAllocation::reconstruct(c).valid);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify stale or misassigned feedback faults without next pid.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              StaleOrMisassignedFeedbackFaultsWithoutNextPID).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, StaleOrMisassignedFeedbackFaultsWithoutNextPID)
 {
     for (uint8_t fault = 0; fault < 3; fault++) {
@@ -197,6 +341,15 @@ TEST(UTBAPAllocation, StaleOrMisassignedFeedbackFaultsWithoutNextPID)
         ASSERT_TRUE(rate.configure(gains, true)); EXPECT_TRUE(rate.step(input(4), true).priming);
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify explicit delayed feedback and jitter remain finite.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              ExplicitDelayedFeedbackAndJitterRemainFinite).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, ExplicitDelayedFeedbackAndJitterRemainFinite)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains, true, true));
@@ -212,6 +365,15 @@ TEST(UTBAPAllocation, ExplicitDelayedFeedbackAndJitterRemainFinite)
         }
     }
 }
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Verify default policy still stops and clock wrap is supported.
+///
+///  @param[in]  None
+///  @return     None; GTest assertions report failures.
+///
+///  @details    Global exported function. Declaration/definition: TEST(UTBAPAllocation,
+///              DefaultPolicyStillStopsAndClockWrapIsSupported).
+//--------------------------------------------------------------------------------------------------------------------
 TEST(UTBAPAllocation, DefaultPolicyStillStopsAndClockWrapIsSupported)
 {
     AP_UTB_SITLRate rate; ASSERT_TRUE(rate.configure(gains));
@@ -226,3 +388,12 @@ TEST(UTBAPAllocation, DefaultPolicyStillStopsAndClockWrapIsSupported)
 }
 #endif
 AP_GTEST_MAIN()
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes

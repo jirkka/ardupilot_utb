@@ -1,3 +1,12 @@
+//--------------------------------------------------------------------------------------------------------------------
+//  NOTICE: UTB project extension; existing licenses and copyright notices are retained.
+//--------------------------------------------------------------------------------------------------------------------
+///  @file       AP_UTB.cpp
+///  @brief      Manager SHADOW, parametry, reset, oddělená matematická/logging policy, bounded queue a epochy.
+///  @author     Jiri Kovar
+///  @version    2026-10-17
+///  @date       2026-10-17
+//--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -9,8 +18,16 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU General Public License for more details.
  */
+//====================================================================================================================
+// Include Files
+//--------------------------------------------------------------------------------------------------------------------
 #include "AP_UTB.h"
 #if AP_UTB_ENABLED
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Include Files
+//====================================================================================================================
+// Static data declarations
+//--------------------------------------------------------------------------------------------------------------------
 constexpr uint8_t AP_UTB::Queue::CAPACITY;
 static_assert(ATOMIC_INT_LOCK_FREE == 2 && ATOMIC_CHAR_LOCK_FREE == 2 && ATOMIC_BOOL_LOCK_FREE == 2, "UTB feedback atomics must not lock");
 const AP_Param::GroupInfo AP_UTB::var_info[] = {
@@ -276,11 +293,32 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
     AP_GROUPEND
 };
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Static data declarations
+//====================================================================================================================
+// Public functions
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Initialize AP_Param defaults without starting a worker or enabling control.
+///
+///  @param[in]  None
+///  @return     None (constructor/destructor).
+///
+///  @details    Public class member. Declaration/definition: AP_UTB::AP_UTB().
+//--------------------------------------------------------------------------------------------------------------------
 AP_UTB::AP_UTB()
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Init.
+///
+///  @param[in]  view View.
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::init(const AP_AHRS_View &view).
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::init(const AP_AHRS_View &view)
 {
     _enabled_at_boot = _enable.get() == 1;
@@ -289,6 +327,14 @@ void AP_UTB::init(const AP_AHRS_View &view)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Update state.
+///
+///  @param[in]  None
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::update_state().
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::update_state()
 {
     if (_enabled_at_boot && !shadow_requested()) {
@@ -296,12 +342,25 @@ void AP_UTB::update_state()
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Publish.
+///
+///  @param[in]  value Value supplied to this operation.
+///  @param[in]  enqueue Enqueue.
+///  @return     bool.
+///
+///  @details    Public class member. Declaration/definition: bool AP_UTB::Queue::publish(const Snapshot &value, bool
+///              enqueue).
+//--------------------------------------------------------------------------------------------------------------------
 bool AP_UTB::Queue::publish(const Snapshot &value, bool enqueue)
 {
+    // Odhad obsazení diagnostické fronty po vložení.
+    uint8_t depth;
+
     // The status mailbox is best-effort and independent of SPSC data publication.
-    if (_sem->take_nonblocking()) {
+    if (_sem.take_nonblocking()) {
         _status = value;
-        _sem->give();
+        _sem.give();
     }
     if (!enqueue) {
         return true;
@@ -311,26 +370,50 @@ bool AP_UTB::Queue::publish(const Snapshot &value, bool enqueue)
     }
     // Single producer: the consumer can only increase space after this check.
     ++_enqueued;
-    const uint8_t depth = MIN(uint32_t(CAPACITY), _objects.available() + 1);
+    depth = MIN(uint32_t(CAPACITY), _objects.available() + 1);
     _high_water.store(MAX(_high_water.load(), depth));
     return _objects.push(value);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Pop.
+///
+///  @param[in]  value Value supplied to this operation.
+///  @return     bool.
+///
+///  @details    Public class member. Declaration/definition: bool AP_UTB::Queue::pop(Snapshot &value).
+//--------------------------------------------------------------------------------------------------------------------
 bool AP_UTB::Queue::pop(Snapshot &value)
 {
     return _objects.pop(value);
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Try to copy the latest status mailbox without blocking.
+///
+///  @param[in]  value Value supplied to this operation.
+///  @return     bool.
+///
+///  @details    Public class member. Declaration/definition: bool AP_UTB::Queue::read_status(Snapshot &value).
+//--------------------------------------------------------------------------------------------------------------------
 bool AP_UTB::Queue::read_status(Snapshot &value)
 {
-    if (!_sem->take_nonblocking()) {
+    if (!_sem.take_nonblocking()) {
         return false;
     }
     value = _status;
-    _sem->give();
+    _sem.give();
     return true;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Reset shadow.
+///
+///  @param[in]  None
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::reset_shadow().
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::reset_shadow()
 {
 #if AP_UTB_BENCH_ENABLED
@@ -353,6 +436,17 @@ void AP_UTB::reset_shadow()
     _rate_start_written = _written_sets.load();
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Capture the AP rate target together with its time, mode and sequence identity.
+///
+///  @param[in]  target Target.
+///  @param[in]  time_us Sample/log timestamp in microseconds.
+///  @param[in]  mode Mode.
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::capture_target(const Vector3f &target, uint64_t
+///              time_us, uint8_t mode).
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::capture_target(const Vector3f &target, uint64_t time_us, uint8_t mode)
 {
     if (!shadow_requested()) {
@@ -365,14 +459,42 @@ void AP_UTB::capture_target(const Vector3f &target, uint64_t time_us, uint8_t mo
     _capture.valid = !target.is_nan() && !target.is_inf();
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Evaluate SHADOW validity and controller/mixer mathematics from explicit sampled inputs.
+///
+///  @param[in]  input Explicit input snapshot.
+///  @param[in]  gains Per-axis controller gains.
+///  @param[out] s S.
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::evaluate(const Inputs &input, const
+///              AP_UTB_RateController::Gains (&gains)[3], Snapshot &s).
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&gains)[3], Snapshot &s)
 {
+    // Příznak změny třídy nebo geometrie rámu.
+    bool geometry_changed;
+    // Počet sad odmítnutých logger backendem.
+    uint32_t missing;
+    // Příznak odmítnuté diagnostické sady v logger backendu.
+    bool backend_failed;
+    // Příznak změny primárního gyroskopu.
+    bool gyro_changed;
+    // Platnost nominální periody regulátoru.
+    bool nominal_valid;
+    // Platnost skutečného časového kroku vůči nominální periodě.
+    bool dt_valid;
+    // Povolené stáří stavových dat v mikrosekundách.
+    uint32_t age_us;
+    // Platnost stavu včetně stáří a nové INS časové značky.
+    bool state_valid;
+
     s = {};
     s.input = input;
     s.log_format = _log_format.get() == 1 ? 1 : 0;
     s.seq = ++_seq;
-    const bool geometry_changed = _context_valid &&
-                                  (input.frame_class != _last_class || input.frame_type != _last_type);
+    geometry_changed = _context_valid &&
+                       (input.frame_class != _last_class || input.frame_type != _last_type);
     if (geometry_changed) {
         // Old queued snapshots retain their epoch and cannot be attributed to the new geometry.
         ++_epoch;
@@ -384,14 +506,14 @@ void AP_UTB::evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&
     } else {
         s.observation = ObservationReason::LOGGING_UNAVAILABLE;
     }
-    const uint32_t missing = _missing.load();
-    const bool backend_failed = _backend_failed.load() || missing != _last_observed_missing;
+    missing = _missing.load();
+    backend_failed = _backend_failed.load() || missing != _last_observed_missing;
     _last_observed_missing = missing;
     if (backend_failed) {
         s.flags &= ~SHADOW_OBSERVABLE;
         s.observation = ObservationReason::WRITE_FAILED;
     }
-    const bool gyro_changed = _context_valid && input.state.primary_gyro != _last_gyro;
+    gyro_changed = _context_valid && input.state.primary_gyro != _last_gyro;
     if (gyro_changed || !_context_valid || input.mode != _last_mode || input.armed != _last_armed ||
         input.frame_class != _last_class || input.frame_type != _last_type) {
         _controller.reset();
@@ -402,12 +524,12 @@ void AP_UTB::evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&
     _last_class = input.frame_class;
     _last_type = input.frame_type;
     _last_gyro = input.state.primary_gyro;
-    const bool nominal_valid = isfinite(input.nominal_dt) && input.nominal_dt > 0;
-    const bool dt_valid = nominal_valid && isfinite(input.dt) && input.dt >= input.nominal_dt * 0.25f &&
-                          input.dt <= input.nominal_dt * 4;
-    const uint32_t age_us = nominal_valid ? uint32_t(MIN(0.1f, input.nominal_dt * 4) * 1.0e6f) : 0;
-    const bool state_valid = nominal_valid && input.state.valid(input.validation_time_us, age_us) &&
-                             input.state.imu_updated_us != _last_imu_us;
+    nominal_valid = isfinite(input.nominal_dt) && input.nominal_dt > 0;
+    dt_valid = nominal_valid && isfinite(input.dt) && input.dt >= input.nominal_dt * 0.25f &&
+               input.dt <= input.nominal_dt * 4;
+    age_us = nominal_valid ? uint32_t(MIN(0.1f, input.nominal_dt * 4) * 1.0e6f) : 0;
+    state_valid = nominal_valid && input.state.valid(input.validation_time_us, age_us) &&
+                  input.state.imu_updated_us != _last_imu_us;
     _last_imu_us = input.state.imu_updated_us;
     if (state_valid) {
         s.flags |= STATE_VALID;
@@ -462,8 +584,27 @@ void AP_UTB::evaluate(const Inputs &input, const AP_UTB_RateController::Gains (&
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Update.
+///
+///  @param[in]  input Explicit input snapshot.
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::update(const Inputs &input).
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::update(const Inputs &input)
 {
+    // Počáteční čas nebo index vyhodnocovaného intervalu.
+    uint32_t start;
+    // Požadovaná frekvence ukládání diagnostiky v Hz.
+    int16_t rate;
+    // Doba od počátku vyhodnocovaného intervalu.
+    uint64_t elapsed;
+    // Určuje, zda se tento skutečný vzorek předá k zalogování.
+    bool selected;
+    // Index průchodu pevnou kolekcí.
+    uint8_t j;
+
     _logging_requested.store(shadow_requested());
     if (!shadow_requested()) {
 #if AP_UTB_BENCH_ENABLED
@@ -482,9 +623,10 @@ void AP_UTB::update(const Inputs &input)
         return;
     }
     _was_requested = true;
-    const uint32_t start = input.started_us;
+    start = input.started_us;
+    // Pole vzniká až po SHADOW guardu, vypnutá cesta je nesestavuje.
     AP_UTB_RateController::Gains gains[3];
-    for (uint8_t j = 0; j < 3; j++) {
+    for (j = 0; j < 3; j++) {
         gains[j] = {_p[j].get(), _i[j].get(), _d[j].get(), _imax[j].get(), _d_hz[j].get()};
     }
     evaluate(input, gains, _snapshot);
@@ -513,7 +655,7 @@ void AP_UTB::update(const Inputs &input)
     if (!isfinite(_snapshot.input.thrust)) {
         _snapshot.input.thrust = 0;
     }
-    const int16_t rate = _log_rate.get();
+    rate = _log_rate.get();
     if (rate < 1 || rate > 400 || (_shadow.get() != 0 && _shadow.get() != 1)) {
         _snapshot.control = {};
         _snapshot.mixer = {};
@@ -525,11 +667,11 @@ void AP_UTB::update(const Inputs &input)
     if (_rate_start_us == 0) {
         _rate_start_us = input.time_us;
     }
-    const uint64_t elapsed = input.time_us - _rate_start_us;
+    elapsed = input.time_us - _rate_start_us;
     _snapshot.effective_log_rate = elapsed > 0 ? (_written_sets.load() - _rate_start_written) * 1.0e6f / elapsed : 0;
     _snapshot.drops = _drops;
     _snapshot.missing = _missing;
-    bool selected = select_log_sample(input.time_us, input.nominal_dt, rate);
+    selected = select_log_sample(input.time_us, input.nominal_dt, rate);
     if (_snapshot.calculation == CalculationReason::PRIMARY_GYRO_CHANGED) {
         selected = true; // Preserve the one-cycle reset event when diagnostic capacity permits.
     }
@@ -556,8 +698,21 @@ void AP_UTB::update(const Inputs &input)
 }
 
 #if AP_UTB_BENCH_ENABLED
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Gate and advance the DISARMED internal diagnostic reference.
+///
+///  @param[in]  in Explicit input snapshot.
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::prepare_synthetic(Inputs &in).
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::prepare_synthetic(Inputs &in)
 {
+    // Splnění požadavků na periodu diagnostického experimentu.
+    bool timing;
+    // Splnění všech podmínek pro interní SHADOW referenci.
+    bool eligible;
+
     if (_synthetic_request.get() != _last_synthetic_request) {
         _controller.reset();
         ++_epoch;
@@ -567,13 +722,14 @@ void AP_UTB::prepare_synthetic(Inputs &in)
         _synthetic.update(0, false, false, false, in.mode);
         return;
     }
-    const bool timing = isfinite(in.nominal_dt) && in.nominal_dt <= 0.0025f && in.nominal_dt >= 0.0025f && isfinite(in.dt) &&
-                        in.dt >= in.nominal_dt * 0.25f && in.dt <= in.nominal_dt * 4;
-    const bool eligible = enabled() && shadow_requested() && timing && !in.fast_rate && in.acro_available && in.bench_safe &&
-                          AP_UTB_MotorMixer::supports_frame(in.frame_class, in.frame_type) &&
-                          in.state.valid(in.validation_time_us, 10000) &&
-                          in.state.imu_updated_us != _last_imu_us && in.logging_available && !_budget_latched;
-    const auto sample = _synthetic.update(uint8_t(_synthetic_request.get()), eligible, in.armed, in.watchdog, in.mode);
+    timing = isfinite(in.nominal_dt) && in.nominal_dt <= 0.0025f && in.nominal_dt >= 0.0025f && isfinite(in.dt) &&
+             in.dt >= in.nominal_dt * 0.25f && in.dt <= in.nominal_dt * 4;
+    eligible = enabled() && shadow_requested() && timing && !in.fast_rate && in.acro_available && in.bench_safe &&
+               AP_UTB_MotorMixer::supports_frame(in.frame_class, in.frame_type) &&
+               in.state.valid(in.validation_time_us, 10000) &&
+               in.state.imu_updated_us != _last_imu_us && in.logging_available && !_budget_latched;
+    // Vzorek vzniká až po kontrolách; stavový automat se volá právě jednou.
+    const AP_UTB_SyntheticReference::Sample sample = _synthetic.update(uint8_t(_synthetic_request.get()), eligible, in.armed, in.watchdog, in.mode);
     in.reference_source = synthetic_requested() ? 1 : 0;
     in.synthetic_profile = _synthetic_request.get();
     in.synthetic_cycle = sample.cycle;
@@ -585,8 +741,22 @@ void AP_UTB::prepare_synthetic(Inputs &in)
 }
 #endif
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Select a real controller sample at the requested logging cadence without backfilling.
+///
+///  @param[in]  time_us Sample/log timestamp in microseconds.
+///  @param[in]  nominal_dt Nominal controller interval in seconds.
+///  @param[in]  rate Rate.
+///  @return     bool.
+///
+///  @details    Public class member. Declaration/definition: bool AP_UTB::select_log_sample(uint64_t time_us, float
+///              nominal_dt, int16_t rate).
+//--------------------------------------------------------------------------------------------------------------------
 bool AP_UTB::select_log_sample(uint64_t time_us, float nominal_dt, int16_t rate)
 {
+    // Rozestup ukládaných vzorků v mikrosekundách.
+    uint64_t period_us;
+
     if (rate != _last_log_rate) {
         _last_log_us = 0;
         _last_log_rate = rate;
@@ -601,7 +771,7 @@ bool AP_UTB::select_log_sample(uint64_t time_us, float nominal_dt, int16_t rate)
         return true;
     }
     if (_last_log_us == 0 || time_us >= _last_log_us) {
-        const uint64_t period_us = uint64_t(1.0e6f / rate);
+        period_us = uint64_t(1.0e6f / rate);
         _last_log_us = (_last_log_us == 0 ? time_us : _last_log_us) + period_us;
         if (_last_log_us <= time_us) {
             _last_log_us = time_us + period_us;
@@ -611,6 +781,16 @@ bool AP_UTB::select_log_sample(uint64_t time_us, float nominal_dt, int16_t rate)
     return false;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Publish fixed diagnostic data and update queue/drop accounting.
+///
+///  @param[in]  snapshot Snapshot.
+///  @param[in]  selected Selected.
+///  @return     bool.
+///
+///  @details    Public class member. Declaration/definition: bool AP_UTB::publish_diagnostics(Snapshot &snapshot, bool
+///              selected).
+//--------------------------------------------------------------------------------------------------------------------
 bool AP_UTB::publish_diagnostics(Snapshot &snapshot, bool selected)
 {
     if (selected) {
@@ -630,6 +810,16 @@ bool AP_UTB::publish_diagnostics(Snapshot &snapshot, bool selected)
     return true;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Record producer wall time and apply the existing time-budget policy.
+///
+///  @param[in]  elapsed_us Elapsed us.
+///  @param[in]  nominal_dt Nominal controller interval in seconds.
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::record_execution(uint32_t elapsed_us, float
+///              nominal_dt).
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::record_execution(uint32_t elapsed_us, float nominal_dt)
 {
     _max_execution_us = MAX(_max_execution_us, elapsed_us);
@@ -643,6 +833,14 @@ void AP_UTB::record_execution(uint32_t elapsed_us, float nominal_dt)
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+///  @brief      Record successful complete-set admission or backend failure.
+///
+///  @param[in]  success Success.
+///  @return     None.
+///
+///  @details    Public class member. Declaration/definition: void AP_UTB::log_result(bool success).
+//--------------------------------------------------------------------------------------------------------------------
 void AP_UTB::log_result(bool success)
 {
     _backend_failed.store(!success);
@@ -653,3 +851,24 @@ void AP_UTB::log_result(bool success)
     }
 }
 #endif // AP_UTB_ENABLED
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Public functions
+//====================================================================================================================
+// Data type, constant, macro definition
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Data type, constant, macro definition
+//====================================================================================================================
+// Private function prototypes
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private function prototypes
+//====================================================================================================================
+// Private functions
+//--------------------------------------------------------------------------------------------------------------------
+// None
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// End Private functions
