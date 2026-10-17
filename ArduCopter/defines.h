@@ -118,6 +118,7 @@ enum LoggingParameters {
     LOG_UALT_MSG = 27,
     LOG_UAAT_MSG = 28,
     LOG_UAST_MSG = 29,
+    LOG_UARC_MSG = 30,
 #endif
 };
 

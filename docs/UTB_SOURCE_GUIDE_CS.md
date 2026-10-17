@@ -13,8 +13,8 @@ zachovaný v historii, včetně původních reportů a manifestů.
 | Vlastní knihovní testy | `libraries/AP_UTB/tests/test_utb*` | [Registrace testů](../libraries/AP_UTB/tests/wscript) |
 | Copter adaptér a diagnostika | `libraries/AP_UTB/Copter/mode_utb_*`, `libraries/AP_UTB/Copter/utb*` | [Aktivní SITL adaptér](../libraries/AP_UTB/Copter/mode_utb_rate_sitl.cpp), [SHADOW producer/worker](../libraries/AP_UTB/Copter/utb.cpp) |
 | Instrumentace loggeru | `libraries/AP_Logger/AP_Logger_UTBBench.*` | [Měřicí kontrakt](../libraries/AP_Logger/AP_Logger_UTBBench.h), [unit test](../libraries/AP_Logger/tests/test_utb_bench.cpp) |
-| SITL a offline nástroje | `libraries/AP_UTB/tools/test_utb_*`, `libraries/AP_UTB/tools/utb_*` | [Attitude experiment](../Tools/utb/tools/utb_attitude_sitl.py), [rate experiment](../Tools/utb/tools/utb_rate_optimization.py), [offline model](../Tools/utb/tools/utb_closed_loop.py) |
-| Python unit testy | `libraries/AP_UTB/tests/python/test_utb_*` | [Attitude metriky](../Tools/utb/tests/test_utb_attitude_sitl.py), [offline modely](../Tools/utb/tests/test_utb_offline.py) |
+| SITL a offline nástroje | `Tools/utb/tools/test_utb_*`, `Tools/utb/tools/utb_*` | [Attitude experiment](../Tools/utb/tools/utb_attitude_sitl.py), [rate experiment](../Tools/utb/tools/utb_rate_optimization.py), [offline model](../Tools/utb/tools/utb_closed_loop.py) |
+| Python unit testy | `Tools/utb/tests/test_utb_*` | [Attitude metriky](../Tools/utb/tests/test_utb_attitude_sitl.py), [offline modely](../Tools/utb/tests/test_utb_offline.py) |
 | Referenční konfigurace | `configs/skystars_5inch/` | [Přehled profilů](../configs/skystars_5inch/README_CS.md) |
 | Dokumentace | `docs/UTB_*_CS.md` | [Rozcestník](UTB_README_CS.md), [úplná mapa souborů](UTB_FILE_MAP_CS.md) |
 
@@ -132,3 +132,27 @@ WCET, jitter a stack watermark na H743 jsou **hardware neověřeno**.
 Výsledky, přesné příkazy, SHA-256 artefaktů a záloha jsou v
 `tmp/utb-readable-20261017_084027/`. Firmware nebyl nahrán, žádné parametry FC
 se neměnily. Změny se ukládají do navazujícího lokálního checkpointu; původní HEAD zůstává jeho rodičem.
+
+## Pilotní ANGLE (FÁZE 2F)
+
+Nové zdroje nad checkpointem `9824542e73bbfb193b21fd4388f74e14ba24439c`:
+
+- [AP_UTB_AngleRC.h](../libraries/AP_UTB/AP_UTB_AngleRC.h) a
+  [.cpp](../libraries/AP_UTB/AP_UTB_AngleRC.cpp): kalibrované RCMAP kanály,
+  původní AP normalizace/deadband/reverse, signal/stale/calibration/range guards,
+  kruhová RP reference a body yaw rate; žádná nová PID matematika.
+- [mode_utb_angle_sitl.h](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.h) a
+  [.cpp](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp): skutečný pilotní mode 42,
+  lifecycle, standardní manual throttle, původní UTB helpery a AP motor output.
+- [utb_angle_log.h](../libraries/AP_UTB/Copter/utb_angle_log.h): UARC (ID 30),
+  propojení RC/controller/output pomocí TimeUS/Seq a host wall timing.
+- [test_utb_angle_rc.cpp](../libraries/AP_UTB/tests/test_utb_angle_rc.cpp): skutečné
+  AP RC_Channel objekty; normalizace a analytické self-level/controller assertions.
+- [utb_angle_sitl.py](../Tools/utb/tools/utb_angle_sitl.py): vlastní lokální SITL,
+  konečné skutečné RC experimenty, striktní analýza a interaktivní pilotní vstupy.
+- [test_utb_angle_sitl.py](../Tools/utb/tests/test_utb_angle_sitl.py): odmítnutí
+  neplatného testovacího příkazu a nedostatečných důkazů.
+
+Dřívější automatické RATE/ATTITUDE reference zůstávají v mode 41. Nové A_* parametry
+nepřepisují původní S_*/RAT_* indexy ani defaulty. Přesný rozsah a odlišnosti od
+AP STABILIZE jsou v [architektuře](UTB_ANGLE_MODE_ARCHITECTURE_CS.md).

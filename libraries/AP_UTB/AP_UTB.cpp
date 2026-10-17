@@ -289,6 +289,36 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
     // @Range: -0.001 0.001
     // @User: Advanced
     AP_GROUPINFO("S_TOFF", 35, AP_UTB, _sitl_throttle_offset, 0),
+
+    // @Param: A_ENABLE
+    // @DisplayName: SITL pilot ANGLE mode enable
+    // @Description: Enable pilot controlled UTB ANGLE only in an active-authority SITL build. Uses the verified fixed SITL PID preset. No effect or parameter on hardware targets.
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO("A_ENABLE", 36, AP_UTB, _angle_enable, 0),
+
+    // @Param: A_ANGLE
+    // @DisplayName: SITL ANGLE maximum tilt reference
+    // @Description: Circular roll/pitch reference norm limit. Limited to the previously validated 5 degree attitude envelope. Changes while in ANGLE cause a latched stop.
+    // @Units: deg
+    // @Range: 0.1 5
+    // @User: Advanced
+    AP_GROUPINFO("A_ANGLE", 37, AP_UTB, _angle_max, 5),
+
+    // @Param: A_YMAX
+    // @DisplayName: SITL ANGLE maximum body yaw rate
+    // @Description: Maximum absolute pilot body yaw rate. Center stick commands zero rate, not heading hold. Changes while in ANGLE cause a latched stop.
+    // @Units: rad/s
+    // @Range: 0.01 0.1
+    // @User: Advanced
+    AP_GROUPINFO("A_YMAX", 38, AP_UTB, _angle_yaw_max, 0.1),
+
+    // @Param: A_AW
+    // @DisplayName: SITL ANGLE allocation feedback opt in
+    // @Description: Zero keeps the existing saturation-stop policy. One enables the existing validated normalized BF_X_REV allocation feedback. Changes while in ANGLE cause a latched stop.
+    // @Values: 0:Saturation stop,1:Allocation feedback
+    // @User: Advanced
+    AP_GROUPINFO("A_AW", 39, AP_UTB, _angle_aw, 0),
 #endif
     AP_GROUPEND
 };

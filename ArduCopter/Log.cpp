@@ -2,6 +2,7 @@
 #include <AP_UTB/Copter/utb_bench_log.h>
 #include <AP_UTB/Copter/utb_log.h>
 #include <AP_UTB/Copter/utb_sitl_log.h>
+#include <AP_UTB/Copter/utb_angle_log.h>
 #include <AP_InertialSensor/AP_InertialSensor_rate_config.h>
 
 #if HAL_LOGGING_ENABLED
@@ -427,6 +428,7 @@ void Copter::Log_Write_Rate_Thread_Dt(float dt, float dtAvg, float dtMax, float 
 const struct LogStructure Copter::log_structure[] = {
 #if AP_UTB_RATE_SITL_AVAILABLE
     UTB_SITL_LOG_STRUCTURES
+    UTB_ANGLE_LOG_STRUCTURES
 #endif
 #if AP_UTB_ENABLED
     UTB_LOG_STRUCTURES

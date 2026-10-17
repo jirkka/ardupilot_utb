@@ -126,6 +126,8 @@ void Copter::motors_output_main()
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
         if (flightmode == &mode_utb_rate_sitl) {
             mode_utb_rate_sitl.log_cycle();
+        } else if (flightmode == &mode_utb_angle_sitl) {
+            mode_utb_angle_sitl.log_cycle();
         }
 #endif
     }

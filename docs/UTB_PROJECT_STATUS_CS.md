@@ -1,15 +1,44 @@
 # UTB: současný funkční stav
 
-Stav k **17. 10. 2026**, větev `test/skystars-5inch`. Tento dokument je
-součástí lokálního checkpointu organizace a čitelnosti nad rodičem
-`5a32da404dafd19546439bf6886ab9adb831f4c0`. Přesný commit dokumentu lze
-zjistit příkazem `git log -1 --format=%H -- docs/UTB_PROJECT_STATUS_CS.md`.
+Stav k **17. 10. 2026**, větev `test/skystars-5inch`, HEAD rodiče
+`9824542e73bbfb193b21fd4388f74e14ba24439c`. FÁZE 2F je samostatná sada
+necommitnutých pracovních změn nad dokončeným checkpointem organizace.
 [Rozcestník](UTB_README_CS.md) · [Mapa implementace](UTB_FILE_MAP_CS.md) ·
 [Git a ověření kontinuity](UTB_GIT_CONSOLIDATION_CS.md).
 
 SOURCE = zkontrolovaný source; UNIT = unit/model test; SITL = skutečný proces
 ArduPilot simulátoru; H743 = skutečný fyzický experiment v uvedeném rozsahu;
 UNVERIFIED = nedoložené. Build úspěch sám není H743 validace.
+
+## Nově: pilotní UTB ANGLE, FÁZE 2F
+
+Implementován samostatný **mode42 UTB_ANGLE pouze SITL**, skutečná AP RC
+kalibrace/RCMAP/deadband/reverse → vlastní původní attitude P → vlastní
+původní rate PID → původní AP_Motors. Ruční throttle používá původní AP mapu,
+bez angle boost a bez výškové regulace. Mode40 zůstává nearmovatelný;
+automatické profily mode41 jsou zachovány.
+
+Ověřený rozsah: oba směry roll/pitch3° a5°, aktivní návrat do roviny,
+kombinované RP, yaw±0,05rad/s, malé ruční throttle změny, GCS/RC výběr,
+STABILIZE↔ANGLE přechody a RC/GCS výpadek ve vymezené konfiguraci.
+Norma reference nejvýše5°, větší rozsah ani kompletní manuální takeoff/landing
+nejsou ověřeny. Unit sada obsahuje 112 C++ testů včetně dvou CSV export testů
+a 135 Python testů; není přímo srovnatelná se starším součtem 98 níže.
+
+**Omezení:** FS_OPTIONS16 („continue pilot control“) je neslučitelné s
+vlastní fail-stop politikou při GCS výpadku; skutečný test skončil pádem
+simulace. Ověřený runner používá explicitně FS_OPTIONS0 a původní AP RTL.
+Další kombinace failsafe voleb nejsou automaticky schválené. Fail-stop
+s nulovým tahem není bezpečná obecná letová obnova.
+
+H743 active ANGLE zůstává compile-out i s vynucenou active build option.
+Žádný COM5, upload, fyzické parametry nebo motorové testy v této fázi.
+[Architektura](UTB_ANGLE_MODE_ARCHITECTURE_CS.md),
+[SITL validace](UTB_ANGLE_MODE_SITL_VALIDATION_CS.md),
+[Souhrn, manifest a ruční návod](UTB_PHASE_2F_SUMMARY_CS.md).
+
+Následující původní oddíly zachycují stav checkpointu organizace před2F;
+jejich historické počty, binárky a fyzické výsledky se nepřepisují výsledky2F.
 
 ## Hotovo v současném vymezeném rozsahu
 
@@ -26,7 +55,7 @@ UNVERIFIED = nedoložené. Build úspěch sám není H743 validace.
 aktivní autopilot UTB pro hardware dokončený není. Výchozí firmware gains,
 S_OWNER/S_RUN/S_ATT zůstávají nulové; zvolené SITL gains nastavují runnery.
 
-## Nejnovější ověření softwaru, 17. 10. 2026
+## Ověření checkpointu organizace před2F, 17. 10. 2026
 
 - C++ a Python zdroje byly uspořádané a okomentované, pracovní deklarace
   sjednocené; byly odstraněné dva zbytečné interní ukazatele. Matematické
@@ -86,7 +115,7 @@ níže se vztahují výhradně k tehdy zaznamenaným firmware a konfiguracím.
 | Autonomní mise | Původní AP módy nejsou vlastní UTB mise. |
 | Překážky | Není UTB detekce ani vyhýbání. |
 | Studentské rozhraní | Dokumentace a skripty existují, vlastní výukové UI chybí. |
-| Aktivní hardware closed loop | Mode 41 a aktivní adapter jsou na H743 compile-out; žádné aktivní UTB hardware ověření. |
+| Aktivní hardware closed loop | Mode41, nový mode42 a aktivní adapter jsou na H743 compile-out; žádné aktivní UTB hardware ověření. |
 
 Předchozí BP je použita pro kontinuitu projektu a plánování. Příslušný source
 výšky/XY není tímto auditem dodán ani ověřen; nelze uvádět její konkrétní

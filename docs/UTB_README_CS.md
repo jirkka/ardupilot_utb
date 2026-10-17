@@ -1,8 +1,16 @@
 # UTB: vlastní regulační vrstva v ArduPilot Copter
 
-Stav k 17. 10. 2026, větev `test/skystars-5inch`. Navazující lokální
-checkpoint nad `5a32da404dafd19546439bf6886ab9adb831f4c0` ukládá organizaci,
-čitelnost a aktuální dokumentaci. Funkční rozsah shrnuje stav projektu.
+FÁZE 2F rozšiřuje pracovní strom nad lokálním checkpointem
+`9824542e73bbfb193b21fd4388f74e14ba24439c`, větev `test/skystars-5inch`.
+Nový pilotní mode 42 používá skutečné AP RC vstupy a vlastní nezměněnou
+attitude/rate kaskádu. Stav ověření a hranice uvádějí
+[architektura ANGLE](UTB_ANGLE_MODE_ARCHITECTURE_CS.md),
+[SITL validace](UTB_ANGLE_MODE_SITL_VALIDATION_CS.md) a
+[souhrn / ruční spuštění](UTB_PHASE_2F_SUMMARY_CS.md).
+Aktivní motorová cesta je nadále pouze SITL; firmware se na FC nenahrává.
+Jde o malý experimentální rozsah do 5°; ověřená GCS failsafe konfigurace
+používá FS_OPTIONS=0. Kombinace „continue pilot control“ s vlastním fail-stop
+vedla při skutečné GCS ztrátě k pádu simulovaného stroje.
 
 Projekt vytváří přehlednou a samostatně testovatelnou regulační vrstvu pro
 výuku a experimenty s multikoptérou. ArduPilot 4.7.1 zajišťuje senzory,

@@ -544,6 +544,21 @@ def isolation(binary, root, output, model="bfx"):
 # Public functions
 # --------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------------------------
+# @brief Odstranit C++ komentáře ze statického auditu při zachování řetězců a řádků.
+#
+# @param[in] source Skutečný C++ source text.
+# @return Text se stejně dlouhými mezerami místo komentářů.
+#
+# @details Globální funkce testovacího modulu. Rozlišuje běžné string/char literály;
+#          nepředzpracovává makra. Runtime scénáře a bezpečnostní assertions nemění.
+# --------------------------------------------------------------------------------------------------------------------
+def source_without_comments(source):
+    tokens = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//[^\n]*|/\*.*?\*/', re.S)
+    return tokens.sub(lambda match: ''.join('\n' if char == '\n' else ' ' for char in match[0])
+                      if match[0].startswith(('//', '/*')) else match[0], source)
+
+
+# --------------------------------------------------------------------------------------------------------------------
 # @brief      Source audit.
 #
 # @param[in]  root Root.
@@ -554,25 +569,25 @@ def isolation(binary, root, output, model="bfx"):
 #             'libraries/AP_UTB').glob.
 # --------------------------------------------------------------------------------------------------------------------
 def source_audit(root):
-    bridge = (root / "libraries/AP_UTB/Copter/utb.cpp").read_text()
+    bridge = source_without_comments((root / "libraries/AP_UTB/Copter/utb.cpp").read_text())
     producer = bridge.split("void Copter::utb_log_init()", 1)[0]
     assert "logger." not in producer and "GCS_SEND_TEXT" not in producer
-    scheduler = (root / "ArduCopter/Copter.cpp").read_text()
+    scheduler = source_without_comments((root / "ArduCopter/Copter.cpp").read_text())
     assert "FAST_TASK(utb_log_update)" not in scheduler
     assert "SCHED_TASK(utb_status_update" not in scheduler
     assert bridge.count("utb_log_update()") == 2  # worker call and definition
     assert bridge.count("utb_status_update(") == 2
     assert "PRIORITY_IO, 0" in bridge
     assert "if (utb.enabled())" in bridge.split("void Copter::utb_log_thread", 1)[0]
-    manager = (root / "libraries/AP_UTB/AP_UTB.cpp").read_text()
+    manager = source_without_comments((root / "libraries/AP_UTB/AP_UTB.cpp").read_text())
     assert "take_blocking" not in manager and "WITH_SEMAPHORE" not in manager
     assert "logger." not in manager
     assert "ATOMIC_INT_LOCK_FREE == 2" in manager
-    assert "GCS_SEND_TEXT" not in (root / "libraries/AP_UTB/Copter/mode_utb_acro.cpp").read_text()
+    assert "GCS_SEND_TEXT" not in source_without_comments((root / "libraries/AP_UTB/Copter/mode_utb_acro.cpp").read_text())
     for path in (root / "libraries/AP_UTB").glob("AP_UTB*.*"):
         if path.suffix not in {".cpp", ".h"}:
             continue
-        source = path.read_text()
+        source = source_without_comments(path.read_text())
         for forbidden in ("AP_Motors", "SRV_Channels", "hal.rcout", "set_throttle(", "set_roll(",
                           "set_pitch(", "set_yaw(", "AP_HAL_ChibiOS", "send_dshot_command("):
             assert forbidden not in source, (path.name, forbidden)

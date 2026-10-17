@@ -17,8 +17,9 @@ staging návrhu. Strojová inventura leží v checkpointu 2E jako file-map-inven
 
 C++ knihovna a Copter adaptéry jsou v `libraries/AP_UTB/`; Python je
 oddělený pod `Tools/utb/` ([přehled](../Tools/utb/README_CS.md)).
-Komentářové revize a nové rozcestníky po FÁZI 2E jsou samostatné
-necommitnuté změny; číselná inventura výše označuje původní checkpoint.
+Organizace/čitelnost je uložená v checkpointu `9824542e73bbfb193b21fd4388f74e14ba24439c`.
+Následující FÁZE 2F je samostatná pracovní změna; číselná inventura výše
+označuje původní checkpoint FÁZE 2E, nikoli součet nových ANGLE souborů.
 
 Každý řádek níže odpovídá jednomu skutečnému souboru. `.h` deklaruje kontrakt,
 `.cpp` implementuje popsanou komponentu. Údaj první commit dokládá vznik
@@ -454,8 +455,9 @@ archivy všech 58 původních dirty souborů a přesný návrh stagingu.
 
 ## Přesun vlastních zdrojů po checkpointu 2E
 
-Vlastní Copter adaptéry, Python nástroje a Python testy jsou nyní fyzicky
-soustředěné v [libraries/AP_UTB](../libraries/AP_UTB/README_CS.md).
+Vlastní C++ a Copter adaptéry jsou v
+[libraries/AP_UTB](../libraries/AP_UTB/README_CS.md); Python nástroje a testy
+jsou oddělené v `Tools/utb/tools/` a `Tools/utb/tests/`.
 Historické manifesty zachovávají původní cesty; přesná převodní tabulka je
 v novém lokálním layout checkpointu. Přesun nemění matematiku ani autoritu.
 Dva nové rozcestníky rozšiřují původní inventuru o dvě dokumentační položky:
@@ -464,3 +466,25 @@ Dva nové rozcestníky rozšiřují původní inventuru o dvě dokumentační po
 |---|---|---|
 |[docs/UTB_SOURCE_GUIDE_CS.md](UTB_SOURCE_GUIDE_CS.md)|Společný index a komentářový standard; používá čtenář, odkazuje na aktuální source.|SOURCE|
 |[libraries/AP_UTB/README_CS.md](../libraries/AP_UTB/README_CS.md)|Vstup do společné složky; struktura, build, testy a výjimky integrace.|SOURCE|
+
+## Dodatek FÁZE 2F: pilotní ANGLE
+
+Současný parent je `9824542e73bbfb193b21fd4388f74e14ba24439c`; žádný původní
+soubor regulátoru ani historický report se nepřesouvá.
+
+| Nové soubory | Účel / autorita |
+|---|---|
+| `libraries/AP_UTB/AP_UTB_AngleRC.h`, `.cpp` | Pilotní reference z původních AP RC_Channel; pouze skutečný active SITL build. |
+| `libraries/AP_UTB/Copter/mode_utb_angle_sitl.h`, `.cpp` | Mode 42, ruční throttle, lifecycle/guards a výhradní vlastní kaskáda → původní AP_Motors, SITL-only. |
+| `libraries/AP_UTB/Copter/utb_angle_log.h` | Nové UARC metadata, původní IDs/schema zůstávají. |
+| `libraries/AP_UTB/tests/test_utb_angle_rc.cpp` | 13 C++ pilotních/analytických regresí. |
+| `Tools/utb/tools/utb_angle_sitl.py` | RC/GCS/flight/transition/failsafe runnery a manuální rozhraní, pouze vlastní simulátor. |
+| `Tools/utb/tests/test_utb_angle_sitl.py` | 7 Python kontrol runneru/evidence. |
+| `docs/UTB_ANGLE_MODE_ARCHITECTURE_CS.md` | Matematický a integrační kontrakt. |
+| `docs/UTB_ANGLE_MODE_SITL_VALIDATION_CS.md` | Naměřené výsledky a meze důkazů. |
+| `docs/UTB_PHASE_2F_SUMMARY_CS.md` | Přesný manifest, build/test stav a ruční spuštění. |
+
+Nativní integrační body: `ArduCopter/{mode.h,mode.cpp,Copter.h,Attitude.cpp,
+GCS_MAVLink_Copter.cpp,motors.cpp,defines.h,Log.cpp}` a AP_UTB parameter API
+`AP_UTB.{h,cpp}`. Žádná úprava AP_Motors/HAL/DShot/EKF/arming zdrojů.
+Úplný manifest je v [souhrnu](UTB_PHASE_2F_SUMMARY_CS.md).

@@ -108,6 +108,7 @@ public:
 
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
         UTB_RATE_SITL = 41, // experimental rate authority, simulation only
+        UTB_ANGLE =     42, // pilot-controlled angle authority, simulation only
 #endif
         // Mode number 30 reserved for "offboard" for external/lua control.
 
@@ -538,6 +539,10 @@ private:
     bool _running = false;
     bool _complete = false;
 };
+#endif
+
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+#include <AP_UTB/Copter/mode_utb_angle_sitl.h>
 #endif
 
 #if MODE_ACRO_ENABLED

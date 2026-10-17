@@ -36,6 +36,8 @@ Mode *Copter::mode_from_mode_num(const Mode::Number mode)
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     case Mode::Number::UTB_RATE_SITL:
         return &mode_utb_rate_sitl;
+    case Mode::Number::UTB_ANGLE:
+        return &mode_utb_angle_sitl;
 #endif
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
         case Mode::Number::UTB_ACRO:

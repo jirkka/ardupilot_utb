@@ -216,6 +216,7 @@ public:
 #endif
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     friend class ModeUTBRateSITL;
+    friend class ModeUTBAngleSITL;
 #endif
     friend class ModeAcro_Heli;
     friend class ModeAltHold;
@@ -664,7 +665,7 @@ private:
     {
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
         // No rate thread may start while the simulation experiment owns this slot.
-        if (flightmode == &mode_utb_rate_sitl) {
+        if (flightmode == &mode_utb_rate_sitl || flightmode == &mode_utb_angle_sitl) {
             return FastRateType::FAST_RATE_DISABLED;
         }
 #endif
@@ -791,7 +792,7 @@ private:
     void run_custom_controller()
     {
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
-        if (flightmode == &mode_utb_rate_sitl) {
+        if (flightmode == &mode_utb_rate_sitl || flightmode == &mode_utb_angle_sitl) {
             return;
         }
 #endif
@@ -1079,6 +1080,7 @@ private:
 #endif
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     ModeUTBRateSITL mode_utb_rate_sitl;
+    ModeUTBAngleSITL mode_utb_angle_sitl;
 #endif
     ModeAltHold mode_althold;
 #if MODE_AUTO_ENABLED

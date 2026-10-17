@@ -821,9 +821,45 @@ public:
             gains[i] = {_p[i].get(), _i[i].get(), _d[i].get(), _imax[i].get(), _d_hz[i].get()};
         }
     }
+    /// @brief Read the pilot ANGLE mode opt-in; hardware has no such accessor or parameter.
+    /// @param[in] None
+    /// @return Raw opt-in value, checked exactly against one by the mode.
+    /// @details Independent from the existing automatic experiment owner/source.
+    int8_t angle_enable() const
+    {
+        return _angle_enable.get();
+    }
+    /// @brief Read the pilot angle norm limit in degrees.
+    /// @param[in] None
+    /// @return Configured maximum reference norm.
+    /// @details Validated and frozen at ANGLE entry.
+    float angle_max() const
+    {
+        return _angle_max.get();
+    }
+    /// @brief Read the pilot body yaw rate limit in rad/s.
+    /// @param[in] None
+    /// @return Configured absolute maximum yaw rate.
+    /// @details No heading hold is introduced.
+    float angle_yaw_max() const
+    {
+        return _angle_yaw_max.get();
+    }
+    /// @brief Read the existing allocation-feedback policy opt-in for pilot ANGLE.
+    /// @param[in] None
+    /// @return Zero for saturation stop, one for normalized feedback.
+    /// @details Independent from the old S_AW experiment parameter.
+    int8_t angle_aw() const
+    {
+        return _angle_aw.get();
+    }
+
 #endif
 private:
 #if AP_UTB_RATE_SITL_AVAILABLE
+    // SITL pilot-mode opt-in, frozen reference limits and existing feedback policy.
+    AP_Int8 _angle_enable, _angle_aw;
+    AP_Float _angle_max, _angle_yaw_max;
     AP_Int8 _sitl_attitude;
     AP_Float _sitl_angle, _sitl_angle_roll_p, _sitl_angle_pitch_p, _sitl_angle_rate_max;
     AP_Float _sitl_yaw_rate, _sitl_throttle_offset;
