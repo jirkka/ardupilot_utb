@@ -5,6 +5,22 @@ Tento přehled navazuje na lokální commit
 součástí navazujícího lokálního checkpointu. Schválený 62souborový checkpoint zůstává
 zachovaný v historii, včetně původních reportů a manifestů.
 
+## Aktuální pilotní vstupní body2G
+
+FÁZE 2F je commit `671ccad97050115e87b9d8451313dd7403fc1e72`; navazující2G
+zachovává současné adresáře. [Společný runner](../Tools/utb/tools/utb_pilot_sitl.py)
+volíACRO43/ANGLE42. [ACRO RC helper](../libraries/AP_UTB/AP_UTB_AcroRC.h)
+obsahuje jediná pojmenovaná hard maxima; AP parametry umožňují GCS úpravu
+uvnitř nich bez recompilace. [Mode43](../libraries/AP_UTB/Copter/mode_utb_acro_sitl.h)
+sdílí [pilotní adaptér](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp),
+ale v jeho přímé rate větvi se attitude controller nevolá.
+
+[Architektura a lifecycle](UTB_ACRO_MODE_ARCHITECTURE_CS.md) ·
+[ověření](UTB_ACRO_MODE_SITL_VALIDATION_CS.md) ·
+[ruční postup/manifest](UTB_PHASE_2G_SUMMARY_CS.md).
+Nové vlastní soubory zachovávají autora, datovou revizi a rozdělení funkcí;
+nativní AP integrační soubory dostávají pouze nutné změny.
+
 ## Kde jsou soubory pohromadě
 
 | Skupina | Umístění a jednoznačný prefix | Vstupní body |

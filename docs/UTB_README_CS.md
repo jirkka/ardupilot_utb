@@ -1,16 +1,27 @@
 # UTB: vlastní regulační vrstva v ArduPilot Copter
 
-FÁZE 2F rozšiřuje pracovní strom nad lokálním checkpointem
-`9824542e73bbfb193b21fd4388f74e14ba24439c`, větev `test/skystars-5inch`.
-Nový pilotní mode 42 používá skutečné AP RC vstupy a vlastní nezměněnou
-attitude/rate kaskádu. Stav ověření a hranice uvádějí
-[architektura ANGLE](UTB_ANGLE_MODE_ARCHITECTURE_CS.md),
-[SITL validace](UTB_ANGLE_MODE_SITL_VALIDATION_CS.md) a
-[souhrn / ruční spuštění](UTB_PHASE_2F_SUMMARY_CS.md).
-Aktivní motorová cesta je nadále pouze SITL; firmware se na FC nenahrává.
-Jde o malý experimentální rozsah do 5°; ověřená GCS failsafe konfigurace
-používá FS_OPTIONS=0. Kombinace „continue pilot control“ s vlastním fail-stop
-vedla při skutečné GCS ztrátě k pádu simulovaného stroje.
+FÁZE 2F je uložená v lokálním commitu
+`671ccad97050115e87b9d8451313dd7403fc1e72` na větvi `test/skystars-5inch`.
+Navazující pracovní FÁZE 2G přidává pilotní **ACRO43** a přímé **ACRO↔ANGLE42**
+bez nové PID/mixer matematiky. Aktivní autorita je výhradně v SITL;
+mode40 zůstává nearmovatelný a fyzické FC se tato fáze nedotýká.
+
+[Společné pilotní režimy](UTB_FLIGHT_MODES_CS.md) ·
+[ACRO architektura a parametry](UTB_ACRO_MODE_ARCHITECTURE_CS.md) ·
+[skutečné SITL výsledky a omezení](UTB_ACRO_MODE_SITL_VALIDATION_CS.md) ·
+[souhrn 2G / ruční spuštění](UTB_PHASE_2G_SUMMARY_CS.md).
+
+ACRO používá lineární body rate mapu, ANGLE náklonovou mapu a vlastní attitude
+P. Oba používají stejnou původní AP manual throttle politiku. Maxima lze
+upravit přes AP parametry dostupné v GCS: `UTB_C_RMAX`, `UTB_C_PMAX`,
+`UTB_C_YMAX`, `UTB_A_RMAX` a dosavadní `UTB_A_YMAX`, mimo aktivní pilotní režim.
+Pevné caps nadále omezují ACRO na0,15/0,15/0,05rad/s; větší rozsah neověřen.
+Ověření GCS parametrického API není tvrzení o testu konkrétního GUI klienta.
+
+Podporovaná failsafe konfigurace: FS_GCS_ENABLE1, FS_THR_ENABLE1, FS_OPTIONS0.
+Neslučitelná konfigurace se odmítá při vstupu. Nouzový UTB fault-stop s nulovým
+tahem není obecná bezpečná letová obnova. Historické výsledky ANGLE jsou
+v [2F reportu](UTB_ANGLE_MODE_SITL_VALIDATION_CS.md).
 
 Projekt vytváří přehlednou a samostatně testovatelnou regulační vrstvu pro
 výuku a experimenty s multikoptérou. ArduPilot 4.7.1 zajišťuje senzory,
@@ -53,8 +64,8 @@ RATE experiment, `S_ATT=2` je výslovná srovnávací AP attitude větev.
 
 Na H743 běží původní AP regulace a motorová cesta. UTB paralelně vzorkuje
 stav, počítá PID a diagnostický mixer a předává snapshoty logger workeru.
-Mode 40 `UTB_ACRO` zůstává nearmovatelný. Aktivní mode 41, jeho parametry,
-attitude helper a allocation feedback adaptér jsou z H743 sestavení vyloučeny
+Mode 40 `UTB_ACRO` zůstává nearmovatelný. Aktivní modes41/42/43, jejich parametry,
+attitude/rate helpery a allocation feedback adaptér jsou z H743 sestavení vyloučeny
 i při vynucení build option `UTB_RATE_SITL`.
 
 ## Co je skutečně ověřeno
@@ -66,7 +77,7 @@ i při vynucení build option `UTB_RATE_SITL`.
 | Aktivní rate SITL | [2A](UTB_ACTIVE_SITL_VALIDATION_CS.md), [2B](UTB_PHASE_2B_SUMMARY_CS.md), [gains a omezení](UTB_RATE_PID_OPTIMIZATION_CS.md). |
 | Anti-windup | [2B kontrakt](UTB_RATE_ANTIWINDUP_CS.md): volitelný `S_AW=1` v podporované SITL alokaci. Výchozí `S_AW=0` při saturaci zastavuje; nejde o výchozí zapnutý aktivní anti-windup. |
 | Aktivní attitude SITL | [2C](UTB_ATTITUDE_SITL_VALIDATION_CS.md): 37 skutečných sessions, 207200 úplných attitude sad; vedle toho dvě RATE regrese. Vše v omezené obálce. |
-| Nejnovější software základ | [Stav k 17. 10.](UTB_PROJECT_STATUS_CS.md): 98 C++ / 128 Python testů, 30 946 matematických vzorků, finální SITL a H743 build/guard kontroly. Historický [souhrn 2C](UTB_PHASE_2C_SUMMARY_CS.md) dokládá širší matici attitude experimentů. |
+| Historický software základ před2F/2G | [Stav k 17. 10.](UTB_PROJECT_STATUS_CS.md): 98 C++ / 128 Python testů, 30 946 matematických vzorků, finální SITL a H743 build/guard kontroly. Historický [souhrn 2C](UTB_PHASE_2C_SUMMARY_CS.md) dokládá širší matici attitude experimentů. |
 
 Výsledky nedokazují letovou způsobilost aktivního UTB na H743. Sdílené logger
 mutexy, startup ztráty a download/EKF problém jsou otevřené. Hardwarové

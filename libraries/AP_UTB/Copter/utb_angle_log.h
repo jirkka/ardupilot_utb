@@ -25,7 +25,7 @@
 // Data type, constant, macro definition
 //--------------------------------------------------------------------------------------------------------------------
 // @LoggerMessage: UARC
-// @Description: SITL pilot ANGLE actual AP RC sample and manual throttle provenance
+// @Description: SITL pilot ANGLE/ACRO actual AP RC sample and manual throttle provenance
 // @Field: TimeUS: Matching controller and motor sample timestamp in microseconds
 // @Field: Seq: Matching ANGLE scheduler sequence
 // @Field: RCms: AP RC sample timestamp in milliseconds, captured in preceding mode run

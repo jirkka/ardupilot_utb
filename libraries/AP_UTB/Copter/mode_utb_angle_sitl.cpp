@@ -2,7 +2,7 @@
 // NOTICE: UTB project extension; original licenses remain unchanged.
 //--------------------------------------------------------------------------------------------------------------------
 /// @file mode_utb_angle_sitl.cpp
-/// @brief Pilotní RC ANGLE integrace původní UTB kaskády a AP motorové infrastruktury, pouze SITL.
+/// @brief Sdílený pilotní ANGLE/ACRO adaptér původních UTB regulátorů a AP_Motors, pouze SITL.
 /// @author Jiri Kovar
 /// @version 2026-10-17
 /// @date 2026-10-17
@@ -32,7 +32,8 @@
 /// @details Veřejný mode callback. Pouze HAL_BOARD_SITL.
 bool ModeUTBAngleSITL::enabled() const
 {
-    return copter.utb.enabled() && copter.utb.angle_enable() == 1;
+    return copter.utb.enabled() && (mode_number() == Number::UTB_ACRO_SITL ?
+                                    copter.utb.acro_enable() == 1 : copter.utb.angle_enable() == 1);
 }
 
 // End Public functions
@@ -45,13 +46,30 @@ bool ModeUTBAngleSITL::enabled() const
 /// @details Soukromá pomocná metoda. Pouze HAL_BOARD_SITL.
 bool ModeUTBAngleSITL::configuration_valid() const
 {
+    // Přesná shoda zmrazených float parametrů, včetně odmítnutí NaN.
+    bool limits_unchanged;
+
     if (!enabled() || copter.using_rate_thread || copter.g2.att_enable.get() != 0 ||
         copter.g2.frame_class.get() != 1 || copter.g.frame_type.get() != 18 || copter.utb.shadow_requested() ||
-        !(_config.angle_deg <= copter.utb.angle_max() && _config.angle_deg >= copter.utb.angle_max()) ||
-        !(_config.yaw_rate <= copter.utb.angle_yaw_max() && _config.yaw_rate >= copter.utb.angle_yaw_max()) ||
-        _antiwindup != copter.utb.angle_aw() ||
+        !AP_UTB_AcroRC::failsafe_policy(copter.g.failsafe_gcs.get(), copter.g.failsafe_throttle.get(),
+                                        copter.g2.fs_options.get()) ||
         fabsf(copter.scheduler.get_loop_period_s() - 0.0025f) > 1.0e-7f) {
         return false;
+    }
+    if (mode_number() == Number::UTB_ACRO_SITL) {
+        limits_unchanged = (_acro_limits.x <= copter.utb.acro_roll_max() && _acro_limits.x >= copter.utb.acro_roll_max()) &&
+                           (_acro_limits.y <= copter.utb.acro_pitch_max() && _acro_limits.y >= copter.utb.acro_pitch_max()) &&
+                           (_acro_limits.z <= copter.utb.acro_yaw_max() && _acro_limits.z >= copter.utb.acro_yaw_max());
+        if (!limits_unchanged || _antiwindup != copter.utb.acro_aw()) {
+            return false;
+        }
+    } else {
+        limits_unchanged = (_config.angle_deg <= copter.utb.angle_max() && _config.angle_deg >= copter.utb.angle_max()) &&
+                           (_config.yaw_rate <= copter.utb.angle_yaw_max() && _config.yaw_rate >= copter.utb.angle_yaw_max()) &&
+                           (_angle_rate_max <= copter.utb.angle_rate_max() && _angle_rate_max >= copter.utb.angle_rate_max());
+        if (!limits_unchanged || _antiwindup != copter.utb.angle_aw()) {
+            return false;
+        }
     }
 #if AP_UTB_BENCH_ENABLED
     if (copter.utb.synthetic_requested()) {
@@ -107,8 +125,13 @@ bool ModeUTBAngleSITL::read_pilot()
         _pilot.fault = AP_UTB_AngleRC::Fault::CALIBRATION;
         return false;
     }
-    _pilot = AP_UTB_AngleRC::read(*channel_roll, *channel_pitch, *channel_yaw, *channel_throttle,
-                                  get_pilot_desired_throttle(), _config, signal);
+    if (mode_number() == Number::UTB_ACRO_SITL) {
+        _pilot = AP_UTB_AcroRC::read(*channel_roll, *channel_pitch, *channel_yaw, *channel_throttle,
+                                     get_pilot_desired_throttle(), _acro_limits, signal);
+    } else {
+        _pilot = AP_UTB_AngleRC::read(*channel_roll, *channel_pitch, *channel_yaw, *channel_throttle,
+                                      get_pilot_desired_throttle(), _config, signal);
+    }
     return _pilot.valid;
 }
 
@@ -150,38 +173,53 @@ bool ModeUTBAngleSITL::init(bool ignore_checks)
     float ap_hover;
 
     _config = {copter.utb.angle_max(), copter.utb.angle_yaw_max()};
-    _antiwindup = copter.utb.angle_aw();
-    if (!configuration_valid() || !AP_UTB_AngleRC::valid_config(_config) ||
+    _acro_limits = {copter.utb.acro_roll_max(), copter.utb.acro_pitch_max(), copter.utb.acro_yaw_max()};
+    _angle_rate_max = copter.utb.angle_rate_max();
+    _antiwindup = mode_number() == Number::UTB_ACRO_SITL ? copter.utb.acro_aw() : copter.utb.angle_aw();
+    if (!configuration_valid() || (mode_number() == Number::UTB_ACRO_SITL ?
+                                   !AP_UTB_AcroRC::valid_config(_acro_limits) : !AP_UTB_AngleRC::valid_config(_config)) ||
         _antiwindup < 0 || _antiwindup > 1 || copter.any_failsafe_triggered()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry1 cfg=%u fs=%u", unsigned(configuration_valid()),
+                      unsigned(copter.any_failsafe_triggered()));
         return false;
     }
     entry_throttle = motors->get_throttle_in();
     ap_hover = motors->get_throttle_hover();
     _saved_mix = attitude_control->get_throttle_mix();
-    if (!isfinite(entry_throttle) || entry_throttle < 0 || entry_throttle > 1 ||
+    if (!AP_UTB_AcroRC::entry_throttle_valid(entry_throttle, motors->armed()) ||
         !isfinite(ap_hover) || ap_hover <= 0 || ap_hover >= 1 ||
         !isfinite(_saved_mix) || _saved_mix < 0 || !read_pilot()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry2 t=%.9f h=%.3f m=%.3f rc=%u", double(entry_throttle),
+                      double(ap_hover), double(_saved_mix), unsigned(_pilot.fault));
         return false;
     }
+    down = NAN;
+    velocity = {NAN, NAN, NAN};
     copter.utb.sample_state(_sample);
     if (!_sample.valid(AP_HAL::micros(), 10000) ||
         !ahrs.get_relative_position_D_origin_float(down) || !ahrs.get_velocity_NED(velocity) ||
         !isfinite(down) || velocity.is_nan() || velocity.is_inf() || fabsf(velocity.z) > 0.5f) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry3 state=%u d=%.3f vz=%.3f",
+                      unsigned(_sample.valid(AP_HAL::micros(), 10000)), double(down), double(velocity.z));
         return false;
     }
     _sample.attitude_body_to_ned.to_euler(euler);
     if (MAX(fabsf(euler.x), fabsf(euler.y)) > radians(35.0f)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry4 tilt");
         return false;
     }
     AP_UTB_AngleRC::gains(gains);
-    if (!_rate.configure(gains, _antiwindup == 1, false) || !_attitude.configure({3, 3, 0.3f})) {
+    _attitude.reset();
+    if (!_rate.configure(gains, _antiwindup == 1, false) || (mode_number() != Number::UTB_ACRO_SITL &&
+            !_attitude.configure({3, 3, _angle_rate_max}))) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry5 gains or outer limit");
         return false;
     }
     _entry_height = _height = -down;
     _vertical_speed = -velocity.z;
     _seq = _motor_calls = _command_seq = _execution_us = _log_execution_us = _run_execution_us = 0;
     _time_us = 0;
-    _angle_reference = _pilot.reference;
+    _angle_reference = mode_number() == Number::UTB_ACRO_SITL ? Vector3f() : _pilot.reference;
     _reference.zero(); _target.zero();
     _p.zero(); _i.zero(); _d.zero(); _raw_applied.zero();
     _raw_valid = _running = false;
@@ -223,8 +261,13 @@ void ModeUTBAngleSITL::stop(Stop reason)
 {
     if (_stop == Stop::NONE) {
         _stop = reason;
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UTB ANGLE stop=%u rc=%u rate=%u", unsigned(_stop),
-                      unsigned(_pilot.fault), unsigned(_rate.fault()));
+        if (mode_number() == Number::UTB_ACRO_SITL) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UTB ACRO stop=%u rc=%u rate=%u", unsigned(_stop),
+                          unsigned(_pilot.fault), unsigned(_rate.fault()));
+        } else {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UTB ANGLE stop=%u rc=%u rate=%u", unsigned(_stop),
+                          unsigned(_pilot.fault), unsigned(_rate.fault()));
+        }
     }
     _rate.invalidate(AP_UTB_SITLRate::Fault::STATE);
     _pilot.valid = false;
@@ -285,7 +328,7 @@ void ModeUTBAngleSITL::run()
     } else if (copter.any_failsafe_triggered()) {
         stop(Stop::FAILSAFE);
     } else {
-        _angle_reference = _pilot.reference;
+        _angle_reference = mode_number() == Number::UTB_ACRO_SITL ? Vector3f() : _pilot.reference;
         _throttle = _pilot.throttle;
         motors->set_desired_spool_state(!motors->armed() ? AP_Motors::DesiredSpoolState::SHUT_DOWN :
                                         copter.ap.throttle_zero ? AP_Motors::DesiredSpoolState::GROUND_IDLE :
@@ -324,6 +367,8 @@ void ModeUTBAngleSITL::rate_control(float dt)
     // Index osy a povel předaný původnímu AP_Motors.
     uint8_t axis;
     Vector3f transported;
+    // Read-only body orientation guard, also used by direct-rate ACRO.
+    Vector3f euler;
 
     ++_seq;
     _time_us = AP_HAL::micros64();
@@ -350,7 +395,16 @@ void ModeUTBAngleSITL::rate_control(float dt)
             stop(Stop::VERTICAL);
         } else {
             _height = -down; _vertical_speed = -velocity.z;
-            _angle_result = _attitude.update(_sample, _angle_reference, dt, AP_HAL::micros());
+            if (mode_number() == Number::UTB_ACRO_SITL) {
+                // No attitude controller, trainer or shaping in ACRO; only observe tilt for the guard/log.
+                _sample.attitude_body_to_ned.to_euler(euler);
+                _angle_result = {};
+                _angle_result.euler = euler;
+                _angle_result.rates = _pilot.reference;
+                _angle_result.valid = MAX(fabsf(euler.x), fabsf(euler.y)) <= radians(35.0f);
+            } else {
+                _angle_result = _attitude.update(_sample, _angle_reference, dt, AP_HAL::micros());
+            }
             if (!_angle_result.valid) {
                 stop(Stop::ATTITUDE);
             } else {
@@ -524,10 +578,12 @@ void ModeUTBAngleSITL::log_cycle()
         thrust.thrust[m] = c.thrust[m]; thrust.post_thrust[m] = c.post_thrust[m];
     }
     copter.logger.WriteBlock_first_succeed(&thrust, sizeof(thrust));
-    if (_angle_source != 0) {
+    {
+        // Common pilot observation; Src=0 in ACRO is not an attitude reference.
         angle = {LOG_PACKET_HEADER_INIT(LOG_UAAT_MSG), _time_us, _seq,
-                 uint8_t(_angle_source), uint8_t(_attitude.fault()),
-                 _angle_reference.x, _angle_reference.y, attitude.euler.x, attitude.euler.y, attitude.euler.z,
+                 uint8_t(mode_number() == Number::UTB_ACRO_SITL ? 0 : 1), uint8_t(_attitude.fault()),
+                 mode_number() == Number::UTB_ACRO_SITL ? 0 : _angle_reference.x,
+                 mode_number() == Number::UTB_ACRO_SITL ? 0 : _angle_reference.y, attitude.euler.x, attitude.euler.y, attitude.euler.z,
                  attitude.error.x, attitude.error.y, _target.x, _target.y, _target.z, uint8_t(attitude.limited)
                 };
         status = {LOG_PACKET_HEADER_INIT(LOG_UAST_MSG), _time_us, _seq,

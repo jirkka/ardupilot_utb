@@ -129,15 +129,15 @@ struct PACKED log_UALT {
 // @Description: SITL reduced attitude loop, radians and body rates radians per second
 // @Field: TimeUS: Matching rate sample timestamp
 // @Field: Seq: Matching rate cycle sequence
-// @Field: Src: Outer source 1 UTB 2 AP comparison
+// @Field: Src: 0 direct pilot rate (mode43), 1 UTB attitude, 2 AP attitude comparison
 // @Field: Flt: UTB attitude fault
-// @Field: RRef: Requested Euler roll radians
-// @Field: PRef: Requested Euler pitch radians
+// @Field: RRef: Requested Euler roll radians, unused zero for direct pilot rate
+// @Field: PRef: Requested Euler pitch radians, unused zero for direct pilot rate
 // @Field: Roll: Sampled actual Euler roll radians
 // @Field: Pitch: Sampled actual Euler pitch radians
 // @Field: Yaw: Sampled actual heading radians
-// @Field: ER: UTB reduced rotation body X error radians, zero for AP source
-// @Field: EP: UTB reduced rotation body Y error radians, zero for AP source
+// @Field: ER: UTB reduced rotation body X error radians, zero for direct rate or AP source
+// @Field: EP: UTB reduced rotation body Y error radians, zero for direct rate or AP source
 // @Field: RR: Selected body roll rate radians per second
 // @Field: PR: Selected body pitch rate radians per second
 // @Field: YR: Selected body yaw rate radians per second

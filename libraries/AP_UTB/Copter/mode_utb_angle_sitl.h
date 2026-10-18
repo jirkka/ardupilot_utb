@@ -2,7 +2,7 @@
 // NOTICE: UTB project extension; original licenses remain unchanged.
 //--------------------------------------------------------------------------------------------------------------------
 /// @file mode_utb_angle_sitl.h
-/// @brief Pilotní RC ANGLE režim s původními UTB regulátory, pouze skutečný SITL.
+/// @brief Sdílený pilotní lifecycle/rate adaptér ANGLE a odvozeného ACRO, pouze SITL.
 /// @author Jiri Kovar
 /// @version 2026-10-17
 /// @date 2026-10-17
@@ -17,7 +17,7 @@
 //====================================================================================================================
 // Include Files
 //--------------------------------------------------------------------------------------------------------------------
-#include <AP_UTB/AP_UTB_AngleRC.h>
+#include <AP_UTB/AP_UTB_AcroRC.h>
 // End Include Files
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
 //====================================================================================================================
@@ -58,7 +58,7 @@ public:
     void run() override;
     /// @brief Zkontrolovat pouze vlastní explicitní pilotní opt-in.
     /// @param[in] None
-    /// @return True při UTB boot enable a A_ENABLE=1.
+    /// @return True při UTB boot enable a samostatném A_ENABLE/C_ENABLE=1.
     /// @details Původní S_OWNER se tím nemění.
     bool enabled() const override;
     /// @brief Oznámit absenci XY polohového řízení.
@@ -98,7 +98,7 @@ public:
     {
         return false;
     }
-    /// @brief Spustit právě jednu vlastní attitude/rate kaskádu před AP outputem.
+    /// @brief Spustit právě jednu vlastní rate smyčku; pouze ANGLE před ní volá attitude.
     /// @param[in] dt Skutečná scheduler perioda v sekundách.
     /// @return None.
     /// @details Žádné volání původního AP attitude/rate PID.
@@ -166,7 +166,7 @@ private:
     //----------------------------------------------------------------------------------------------------------------
     // Pevný výhradní vlastník a zdroj pro společné logovací schéma.
     static constexpr uint8_t _owner = 1;
-    static constexpr uint8_t _angle_source = 1;
+    // Source log 1=ANGLE, 0=direct pilot rate; selected by mode_number().
     static constexpr bool _complete = false;
     // Původní AP smyčky se v tomto režimu nevolají.
     static constexpr uint32_t _ap_calls = 0;
@@ -184,6 +184,9 @@ private:
     AP_UTB_SITLAllocation::Result _allocation;
     // Pilotní reference se skutečným RC timestampem a entry konfigurací.
     AP_UTB_AngleRC::Config _config;
+    // Frozen per-axis ACRO rate limits and ANGLE outer rate norm limit.
+    Vector3f _acro_limits;
+    float _angle_rate_max = 0.3f;
     AP_UTB_AngleRC::Result _pilot;
     Vector3f _angle_reference, _reference, _target;
     // Skutečné PID složky a transported raw povel pro capture/log.

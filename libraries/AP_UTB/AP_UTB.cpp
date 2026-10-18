@@ -319,6 +319,52 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
     // @Values: 0:Saturation stop,1:Allocation feedback
     // @User: Advanced
     AP_GROUPINFO("A_AW", 39, AP_UTB, _angle_aw, 0),
+
+    // @Param: C_ENABLE
+    // @DisplayName: SITL UTB C_ENABLE
+    // @Description: Enable independent pilot UTB ACRO mode 43 only on SITL. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO("C_ENABLE", 40, AP_UTB, _acro_enable, 0),
+
+    // @Param: C_RMAX
+    // @DisplayName: SITL UTB C_RMAX
+    // @Description: Maximum absolute pilot roll body rate. Frozen at entry; hard cap 0.15 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Units: rad/s
+    // @Range: 0.01 0.15
+    // @User: Advanced
+    AP_GROUPINFO("C_RMAX", 41, AP_UTB, _acro_roll_max, 0.15f),
+
+    // @Param: C_PMAX
+    // @DisplayName: SITL UTB C_PMAX
+    // @Description: Maximum absolute pilot pitch body rate. Frozen at entry; hard cap 0.15 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Units: rad/s
+    // @Range: 0.01 0.15
+    // @User: Advanced
+    AP_GROUPINFO("C_PMAX", 42, AP_UTB, _acro_pitch_max, 0.15f),
+
+    // @Param: C_YMAX
+    // @DisplayName: SITL UTB C_YMAX
+    // @Description: Maximum absolute pilot yaw body rate. Frozen at entry; hard cap 0.05 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Units: rad/s
+    // @Range: 0.01 0.05
+    // @User: Advanced
+    AP_GROUPINFO("C_YMAX", 43, AP_UTB, _acro_yaw_max, 0.05f),
+
+    // @Param: C_AW
+    // @DisplayName: SITL UTB C_AW
+    // @Description: Existing allocation feedback opt in for pilot ACRO. Frozen at entry. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Values: 0:Saturation stop,1:Allocation feedback
+    // @User: Advanced
+    AP_GROUPINFO("C_AW", 44, AP_UTB, _acro_aw, 0),
+
+    // @Param: A_RMAX
+    // @DisplayName: SITL UTB A_RMAX
+    // @Description: Maximum norm of ANGLE roll/pitch body rate target. Frozen at entry; existing hard cap 0.3 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Units: rad/s
+    // @Range: 0.05 0.3
+    // @User: Advanced
+    AP_GROUPINFO("A_RMAX", 45, AP_UTB, _angle_rate_max, 0.3f),
 #endif
     AP_GROUPEND
 };

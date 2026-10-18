@@ -18,8 +18,9 @@ staging návrhu. Strojová inventura leží v checkpointu 2E jako file-map-inven
 C++ knihovna a Copter adaptéry jsou v `libraries/AP_UTB/`; Python je
 oddělený pod `Tools/utb/` ([přehled](../Tools/utb/README_CS.md)).
 Organizace/čitelnost je uložená v checkpointu `9824542e73bbfb193b21fd4388f74e14ba24439c`.
-Následující FÁZE 2F je samostatná pracovní změna; číselná inventura výše
-označuje původní checkpoint FÁZE 2E, nikoli součet nových ANGLE souborů.
+FÁZE 2F je nyní v commitu `671ccad97050115e87b9d8451313dd7403fc1e72`.
+Číselná inventura výše a historické údaje „dosud untracked“ níže patří
+původnímu auditu2E; nejsou aktuální Git status. Navazující2G je pracovní změna.
 
 Každý řádek níže odpovídá jednomu skutečnému souboru. `.h` deklaruje kontrakt,
 `.cpp` implementuje popsanou komponentu. Údaj první commit dokládá vznik
@@ -32,6 +33,24 @@ SITL = actual ArduPilot proces, H743 = fyzický experiment v daném rozsahu,
 BUILD = cross-build/compile guard, UNVERIFIED = nedoloženo. H743 SHADOW
 nikdy neznamená aktivní hardware closed loop. U dokumentů a nástrojů
 je ověření konkrétního experimentu vždy v příslušném reportu.
+
+## Doplnění2G: pilotní ACRO a sdílené vstupy
+
+| Soubor | Úloha a vazby | Rozsah |
+|---|---|---|
+| [AP_UTB_AcroRC.h](../libraries/AP_UTB/AP_UTB_AcroRC.h) | AP AngleRC validace → normalizované sticks × samostatné rate limity; hard caps a failsafe policy predicate. | pouze aktivníSITL, žádné motorové setters |
+| [mode_utb_acro_sitl.h](../libraries/AP_UTB/Copter/mode_utb_acro_sitl.h) | Samostatný mode43 wrapper, sdílí pilotní lifecycle/adaptér; nevyžaduje předchozíANGLE. | pouze aktivníSITL |
+| [mode_utb_angle_sitl.cpp](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp), [.h](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.h) | Společné RC/throttle/rate/capture;42 volá attitude,43 přímé rates bez attitude update. | aktivníSITL, původní jedinýAP_Motors output |
+| [AP_UTB.cpp](../libraries/AP_UTB/AP_UTB.cpp), [.h](../libraries/AP_UTB/AP_UTB.h) | Nové parametry index40–45, zachované staré indexy. | runtime parametry pouze aktivníSITL |
+| [test_utb_acro_rc.cpp](../libraries/AP_UTB/tests/test_utb_acro_rc.cpp) | SkutečnéRC_Channel, lineární rates, guards, nulovárate při náklonu a historie. | 11novýchCpp testů |
+| [utb_pilot_sitl.py](../Tools/utb/tools/utb_pilot_sitl.py) | Skutečné RC/GCS/FLTMODE, konečné scénáře a společný manuální runner. | vlastní lokálníSITL, žádný hardware endpoint |
+| [test_utb_pilot_sitl.py](../Tools/utb/tests/test_utb_pilot_sitl.py) | SHA-vázaný gate, důkazy a zachování nonzero sticks při switch. | 6novýchPython testů |
+| [utb_angle_sitl.py](../Tools/utb/tools/utb_angle_sitl.py) | Znovu použitý AP transport/throttle/arming a rozšířená úplná analýza42/43. | starýANGLE runner zachovaný |
+
+Nativní integrační body2G jsou `ArduCopter/{Attitude.cpp,Copter.h,mode.h,mode.cpp,
+motors.cpp,GCS_MAVLink_Copter.cpp}`. Žádné přemístění funkcí z původníhoAP;
+žádná změnaAP_Motors/HAL/DShot. Úplný manifest je v
+[souhrnu2G](UTB_PHASE_2G_SUMMARY_CS.md), nikoli v historických počtech2E.
 
 ## 1. AP_UTB: sdílená matematika a SITL helpery
 

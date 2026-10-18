@@ -821,6 +821,54 @@ public:
             gains[i] = {_p[i].get(), _i[i].get(), _d[i].get(), _imax[i].get(), _d_hz[i].get()};
         }
     }
+    /// @brief Read pilot ACRO opt-in.
+    /// @param[in] None
+    /// @return Frozen-entry candidate value.
+    /// @details Active SITL only; validated by pilot mode guards.
+    int8_t acro_enable() const
+    {
+        return _acro_enable.get();
+    }
+    /// @brief Read roll body-rate maximum in rad/s.
+    /// @param[in] None
+    /// @return Frozen-entry candidate value.
+    /// @details Active SITL only; validated by pilot mode guards.
+    float acro_roll_max() const
+    {
+        return _acro_roll_max.get();
+    }
+    /// @brief Read pitch body-rate maximum in rad/s.
+    /// @param[in] None
+    /// @return Frozen-entry candidate value.
+    /// @details Active SITL only; validated by pilot mode guards.
+    float acro_pitch_max() const
+    {
+        return _acro_pitch_max.get();
+    }
+    /// @brief Read yaw body-rate maximum in rad/s.
+    /// @param[in] None
+    /// @return Frozen-entry candidate value.
+    /// @details Active SITL only; validated by pilot mode guards.
+    float acro_yaw_max() const
+    {
+        return _acro_yaw_max.get();
+    }
+    /// @brief Read existing ACRO allocation feedback policy.
+    /// @param[in] None
+    /// @return Frozen-entry candidate value.
+    /// @details Active SITL only; validated by pilot mode guards.
+    int8_t acro_aw() const
+    {
+        return _acro_aw.get();
+    }
+    /// @brief Read ANGLE RP rate norm limit in rad/s.
+    /// @param[in] None
+    /// @return Frozen-entry candidate value.
+    /// @details Active SITL only; validated by pilot mode guards.
+    float angle_rate_max() const
+    {
+        return _angle_rate_max.get();
+    }
     /// @brief Read the pilot ANGLE mode opt-in; hardware has no such accessor or parameter.
     /// @param[in] None
     /// @return Raw opt-in value, checked exactly against one by the mode.
@@ -858,6 +906,8 @@ public:
 private:
 #if AP_UTB_RATE_SITL_AVAILABLE
     // SITL pilot-mode opt-in, frozen reference limits and existing feedback policy.
+    AP_Int8 _acro_enable, _acro_aw;
+    AP_Float _acro_roll_max, _acro_pitch_max, _acro_yaw_max, _angle_rate_max;
     AP_Int8 _angle_enable, _angle_aw;
     AP_Float _angle_max, _angle_yaw_max;
     AP_Int8 _sitl_attitude;

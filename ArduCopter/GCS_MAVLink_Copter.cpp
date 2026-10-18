@@ -1389,6 +1389,7 @@ uint8_t GCS_MAVLINK_Copter::send_available_mode(uint8_t index) const
 #endif
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
         &copter.mode_utb_angle_sitl,
+        &copter.mode_utb_acro_sitl,
 #endif
         &copter.mode_stabilize,
         &copter.mode_althold,

@@ -1,16 +1,32 @@
 # UTB: současný funkční stav
 
-Stav k **17. 10. 2026**, větev `test/skystars-5inch`, HEAD rodiče
-`9824542e73bbfb193b21fd4388f74e14ba24439c`. FÁZE 2F je samostatná sada
-necommitnutých pracovních změn nad dokončeným checkpointem organizace.
-[Rozcestník](UTB_README_CS.md) · [Mapa implementace](UTB_FILE_MAP_CS.md) ·
-[Git a ověření kontinuity](UTB_GIT_CONSOLIDATION_CS.md).
+Stav k **17. 10. 2026**, větev `test/skystars-5inch`, HEAD
+`671ccad97050115e87b9d8451313dd7403fc1e72` (dokončená FÁZE 2F).
+FÁZE 2G jsou navazující necommitnuté pracovní změny. Přesný manifest,
+uzavřený rozsah testů a omezení uvádí [souhrn 2G](UTB_PHASE_2G_SUMMARY_CS.md).
+[Rozcestník](UTB_README_CS.md) · [Mapa](UTB_FILE_MAP_CS.md).
+
+## FÁZE 2G: samostatný pilotní ACRO a přímé ACRO/ANGLE přepínání
+
+Implementováno: samostatný mode43 pouze SITL, skutečná AP RC normalizace,
+lineární R/P/Y body rates, původní vlastní rate PID, stejný manual throttle
+jako ANGLE 42, GCS/RC registrace, frozen runtime limity a failsafe policy guard.
+Samotný střed páček ACRO nevyrovnává; k vyrovnání se explicitně volí ANGLE.
+Hard caps 0,15/0,15/0,05 rad/s jsou oddělené od měnitelných AP parametrů.
+
+Unit ověřeno:124 C++ / 142 Python testů, matematických 30 946 vzorků / 29 scénářů.
+SITL ověřeno pouze v rozsahu jednotlivých uzavřených scénářů ve
+[validačním reportu 2G](UTB_ACRO_MODE_SITL_VALIDATION_CS.md); rychlý nefiltrovaný
+rate krok má větší překmit než dřívější shaped reference. Není nový tune.
+H743: pouze cross-build/isolation, žádný nový hardware experiment. Historická
+fyzická SHADOW evidence níže zůstává oddělená od aktivní SITL regulace.
+ALT HOLD a aktivní hardware řízení jsou nadále pouze plán.
 
 SOURCE = zkontrolovaný source; UNIT = unit/model test; SITL = skutečný proces
 ArduPilot simulátoru; H743 = skutečný fyzický experiment v uvedeném rozsahu;
 UNVERIFIED = nedoložené. Build úspěch sám není H743 validace.
 
-## Nově: pilotní UTB ANGLE, FÁZE 2F
+## Dokončený základ: pilotní UTB ANGLE, FÁZE 2F
 
 Implementován samostatný **mode42 UTB_ANGLE pouze SITL**, skutečná AP RC
 kalibrace/RCMAP/deadband/reverse → vlastní původní attitude P → vlastní

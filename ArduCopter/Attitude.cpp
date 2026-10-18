@@ -12,13 +12,15 @@ void Copter::run_rate_controller_main()
     // set attitude and position controller loop time
     const float last_loop_time_s = AP::scheduler().get_last_loop_time_s();
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
-    if (flightmode == &mode_utb_rate_sitl || flightmode == &mode_utb_angle_sitl) {
+    if (flightmode == &mode_utb_rate_sitl || flightmode == &mode_utb_angle_sitl || flightmode == &mode_utb_acro_sitl) {
         const float safe_dt = isfinite(last_loop_time_s) && last_loop_time_s >= 0.000625f &&
                               last_loop_time_s <= 0.01f ? last_loop_time_s : 0.0025f;
         pos_control->set_dt_s(safe_dt);
         attitude_control->set_dt_s(safe_dt);
         motors->set_dt_s(safe_dt);
-        if (flightmode == &mode_utb_angle_sitl) {
+        if (flightmode == &mode_utb_acro_sitl) {
+            mode_utb_acro_sitl.rate_control(last_loop_time_s);
+        } else if (flightmode == &mode_utb_angle_sitl) {
             mode_utb_angle_sitl.rate_control(last_loop_time_s);
         } else {
             mode_utb_rate_sitl.rate_control(last_loop_time_s);

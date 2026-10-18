@@ -37,7 +37,7 @@ for _channel in range(1, 9):
     PARAMS += (f'RC{_channel}_MIN 1000\nRC{_channel}_MAX 2000\nRC{_channel}_TRIM 1500\n'
                f'RC{_channel}_DZ {0 if _channel == 3 else 30}\nRC{_channel}_REVERSED 0\n')
 KINDS = ('UARC', 'UARX', 'UAMT', 'UAFB', 'UALT', 'UAAT', 'UAST', 'RCIN', 'RCOU', 'ATT', 'RATE',
-         'PARM', 'MODE', 'PM', 'EV', 'ERR', 'MSG', 'DSF')
+         'PARM', 'MODE', 'PM', 'EV', 'ERR', 'MSG', 'DSF', 'PIDR', 'PIDP', 'PIDY')
 # End Static data declarations
 # Data type, constant, macro definition
 
@@ -149,11 +149,11 @@ class AngleSITL(ActiveSITL):
                 self.last_boot_ms = msg.time_boot_ms
             if typ == 'STATUSTEXT':
                 self.events.append(dict(host=time.time(), boot_ms=self.last_boot_ms, text=msg.text))
-                if self.expected_mode == 42 and msg.text.startswith('UTB ANGLE stop='):
+                if self.expected_mode in (42, 43) and msg.text.startswith(('UTB ANGLE stop=', 'UTB ACRO stop=')):
                     raise AssertionError(msg.text)
             if self.expected_mode is not None and typ == 'HEARTBEAT':
                 assert msg.custom_mode == self.expected_mode, ('Unexpected mode', msg.custom_mode)
-            if self.expected_mode == 42 and typ == 'ATTITUDE':
+            if self.expected_mode in (0, 1, 42, 43) and typ == 'ATTITUDE':
                 assert max(abs(msg.roll), abs(msg.pitch)) <= math.radians(35), 'Tilt envelope'
             if self.bench_altitude is not None and typ == 'GLOBAL_POSITION_INT':
                 assert abs(msg.relative_alt * .001 - self.bench_altitude) <= 2, 'Harness altitude envelope'
@@ -167,13 +167,19 @@ class AngleSITL(ActiveSITL):
     #
     # @param[in] number Nativní číslo letového režimu.
     # @param[in] armed Očekávaný skutečný armed stav.
+    # @param[in] settle Zachovat původní dodatečné pozorování; false pouze ověří skutečný mode/armed heartbeat.
     # @return None.
     #
     # @details Veřejná metoda třídy. Pouze vlastní lokální SITL; žádná fyzická FC komunikace.
     # --------------------------------------------------------------------------------------------------------------
-    def select(self, number, armed=False):
+    def select(self, number, armed=False, settle=True):
         self.expected_mode = None
-        self.mode(number, number, armed)
+        if settle:
+            self.mode(number, number, armed)
+        else:
+            # Nonzero-stick transfer must not acquire the legacy observer's extra three-second dwell.
+            self.link.mav.set_mode_send(1, mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, number)
+            self.wait('HEARTBEAT', lambda msg: msg.custom_mode == number and bool(msg.base_mode & 128) == armed)
         self.expected_mode = number
 
     # --------------------------------------------------------------------------------------------------------------
@@ -583,11 +589,13 @@ def failsafe_flight(sim, source):
 # @param[in] records Skutečné dekódované DataFlash záznamy.
 # @param[in] axis Testovaná osa roll nebo pitch.
 # @param[in] amplitude Požadovaný úhel v °, nejvýše 5.
+# @param[in] pilot_mode 42 pro vlastní attitude, 43 pro přímou RC rate referenci.
+# @param[in] minimum_samples Počet požadovaných úplných vzorků; přechody mají kratší okna.
 # @return True/analýza/data podle kontraktu; nesoulad vyvolá výjimku.
 #
 # @details Globální funkce modulu. Pouze vlastní lokální SITL; žádná fyzická FC komunikace.
 # --------------------------------------------------------------------------------------------------------------
-def analyse_flight(records, axis=None, amplitude=None):
+def analyse_flight(records, axis=None, amplitude=None, pilot_mode=42, minimum_samples=800):
     sets = assemble(records)
     assert sets and records['UARC'], 'No complete controller/output evidence'
     pilot = {(r['TimeUS'], r['Seq']): r for r in records['UARC']}
@@ -609,8 +617,8 @@ def analyse_flight(records, axis=None, amplitude=None):
         if m['Seq'] > 1:
             assert all(row['Av'] and row['PV'] and row['CSeq'] == m['Seq'] for row in feedback[key]), 'Invalid capture'
         assert m['APN'] == 0 and s['AN'] == 0 and m['MN'] == m['Seq'], 'Double ownership/output'
-        assert a['Flt'] == 0
-        assert m['UN'] == m['Seq'] and s['UN'] == m['Seq'], 'Missing UTB cycle'
+        assert a['Flt'] == 0 and a['Src'] == (0 if pilot_mode == 43 else 1)
+        assert m['UN'] == m['Seq'] and s['UN'] == (0 if pilot_mode == 43 else m['Seq']), 'Missing UTB cycle'
         assert math.hypot(a['RRef'], a['PRef']) <= math.radians(5) + 1e-6
         assert math.hypot(a['RR'], a['PR']) <= .3 + 1e-6
         row = dict(t=(m['TimeUS'] - first) * 1e-6, dt=axes[0]['Dt'], seq=m['Seq'],
@@ -620,6 +628,10 @@ def analyse_flight(records, axis=None, amplitude=None):
         row.update(time_us=m['TimeUS'], rc_time_ms=p['RCms'], rc_age_ms=p['Age'],
                    normalized_roll=p['NR'], normalized_pitch=p['NP'], normalized_yaw=p['NY'],
                    mode=p['Md'], spool=axes[0]['Spl'])
+        for motor in range(4):
+            row[f'pwm{motor}'] = m[f'C{motor + 1}']
+        row['attitude_calls'] = s['UN']
+        row['collective'] = sum(thrust[key][f'T{motor + 1}'] for motor in range(4)) / (4 * thrust[key]['G'])
         row['allocation_limits'] = thrust[key]['Lim']
         row['integration_blocked'] = feedback[key][0]['Blk']
         for i in range(3):
@@ -631,7 +643,7 @@ def analyse_flight(records, axis=None, amplitude=None):
                 assert abs(row[f'P{i}'] - gain * (row[f'Tar{i}'] - row[f'Gyr{i}'])) < 1e-6, 'Wrong pilot PID preset'
         assert all(math.isfinite(v) for v in row.values()), 'Nonfinite evidence'
         rows.append(row)
-    assert len(rows) >= 800, 'Less than two seconds of active evidence'
+    assert len(rows) >= minimum_samples, 'Insufficient complete active evidence'
     assert all(b['seq'] == a['seq'] + 1 for a, b in zip(rows, rows[1:])), 'Missing complete set'
     result = dict(complete_sets=len(rows), sole_authority=True,
                   angle=[angle_metrics(rows, i) for i in range(2)],
@@ -804,7 +816,8 @@ def analyse_baseline(records, axis):
 def manual(sim):
     """Actual interactive pilot input; keep RC and heartbeat flowing between commands."""
     print('Owned SITL ready. Commands: sticks R P Y (-1..1), throttle PWM (1000..2000),', flush=True)
-    print('mode N, arm, disarm, takeoff, land, status, external, quit. No hardware endpoint is accepted.', flush=True)
+    print('mode N, rate-limit PARAM VALUE, arm, disarm, takeoff, land, status, external, quit.', flush=True)
+    print('No hardware endpoint is accepted.', flush=True)
     print('Secondary GCS telemetry: tcp:127.0.0.1:5762. Use external before GCS RC control.', flush=True)
     while True:
         if select.select([sys.stdin], [], [], 0)[0]:
@@ -824,7 +837,13 @@ def manual(sim):
                 sim.throttle = value
             elif command[0] == 'mode' and len(command) == 2:
                 armed = bool(sim.wait('HEARTBEAT').base_mode & 128)
-                sim.select(int(command[1]), armed=armed)
+                sim.select(int(command[1]), armed=armed, settle=False)
+            elif command[0] == 'rate-limit' and len(command) == 3:
+                allowed = ('UTB_C_RMAX', 'UTB_C_PMAX', 'UTB_C_YMAX', 'UTB_A_RMAX', 'UTB_A_YMAX')
+                if command[1] not in allowed or sim.wait('HEARTBEAT').custom_mode in (42, 43):
+                    print('Change supported rate-limit PARAM VALUE outside mode42/43.', flush=True)
+                    continue
+                sim.param(command[1], float(command[2]))
             elif command[0] == 'arm':
                 sim.standard_arm()
             elif command[0] == 'disarm':
