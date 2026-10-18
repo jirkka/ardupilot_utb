@@ -1,30 +1,25 @@
 # UTB: současný funkční stav
 
-Stav k **17. 10. 2026**, větev `test/skystars-5inch`, HEAD
-`671ccad97050115e87b9d8451313dd7403fc1e72` (dokončená FÁZE 2F).
-FÁZE 2G jsou navazující necommitnuté pracovní změny. Přesný manifest,
-uzavřený rozsah testů a omezení uvádí [souhrn 2G](UTB_PHASE_2G_SUMMARY_CS.md).
-[Rozcestník](UTB_README_CS.md) · [Mapa](UTB_FILE_MAP_CS.md).
+Stav k **18. 10. 2026**, větev `test/skystars-5inch`.
 
-## FÁZE 2G: samostatný pilotní ACRO a přímé ACRO/ANGLE přepínání
+FÁZE2G je lokální commit `e9a003cb532c65c0acc54b5bd4f5930d4ce0fdd8`.
+FÁZE2H obsahuje společný pilotní Rate PID přes samostatné `UTB_P_*` parametry,
+ladění ANGLE P a skutečné opakované SITL ověření. Původní RAT_* konfigurace
+mode41 a SHADOW, reference caps, arming a failsafe zůstávají.
+[Ladění a omezení2H](UTB_PILOT_PID_TUNING_CS.md) ·
+[souhrn a přesný manifest2H](UTB_PHASE_2H_SUMMARY_CS.md).
+Aktivní hardware řízení ani ALT HOLD nejsou implementované.
 
-Implementováno: samostatný mode43 pouze SITL, skutečná AP RC normalizace,
-lineární R/P/Y body rates, původní vlastní rate PID, stejný manual throttle
-jako ANGLE 42, GCS/RC registrace, frozen runtime limity a failsafe policy guard.
-Samotný střed páček ACRO nevyrovnává; k vyrovnání se explicitně volí ANGLE.
-Hard caps 0,15/0,15/0,05 rad/s jsou oddělené od měnitelných AP parametrů.
+- Implementováno: samostatná pilotní banka, entry snapshots a runtime gain guards.
+- Unit/SITL ověřeno:128 C++ /151 Python;30946 vzorků/29 matematických scénářů;
+  tři nominální opakování před i po, obě znaménka, kombinace, přechody,
+  J±10% perturbace a vyjmenované RATE/ANGLE/ACRO/RC/GCS/SHADOW regrese.
+- Build ověřeno:SITL/H743 feature kombinace; aktivní H743 řízení compile-out.
+- Hardware neověřeno:nový aktivní tune, fyzická5″ dynamika a aktivní UTB let.
+- Plánováno:vyšší reference, širší planty, ALT HOLD/XY a hardware autorita.
 
-Unit ověřeno:124 C++ / 142 Python testů, matematických 30 946 vzorků / 29 scénářů.
-SITL ověřeno pouze v rozsahu jednotlivých uzavřených scénářů ve
-[validačním reportu 2G](UTB_ACRO_MODE_SITL_VALIDATION_CS.md); rychlý nefiltrovaný
-rate krok má větší překmit než dřívější shaped reference. Není nový tune.
-H743: pouze cross-build/isolation, žádný nový hardware experiment. Historická
-fyzická SHADOW evidence níže zůstává oddělená od aktivní SITL regulace.
-ALT HOLD a aktivní hardware řízení jsou nadále pouze plán.
-
-SOURCE = zkontrolovaný source; UNIT = unit/model test; SITL = skutečný proces
-ArduPilot simulátoru; H743 = skutečný fyzický experiment v uvedeném rozsahu;
-UNVERIFIED = nedoložené. Build úspěch sám není H743 validace.
+Následující reporty2F/2G zachycují historický stav a tehdejší gains/počty,
+nikoli aktuální necommitnuté soubory.
 
 ## Dokončený základ: pilotní UTB ANGLE, FÁZE 2F
 

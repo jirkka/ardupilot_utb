@@ -6,8 +6,8 @@
 # @file utb_angle_sitl.py
 # @brief Skutečné RC override vstupy do vlastního lokálního SITL procesu a analýza ANGLE.
 # @author Jiri Kovar
-# @version 2026-10-17
-# @date 2026-10-17
+# @version 2026-10-18
+# @date 2026-10-18
 # --------------------------------------------------------------------------------------------------------------------
 # Include Files
 import argparse
@@ -247,16 +247,18 @@ def read_packets(directory):
 # @param[in] action Testovací callback nad vlastněným simulátorem.
 # @param[in] extra Dodatečné SITL parametry.
 # @param[in] rcmap Pořadí skutečných RC kanálů roll, pitch, yaw, throttle.
+# @param[in] speedup Poměr simulačního a host času; původní default 1.
+# @param[in] model Existující model SITL, případně explicitní JSON setrvačnosti.
 # @return Data z lokálního běhu.
 #
 # @details Globální funkce modulu. Pouze vlastní lokální SITL; žádná fyzická FC komunikace.
 # --------------------------------------------------------------------------------------------------------------
-def launch(binary, output, name, action, extra='', rcmap=(1, 2, 4, 3)):
+def launch(binary, output, name, action, extra='', rcmap=(1, 2, 4, 3), speedup=1, model='bfxrev'):
     directory = output / name
     directory.mkdir(parents=True, exist_ok=False)
     (directory / 'run-config.json').write_text(json.dumps(dict(
         binary=str(binary), sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
-        size=binary.stat().st_size, speedup=1, model='bfxrev', rcmap=rcmap), indent=2) + '\n')
+        size=binary.stat().st_size, speedup=speedup, model=model, rcmap=rcmap), indent=2) + '\n')
     root = Path(__file__).resolve().parents[3]
     sim, error = None, None
     with (directory / 'console.log').open('x') as console:
@@ -264,8 +266,8 @@ def launch(binary, output, name, action, extra='', rcmap=(1, 2, 4, 3)):
             mapping = ''.join(f'RCMAP_{key} {value}\n' for key, value in
                               zip(('ROLL', 'PITCH', 'YAW', 'THROTTLE'), rcmap))
             sim = AngleSITL(binary, root / 'Tools/autotest/default_params/copter.parm', directory,
-                            console, True, 1, extra_params=PARAMS + mapping + extra, model='bfxrev',
-                            speedup=1, rcmap=rcmap)
+                            console, True, 1, extra_params=PARAMS + mapping + extra, model=model,
+                            speedup=speedup, rcmap=rcmap)
             sim.link.logfile = (directory / 'receive.tlog').open('xb')
             sim.ready()
             action(sim)
@@ -584,6 +586,28 @@ def failsafe_flight(sim, source):
 
 
 # --------------------------------------------------------------------------------------------------------------
+# @brief Načíst skutečný zmrazený P gain z BIN PARM, staré 2F/2G logy mají explicitní fallback.
+# @param[in] records Skutečné logy s úplnou historií PARM.
+# @param[in] first_us První měřený vzorek pilotního okna.
+# @param[in] last_us Poslední měřený vzorek.
+# @return Trojice gains a jejich explicitní zdroj.
+# @details Změna gainu uvnitř validního okna nebo neúplná nová metadata se odmítají.
+# --------------------------------------------------------------------------------------------------------------
+def pilot_proportional_gains(records, first_us, last_us):
+    names = ('UTB_P_RLL_P', 'UTB_P_PIT_P', 'UTB_P_YAW_P')
+    parameters = records.get('PARM', [])
+    if not any(row['Name'].startswith('UTB_P_') for row in parameters):
+        return (.19, .19, .30), 'legacy-2F-2G-preset'
+    snapshot = {row['Name']: row['Value'] for row in parameters
+                if row['Name'] in names and row['TimeUS'] <= first_us}
+    assert set(snapshot) == set(names), 'Missing pilot gain metadata'
+    assert all(math.isfinite(v) and 0 <= v <= .300001 for v in snapshot.values()), 'Invalid pilot gain metadata'
+    assert all(row['Value'] == snapshot[row['Name']] for row in parameters
+               if row['Name'] in names and first_us < row['TimeUS'] <= last_us), 'Pilot gain changed in active window'
+    return tuple(snapshot[name] for name in names), 'BIN-PARM-frozen'
+
+
+# --------------------------------------------------------------------------------------------------------------
 # @brief Odmítnout neúplnou evidenci a vyhodnotit skutečnou UTB kaskádu a output.
 #
 # @param[in] records Skutečné dekódované DataFlash záznamy.
@@ -609,6 +633,7 @@ def analyse_flight(records, axis=None, amplitude=None, pilot_mode=42, minimum_sa
     assert all(r['Flt'] == 0 for r in records['UAMT']), 'PID fault'
     rows = []
     first = sets[0][0]['TimeUS']
+    proportional, gain_source = pilot_proportional_gains(records, first, sets[-1][0]['TimeUS'])
     for m, axes in sets:
         key = (m['TimeUS'], m['Seq'])
         p, a, s = pilot[key], angles[key], status[key]
@@ -639,13 +664,15 @@ def analyse_flight(records, axis=None, amplitude=None, pilot_mode=42, minimum_sa
             for label in ('Tar', 'Gyr', 'P', 'I', 'D', 'Out'):
                 row[f'{label}{i}'] = axes[i][label]
             if m['Seq'] > 1:
-                gain = .3 if i == 2 else .19
-                assert abs(row[f'P{i}'] - gain * (row[f'Tar{i}'] - row[f'Gyr{i}'])) < 1e-6, 'Wrong pilot PID preset'
+                gain = proportional[i]
+                assert abs(row[f'P{i}'] - gain * (row[f'Tar{i}'] - row[f'Gyr{i}'])) < 1e-6, (
+                    'Wrong pilot P contribution versus logged gain')
         assert all(math.isfinite(v) for v in row.values()), 'Nonfinite evidence'
         rows.append(row)
     assert len(rows) >= minimum_samples, 'Insufficient complete active evidence'
     assert all(b['seq'] == a['seq'] + 1 for a, b in zip(rows, rows[1:])), 'Missing complete set'
-    result = dict(complete_sets=len(rows), sole_authority=True,
+    result = dict(complete_sets=len(rows), sole_authority=True, proportional_gains=proportional,
+                  gain_source=gain_source,
                   angle=[angle_metrics(rows, i) for i in range(2)],
                   maximum_vertical_speed=max(abs(r['vz']) for r in rows),
                   altitude_span=max(r['altitude'] for r in rows) - min(r['altitude'] for r in rows),
@@ -736,7 +763,8 @@ def analyse_transitions(records):
     result = []
     for start in entries:
         end = next((r['TimeUS'] for r in records['MODE'] if r['TimeUS'] > start and r['ModeNum'] != 42), math.inf)
-        part = {kind: [r for r in records[kind] if start < r.get('TimeUS', 0) < end] for kind in KINDS}
+        part = {kind: records[kind] if kind == 'PARM' else
+                [r for r in records[kind] if start < r.get('TimeUS', 0) < end] for kind in KINDS}
         analysis, rows = analyse_flight(part)
         assert rows[0]['seq'] == 1, 'Sequence not reset on reentry'
         assert all(rows[0][f'{field}{axis}'] == 0 for field in ('I', 'D', 'Out') for axis in range(3)), 'Old PID state'

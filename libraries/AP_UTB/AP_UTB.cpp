@@ -4,8 +4,8 @@
 ///  @file       AP_UTB.cpp
 ///  @brief      Manager SHADOW, parametry, reset, oddělená matematická/logging policy, bounded queue a epochy.
 ///  @author     Jiri Kovar
-///  @version    2026-10-17
-///  @date       2026-10-17
+///  @version    2026-10-18
+///  @date       2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -365,6 +365,129 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
     // @Range: 0.05 0.3
     // @User: Advanced
     AP_GROUPINFO("A_RMAX", 45, AP_UTB, _angle_rate_max, 0.3f),
+
+    // @Param: P_RLL_P
+    // @DisplayName: SITL pilot RLL P
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.3
+    // @User: Advanced
+    AP_GROUPINFO("P_RLL_P", 46, AP_UTB, _pilot_p[0], 0.095f),
+
+    // @Param: P_RLL_I
+    // @DisplayName: SITL pilot RLL I
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.6
+    // @User: Advanced
+    AP_GROUPINFO("P_RLL_I", 47, AP_UTB, _pilot_i[0], 0.24f),
+
+    // @Param: P_RLL_D
+    // @DisplayName: SITL pilot RLL D
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.004
+    // @User: Advanced
+    AP_GROUPINFO("P_RLL_D", 48, AP_UTB, _pilot_d[0], 0.00075f),
+
+    // @Param: P_RLL_IMAX
+    // @DisplayName: SITL pilot RLL IMAX
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.19
+    // @User: Advanced
+    AP_GROUPINFO("P_RLL_IMAX", 49, AP_UTB, _pilot_imax[0], 0.19f),
+
+    // @Param: P_RLL_D_HZ
+    // @DisplayName: SITL pilot RLL D_HZ
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 40
+    // @Units: Hz
+    // @User: Advanced
+    AP_GROUPINFO("P_RLL_D_HZ", 50, AP_UTB, _pilot_d_hz[0], 25.0f),
+
+    // @Param: P_PIT_P
+    // @DisplayName: SITL pilot PIT P
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.3
+    // @User: Advanced
+    AP_GROUPINFO("P_PIT_P", 51, AP_UTB, _pilot_p[1], 0.1425f),
+
+    // @Param: P_PIT_I
+    // @DisplayName: SITL pilot PIT I
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.6
+    // @User: Advanced
+    AP_GROUPINFO("P_PIT_I", 52, AP_UTB, _pilot_i[1], 0.24f),
+
+    // @Param: P_PIT_D
+    // @DisplayName: SITL pilot PIT D
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.004
+    // @User: Advanced
+    AP_GROUPINFO("P_PIT_D", 53, AP_UTB, _pilot_d[1], 0.0015f),
+
+    // @Param: P_PIT_IMAX
+    // @DisplayName: SITL pilot PIT IMAX
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.19
+    // @User: Advanced
+    AP_GROUPINFO("P_PIT_IMAX", 54, AP_UTB, _pilot_imax[1], 0.19f),
+
+    // @Param: P_PIT_D_HZ
+    // @DisplayName: SITL pilot PIT D_HZ
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 40
+    // @Units: Hz
+    // @User: Advanced
+    AP_GROUPINFO("P_PIT_D_HZ", 55, AP_UTB, _pilot_d_hz[1], 35.0f),
+
+    // @Param: P_YAW_P
+    // @DisplayName: SITL pilot YAW P
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.3
+    // @User: Advanced
+    AP_GROUPINFO("P_YAW_P", 56, AP_UTB, _pilot_p[2], 0.3f),
+
+    // @Param: P_YAW_I
+    // @DisplayName: SITL pilot YAW I
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.6
+    // @User: Advanced
+    AP_GROUPINFO("P_YAW_I", 57, AP_UTB, _pilot_i[2], 0.6f),
+
+    // @Param: P_YAW_D
+    // @DisplayName: SITL pilot YAW D
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.004
+    // @User: Advanced
+    AP_GROUPINFO("P_YAW_D", 58, AP_UTB, _pilot_d[2], 0.0f),
+
+    // @Param: P_YAW_IMAX
+    // @DisplayName: SITL pilot YAW IMAX
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 0.19
+    // @User: Advanced
+    AP_GROUPINFO("P_YAW_IMAX", 59, AP_UTB, _pilot_imax[2], 0.19f),
+
+    // @Param: P_YAW_D_HZ
+    // @DisplayName: SITL pilot YAW D_HZ
+    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Range: 0 40
+    // @Units: Hz
+    // @User: Advanced
+    AP_GROUPINFO("P_YAW_D_HZ", 60, AP_UTB, _pilot_d_hz[2], 20.0f),
+
+    // @Param: P_ANG_R
+    // @DisplayName: SITL pilot ANGLE R attitude P
+    // @Description: Outer attitude proportional gain for pilot ANGLE only. Frozen at entry; edit outside pilot modes. Existing angle and rate reference caps remain unchanged.
+    // @Range: 1 6
+    // @User: Advanced
+    AP_GROUPINFO("P_ANG_R", 61, AP_UTB, _pilot_angle_r, 3.25f),
+
+    // @Param: P_ANG_P
+    // @DisplayName: SITL pilot ANGLE P attitude P
+    // @Description: Outer attitude proportional gain for pilot ANGLE only. Frozen at entry; edit outside pilot modes. Existing angle and rate reference caps remain unchanged.
+    // @Range: 1 6
+    // @User: Advanced
+    AP_GROUPINFO("P_ANG_P", 62, AP_UTB, _pilot_angle_p, 3.25f),
+
 #endif
     AP_GROUPEND
 };

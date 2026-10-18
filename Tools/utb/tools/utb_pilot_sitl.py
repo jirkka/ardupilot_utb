@@ -6,8 +6,8 @@
 # @file utb_pilot_sitl.py
 # @brief Samostatný ACRO a přímé ACRO/ANGLE přechody ve skutečném lokálním SITL.
 # @author Jiri Kovar
-# @version 2026-10-17
-# @date 2026-10-17
+# @version 2026-10-18
+# @date 2026-10-18
 # --------------------------------------------------------------------------------------------------------------------
 # Include Files
 import argparse
@@ -40,14 +40,16 @@ PARAMS = ('UTB_C_ENABLE 1\nUTB_C_RMAX 0.15\nUTB_C_PMAX 0.15\nUTB_C_YMAX 0.05\nUT
 # @param[in] action Callback konečného testu.
 # @param[in] extra Dodatečné SITL parametry.
 # @param[in] rcmap Skutečné AP RCMAP pořadí kanálů.
+# @param[in] speedup Poměr simulačního a host času; původní default 1.
+# @param[in] model Existující model SITL, případně explicitní JSON setrvačnosti.
 # @return Výsledek nebo výjimka při nesouladu důkazů; akce bez návratové hodnoty.
 #
 # @details Globální funkce modulu. Pouze lokální SITL/offline důkazy.
 # ----------------------------------------------------------------------------------------------------
-def launch(binary, output, name, action, extra='', rcmap=(1, 2, 4, 3)):
+def launch(binary, output, name, action, extra='', rcmap=(1, 2, 4, 3), speedup=1, model='bfxrev'):
     """Launch one owned bfxrev; preserve all failed evidence and complete parameter provenance."""
     return angle.launch(binary.resolve(), output.resolve(), name, action, extra=PARAMS + extra,
-                        rcmap=rcmap)
+                        rcmap=rcmap, speedup=speedup, model=model)
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -320,7 +322,8 @@ def windows(records):
         if start['ModeNum'] not in (42, 43):
             continue
         end = modes[i + 1]['TimeUS'] if i + 1 < len(modes) else math.inf
-        part = {kind: [r for r in rows if start['TimeUS'] < r.get('TimeUS', 0) <= end]
+        part = {kind: rows if kind == 'PARM' else
+                [r for r in rows if start['TimeUS'] < r.get('TimeUS', 0) <= end]
                 for kind, rows in records.items()}
         # Mode receipt can be shorter than two seconds in transition experiments; all samples are still checked.
         analysis, rows = angle.analyse_flight(part, pilot_mode=start['ModeNum'], minimum_samples=100)

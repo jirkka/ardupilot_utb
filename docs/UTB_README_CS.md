@@ -1,15 +1,12 @@
 # UTB: vlastní regulační vrstva v ArduPilot Copter
 
-FÁZE 2F je uložená v lokálním commitu
-`671ccad97050115e87b9d8451313dd7403fc1e72` na větvi `test/skystars-5inch`.
-Navazující pracovní FÁZE 2G přidává pilotní **ACRO43** a přímé **ACRO↔ANGLE42**
-bez nové PID/mixer matematiky. Aktivní autorita je výhradně v SITL;
-mode40 zůstává nearmovatelný a fyzické FC se tato fáze nedotýká.
-
-[Společné pilotní režimy](UTB_FLIGHT_MODES_CS.md) ·
-[ACRO architektura a parametry](UTB_ACRO_MODE_ARCHITECTURE_CS.md) ·
-[skutečné SITL výsledky a omezení](UTB_ACRO_MODE_SITL_VALIDATION_CS.md) ·
-[souhrn 2G / ruční spuštění](UTB_PHASE_2G_SUMMARY_CS.md).
+FÁZE2G je lokální commit `e9a003cb532c65c0acc54b5bd4f5930d4ce0fdd8`.
+FÁZE2H obsahuje společný pilotní Rate PID přes samostatné `UTB_P_*` parametry,
+ladění ANGLE P a skutečné opakované SITL ověření. Původní RAT_* konfigurace
+mode41 a SHADOW, reference caps, arming a failsafe zůstávají.
+[Ladění a omezení2H](UTB_PILOT_PID_TUNING_CS.md) ·
+[souhrn a přesný manifest2H](UTB_PHASE_2H_SUMMARY_CS.md).
+Aktivní hardware řízení ani ALT HOLD nejsou implementované.
 
 ACRO používá lineární body rate mapu, ANGLE náklonovou mapu a vlastní attitude
 P. Oba používají stejnou původní AP manual throttle politiku. Maxima lze

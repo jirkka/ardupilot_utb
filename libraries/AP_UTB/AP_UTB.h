@@ -4,8 +4,8 @@
 ///  @file       AP_UTB.h
 ///  @brief      Manager SHADOW, parametry, reset, oddělená matematická/logging policy, bounded queue a epochy.
 ///  @author     Jiri Kovar
-///  @version    2026-10-17
-///  @date       2026-10-17
+///  @version    2026-10-18
+///  @date       2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -821,6 +821,30 @@ public:
             gains[i] = {_p[i].get(), _i[i].get(), _d[i].get(), _imax[i].get(), _d_hz[i].get()};
         }
     }
+    //--------------------------------------------------------------------------------------------------------------------
+    /// @brief Načíst společné pilotní gains bez změny původních RAT_* konfigurací.
+    /// @param[out] gains Samostatné R/P/Y P/I/D/IMAX/D cutoff; zmrazí se při vstupu.
+    /// @return None.
+    /// @details Pouze SITL; nepoužívá heap ani synchronizační zámek.
+    void pilot_gains(AP_UTB_RateController::Gains (&gains)[3]) const
+    {
+        // Index pevné trojice tělových os.
+        uint8_t axis;
+
+        for (axis = 0; axis < 3; axis++) {
+            gains[axis] = {_pilot_p[axis].get(), _pilot_i[axis].get(), _pilot_d[axis].get(),
+                           _pilot_imax[axis].get(), _pilot_d_hz[axis].get()
+                          };
+        }
+    }
+    /// @brief Načíst P zisky vnější pilotní ANGLE smyčky.
+    /// @param[in] None
+    /// @return Roll/pitch proporcionální zisky; bez změny limitů reference.
+    /// @details Mode43 tuto vnější smyčku nepoužívá.
+    Vector2f pilot_angle_gains() const
+    {
+        return {_pilot_angle_r.get(), _pilot_angle_p.get()};
+    }
     /// @brief Read pilot ACRO opt-in.
     /// @param[in] None
     /// @return Frozen-entry candidate value.
@@ -906,6 +930,20 @@ public:
 private:
 #if AP_UTB_RATE_SITL_AVAILABLE
     // SITL pilot-mode opt-in, frozen reference limits and existing feedback policy.
+    // Pilotní R/P/Y proporcionální zisky, oddělené od mode41 a SHADOW.
+    AP_Float _pilot_p[3];
+    // Pilotní R/P/Y integrační zisky.
+    AP_Float _pilot_i[3];
+    // Pilotní R/P/Y derivační zisky měřených body rates.
+    AP_Float _pilot_d[3];
+    // Pilotní R/P/Y meze integrátoru.
+    AP_Float _pilot_imax[3];
+    // Pilotní R/P/Y mezní frekvence D filtru v Hz.
+    AP_Float _pilot_d_hz[3];
+    // Pilotní vnější attitude P pro Roll; neovlivňuje mode41.
+    AP_Float _pilot_angle_r;
+    // Pilotní vnější attitude P pro Pitch; neovlivňuje mode41.
+    AP_Float _pilot_angle_p;
     AP_Int8 _acro_enable, _acro_aw;
     AP_Float _acro_roll_max, _acro_pitch_max, _acro_yaw_max, _angle_rate_max;
     AP_Int8 _angle_enable, _angle_aw;

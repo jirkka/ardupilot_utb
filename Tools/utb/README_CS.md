@@ -32,3 +32,12 @@ v `tmp/utb-readable-20261017_084027/`. Historické příkazy v původních repor
 zůstávají záznamem tehdejšího umístění, jejich souborové odkazy vedou na
 aktuální zdroje. Komentářová šablona a autor zůstávají zachované;
 `@version` a `@date` uvádějí datum revize zdrojového souboru.
+
+## Řízené pilotní ladění2H
+
+`tools/utb_pilot_tuning.py` používá pouze vlastní lokální SITL, skutečné RC,
+readback17 gains, oboustranné kroky a SHA-vázaný gate. Nepřijímá COM port.
+JSON model má relativní cestu od run adresáře. Chybějící settling zůstává
+neověřený. `tests/test_utb_pilot_tuning.py` kontroluje metrické/parametrické
+kontrakty bez připojení k vozidlu.
+[Metoda, výsledky a reprodukce](../../docs/UTB_PILOT_PID_TUNING_CS.md).

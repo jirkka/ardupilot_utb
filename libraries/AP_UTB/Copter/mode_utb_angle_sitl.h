@@ -4,8 +4,8 @@
 /// @file mode_utb_angle_sitl.h
 /// @brief Sdílený pilotní lifecycle/rate adaptér ANGLE a odvozeného ACRO, pouze SITL.
 /// @author Jiri Kovar
-/// @version 2026-10-17
-/// @date 2026-10-17
+/// @version 2026-10-18
+/// @date 2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 #pragma once
 /*
@@ -183,6 +183,9 @@ private:
     AP_UTB_State _sample;
     AP_UTB_SITLAllocation::Result _allocation;
     // Pilotní reference se skutečným RC timestampem a entry konfigurací.
+    // Zmrazené společné pilotní rate gains a nezávislé ANGLE P gains.
+    AP_UTB_RateController::Gains _pilot_gains[3];
+    Vector2f _angle_p;
     AP_UTB_AngleRC::Config _config;
     // Frozen per-axis ACRO rate limits and ANGLE outer rate norm limit.
     Vector3f _acro_limits;

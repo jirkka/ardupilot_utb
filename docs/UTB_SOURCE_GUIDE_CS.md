@@ -1,11 +1,21 @@
 # UTB: společný index zdrojů a pravidla komentářů
 
+## Aktuální doplnění2H
+
+[Společný pilotní tune](UTB_PILOT_PID_TUNING_CS.md) popisuje `UTB_P_*` banku
+v [manageru](../libraries/AP_UTB/AP_UTB.cpp) a frozen snapshots v
+[pilotním adaptéru](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp).
+[Řízené experimenty](../Tools/utb/tools/utb_pilot_tuning.py) a
+[analytické unit testy](../Tools/utb/tests/test_utb_pilot_tuning.py) zůstávají
+oddělené od C++. Původní PID/mixer/attitude matematika a nativní AP cesty
+se nemění. [Přesný manifest2H](UTB_PHASE_2H_SUMMARY_CS.md).
+
 Tento přehled navazuje na lokální commit
 `5a32da404dafd19546439bf6886ab9adb831f4c0`. Následné komentáře, uspořádání a úprava čitelnosti jsou
 součástí navazujícího lokálního checkpointu. Schválený 62souborový checkpoint zůstává
 zachovaný v historii, včetně původních reportů a manifestů.
 
-## Aktuální pilotní vstupní body2G
+## Pilotní vstupní body2G (historie)
 
 FÁZE 2F je commit `671ccad97050115e87b9d8451313dd7403fc1e72`; navazující2G
 zachovává současné adresáře. [Společný runner](../Tools/utb/tools/utb_pilot_sitl.py)

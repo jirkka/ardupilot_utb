@@ -1,5 +1,15 @@
 # UTB: mapa souborů, funkcí a regulačních cest
 
+## Aktuální doplnění2H
+
+[Společný pilotní tune](UTB_PILOT_PID_TUNING_CS.md) popisuje `UTB_P_*` banku
+v [manageru](../libraries/AP_UTB/AP_UTB.cpp) a frozen snapshots v
+[pilotním adaptéru](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp).
+[Řízené experimenty](../Tools/utb/tools/utb_pilot_tuning.py) a
+[analytické unit testy](../Tools/utb/tests/test_utb_pilot_tuning.py) zůstávají
+oddělené od C++. Původní PID/mixer/attitude matematika a nativní AP cesty
+se nemění. [Přesný manifest2H](UTB_PHASE_2H_SUMMARY_CS.md).
+
 Audit FÁZE 2E, 16. 10. 2026; aktualizace cest 17. 10. 2026. [Rozcestník](UTB_README_CS.md) ·
 [Stav](UTB_PROJECT_STATUS_CS.md) · [Git checkpoint](UTB_GIT_CONSOLIDATION_CS.md).
 
@@ -20,7 +30,7 @@ oddělený pod `Tools/utb/` ([přehled](../Tools/utb/README_CS.md)).
 Organizace/čitelnost je uložená v checkpointu `9824542e73bbfb193b21fd4388f74e14ba24439c`.
 FÁZE 2F je nyní v commitu `671ccad97050115e87b9d8451313dd7403fc1e72`.
 Číselná inventura výše a historické údaje „dosud untracked“ níže patří
-původnímu auditu2E; nejsou aktuální Git status. Navazující2G je pracovní změna.
+původnímu auditu2E; nejsou aktuální Git status. 2G je nyní commit e9a003cb532c65c0acc54b5bd4f5930d4ce0fdd8; inventura zůstává historická.
 
 Každý řádek níže odpovídá jednomu skutečnému souboru. `.h` deklaruje kontrakt,
 `.cpp` implementuje popsanou komponentu. Údaj první commit dokládá vznik

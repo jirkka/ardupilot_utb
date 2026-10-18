@@ -4,8 +4,8 @@
 /// @file AP_UTB_AngleRC.h
 /// @brief Validace skutečných AP RC kanálů a pilotní ANGLE reference, pouze SITL.
 /// @author Jiri Kovar
-/// @version 2026-10-17
-/// @date 2026-10-17
+/// @version 2026-10-18
+/// @date 2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 #pragma once
 /*
@@ -70,6 +70,24 @@ public:
     // End Data type, constant, macro definition
     //================================================================================================================
     // Public functions
+    //--------------------------------------------------------------------------------------------------------------------
+    /// @brief Ověřit konečné pilotní rate parametry v omezené experimentální obálce.
+    /// @param[in] gains Společné R/P/Y gains obou pilotních režimů.
+    /// @return True pro původní matematicky validní gains v pilotních mezích.
+    /// @details P do0,3, I do0,6, D do0,004, IMAX do0,19; cutoff do40Hz při400Hz PID.
+    static bool pilot_gains_valid(const AP_UTB_RateController::Gains (&gains)[3])
+    {
+        // Index pevné trojice os.
+        uint8_t axis;
+
+        for (axis = 0; axis < 3; axis++) {
+            if (!gains[axis].valid(0.0025f) || gains[axis].p > 0.3f || gains[axis].i > 0.6f ||
+                gains[axis].d > 0.004f || gains[axis].imax > 0.19f || gains[axis].d_hz > 40) {
+                return false;
+            }
+        }
+        return true;
+    }
     //----------------------------------------------------------------------------------------------------------------
     /// @brief Ověřit nastavený limit uvnitř dosud validované úhlové/rate obálky.
     /// @param[in] config Maximální normový náklon v ° a yaw rate v rad/s.
@@ -99,10 +117,10 @@ public:
     /// @details Normalizaci, reverse a deadband provádí RC_Channel, nikoli vlastní PID.
     static Result read(const RC_Channel &roll, const RC_Channel &pitch, const RC_Channel &yaw,
                        const RC_Channel &throttle, float mapped_throttle, const Config &config, const Signal &signal);
-    /// @brief Sestavit explicitní již ověřený SITL rate preset pro nový pilotní mód.
+    /// @brief Sestavit historický preset 2F/2G pro regresní jednotkové testy.
     /// @param[out] gains Nastavení R/P/Y používané původním UTB PID.
     /// @return None.
-    /// @details Nezmění globální RAT/S_* parametry, původní matematiku ani staré experimenty.
+    /// @details Aktivní pilot nyní čte samostatné P_* parametry; RAT/S_* a historická matematika se nemění.
     static void gains(AP_UTB_RateController::Gains (&gains)[3]);
     // End Public functions
 };

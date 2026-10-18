@@ -1,5 +1,15 @@
 # UTB: návrh paralelní řídicí vrstvy
 
+## Aktuální doplnění2H
+
+[Společný pilotní tune](UTB_PILOT_PID_TUNING_CS.md) popisuje `UTB_P_*` banku
+v [manageru](../libraries/AP_UTB/AP_UTB.cpp) a frozen snapshots v
+[pilotním adaptéru](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp).
+[Řízené experimenty](../Tools/utb/tools/utb_pilot_tuning.py) a
+[analytické unit testy](../Tools/utb/tests/test_utb_pilot_tuning.py) zůstávají
+oddělené od C++. Původní PID/mixer/attitude matematika a nativní AP cesty
+se nemění. [Přesný manifest2H](UTB_PHASE_2H_SUMMARY_CS.md).
+
 ## Implementovaný stav FÁZE 0 — 7.–8. 10. 2026
 
 Tato část popisuje skutečný skeleton patch. Architektonický návrh níže

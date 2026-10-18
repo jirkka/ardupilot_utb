@@ -4,8 +4,8 @@
 /// @file test_utb_acro_rc.cpp
 /// @brief Skutečné AP RC mapování, znaménka, validity a samonivelace existující UTB kaskády.
 /// @author Jiri Kovar
-/// @version 2026-10-17
-/// @date 2026-10-17
+/// @version 2026-10-18
+/// @date 2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
 #include <AP_gtest.h>
 #include <functional>
 #include <AP_UTB/AP_UTB_AcroRC.h>
+#include <AP_UTB/AP_UTB.h>
 #include <AP_UTB/AP_UTB_SITLAttitude.h>
 #include <AP_UTB/AP_UTB_SITLRate.h>
 
@@ -258,6 +259,89 @@ TEST_F(UTBAcroRC, NativeLandDisarmedContextAndArmedBounds)
     EXPECT_FALSE(AP_UTB_AcroRC::entry_throttle_valid(INFINITY, false));
     EXPECT_FALSE(AP_UTB_AcroRC::entry_throttle_valid(-INFINITY, false));
 }
+/// @brief Ověřit pilotní meze a původní validaci D filtru bez změny PID matematiky.
+/// @param[in] None
+/// @return None; chybná konfigurace se odmítá.
+/// @details Jednotkový test pouze SITL parametrického kontraktu.
+TEST_F(UTBAcroRC, PilotGainBounds)
+{
+    // Kopie gains pro nezávislé odmítnutí jednotlivých vadných hodnot.
+    AP_UTB_RateController::Gains gains[3];
+
+    AP_UTB_AngleRC::gains(gains);
+    ASSERT_TRUE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    gains[0].p = NAN;
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    AP_UTB_AngleRC::gains(gains); gains[1].p = 0.301f;
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    AP_UTB_AngleRC::gains(gains); gains[0].i = 0.601f;
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    AP_UTB_AngleRC::gains(gains); gains[1].d = 0.0041f;
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    AP_UTB_AngleRC::gains(gains); gains[0].imax = 0.191f;
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+}
+
+/// @brief Ověřit cutoff meze při pevné 400Hz nominální periodě.
+/// @param[in] None
+/// @return None.
+/// @details Při D>0 zůstává pozitivní stabilní filtr povinný.
+TEST_F(UTBAcroRC, PilotFilterBounds)
+{
+    // Samostatná experimentální konfigurace.
+    AP_UTB_RateController::Gains gains[3];
+
+    AP_UTB_AngleRC::gains(gains); gains[0].d_hz = 40;
+    EXPECT_TRUE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    gains[0].d_hz = 40.1f;
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    gains[0].d_hz = 0;
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+    gains[0].d = 0;
+    EXPECT_TRUE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+}
+
+/// @brief Prokázat skutečný AP_Param zápis bez ovlivnění starého mode41/SHADOW gains.
+/// @param[in] None
+/// @return None.
+/// @details Oba směry izolace se ověřují nad skutečnou var_info tabulkou.
+TEST_F(UTBAcroRC, PilotParameterIsolation)
+{
+    // Manager a snapshots nezávislých parametrických větví.
+    AP_UTB manager;
+    AP_UTB_RateController::Gains legacy_before[3], legacy_after[3], pilot_before[3], pilot_after[3];
+    uint8_t axis;
+
+    manager.sitl_gains(legacy_before);
+    ASSERT_TRUE(AP_Param::set_object_value(&manager, AP_UTB::var_info, "P_RLL_P", 0.12f));
+    manager.pilot_gains(pilot_before);
+    EXPECT_FLOAT_EQ(pilot_before[0].p, 0.12f);
+    manager.sitl_gains(legacy_after);
+    for (axis = 0; axis < 3; axis++) {
+        EXPECT_TRUE(legacy_before[axis] == legacy_after[axis]);
+    }
+    ASSERT_TRUE(AP_Param::set_object_value(&manager, AP_UTB::var_info, "RAT_RLL_P", 0.27f));
+    manager.pilot_gains(pilot_after);
+    for (axis = 0; axis < 3; axis++) {
+        EXPECT_TRUE(pilot_before[axis] == pilot_after[axis]);
+    }
+}
+
+/// @brief Neplatný uložený AP parametr nesmí projít do pilotního PID.
+/// @param[in] None
+/// @return None.
+/// @details Číselné UI rozsahy nenahrazují vlastní mode-entry validaci.
+TEST_F(UTBAcroRC, InvalidStoredPilotGain)
+{
+    // Skutečný manager a jeho načtená pilotní konfigurace.
+    AP_UTB manager;
+    AP_UTB_RateController::Gains gains[3];
+
+    ASSERT_TRUE(AP_Param::set_object_value(&manager, AP_UTB::var_info, "P_PIT_D", 0.01f));
+    manager.pilot_gains(gains);
+    EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+}
+
 #endif // AP_UTB_RATE_SITL_AVAILABLE
 AP_GTEST_MAIN()
 // End Public functions
