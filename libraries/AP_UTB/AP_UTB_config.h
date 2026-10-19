@@ -4,8 +4,8 @@
 ///  @file       AP_UTB_config.h
 ///  @brief      Default OFF a centrální platformový guard.
 ///  @author     Jiri Kovar
-///  @version    2026-10-16
-///  @date       2026-10-16
+///  @version    2026-10-19
+///  @date       2026-10-19
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -41,6 +41,12 @@
 //--------------------------------------------------------------------------------------------------------------------
 #define AP_UTB_RATE_SITL_ENABLED 0
 #endif
+#ifndef AP_UTB_NATIVE_BENCH_ENABLED
+#define AP_UTB_NATIVE_BENCH_ENABLED 0
+#endif
+#define AP_UTB_NATIVE_BENCH_AVAILABLE (AP_UTB_ENABLED && AP_UTB_NATIVE_BENCH_ENABLED)
+#define AP_UTB_MATH_AVAILABLE (AP_UTB_RATE_SITL_AVAILABLE || AP_UTB_NATIVE_BENCH_AVAILABLE)
+
 #define AP_UTB_RATE_SITL_AVAILABLE (AP_UTB_ENABLED && AP_UTB_RATE_SITL_ENABLED && CONFIG_HAL_BOARD == HAL_BOARD_SITL)
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

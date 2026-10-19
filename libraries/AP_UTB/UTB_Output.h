@@ -16,7 +16,7 @@
    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "AP_UTB_config.h"
-#if AP_UTB_RATE_SITL_AVAILABLE
+#if AP_UTB_MATH_AVAILABLE
 #include <AP_Motors/AP_Motors.h>
 // Public functions: setters only; output() remains owned by the original Copter motor slot.
 class UTB_Output

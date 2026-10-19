@@ -15,7 +15,7 @@
    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "AP_UTB_config.h"
-#if AP_UTB_RATE_SITL_AVAILABLE
+#if AP_UTB_MATH_AVAILABLE
 #include "UTB_Output.h"
 #include <AP_InternalError/AP_InternalError.h>
 void UTB_Output::roll(float value)

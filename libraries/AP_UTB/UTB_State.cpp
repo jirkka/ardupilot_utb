@@ -15,7 +15,7 @@
    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "AP_UTB_config.h"
-#if AP_UTB_RATE_SITL_AVAILABLE
+#if AP_UTB_MATH_AVAILABLE
 #include "UTB_State.h"
 #include <AP_Math/AP_Math.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>

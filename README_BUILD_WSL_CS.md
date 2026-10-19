@@ -502,3 +502,40 @@ build/sitl/tests/test_utb_native
 Po každé variantě archivovat binárku/APJ před další konfigurací, včetně SHA-256,
 velikosti, přesných flagů a source manifestu. H743 APJ se v této fázi nenahrává.
 Příklady nejsou hardware testovací postup. Nové42/43 jsou na H743 nedostupné.
+
+
+## FÁZE 3B – samostatný DISARMED matematický benchmark
+
+[Identita FC, zdrojové zásahy, omezení a stav HW](docs/UTB_PHASE_3B_CS.md).
+Nic se neinstalovalo. COM5 se čte přes Windows Python a existující čistě Python
+serial/pymavlink moduly z WSL `.venv`; nejde o automatické mapování do WSL.
+
+```sh
+export PATH="$PWD/.venv/bin:/opt/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH"
+# SITL s původní pilotní cestou3A a samostatnou diagnostikou:
+./waf configure --board sitl --enable-UTB --enable-UTB_RATE_SITL \
+  --enable-UTB_NATIVE_BENCH --enable-UTB_BENCH
+./waf copter --targets bin/arducopter,tests/test_utb_native_bench,tests/test_utb_native -j6
+build/sitl/tests/test_utb_native_bench
+build/sitl/tests/test_utb_native
+.venv/bin/python -B Tools/utb/tools/utb_native_bench_sitl.py --binary build/sitl/bin/arducopter \
+  --output tmp/NEW-3b-comparison --stage comparison
+.venv/bin/python -B Tools/utb/tools/utb_native_bench_sitl.py --binary build/sitl/bin/arducopter \
+  --output tmp/NEW-3b-suppression --stage suppression
+# H743 DIAGNOSTIC ON; pilotní autorita je stále compile-out:
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB --disable-UTB_RATE_SITL \
+  --enable-UTB_NATIVE_BENCH --enable-UTB_BENCH
+./waf copter -j6
+# H743 BASELINE diagnostika OFF (původní BENCH instrumentace zůstává ON):
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB --disable-UTB_RATE_SITL \
+  --disable-UTB_NATIVE_BENCH --enable-UTB_BENCH
+./waf copter -j6
+# Offline analýza pouze místního skutečného BIN souboru:
+.venv/bin/python -B Tools/utb/tools/utb_native_bench_analysis.py \
+  --bin tmp/ACTUAL_LOG.BIN --output tmp/NEW-3b-analysis --platform H743
+```
+
+Artefakty archivovat před změnou konfigurace. Použít přesný APJ ze schváleného
+manifestu/SHA, nikoli poslední obecný `build/.../arducopter.apj` po OFF variantě.
+Upload čeká na výslovný souhlas; `arducopter_with_bl.hex` se nepoužívá.
+UB3_RUN je standardně0 a žádný hardware benchmark zatím neproběhl.

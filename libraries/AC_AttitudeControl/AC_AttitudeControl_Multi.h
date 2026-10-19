@@ -41,7 +41,7 @@
 
 class AC_AttitudeControl_Multi : public AC_AttitudeControl {
 public:
-	AC_AttitudeControl_Multi(AP_AHRS_View &ahrs, AP_MotorsMulticopter& motors);
+	AC_AttitudeControl_Multi(AP_AHRS_View &ahrs, AP_MotorsMulticopter& motors, bool register_singleton = true);
 
 	// empty destructor to suppress compiler warning
 	virtual ~AC_AttitudeControl_Multi() {}

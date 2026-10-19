@@ -47,7 +47,7 @@
 class AC_AttitudeControl {
 public:
     AC_AttitudeControl(AP_AHRS_View &ahrs,
-                       AP_Motors& motors) :
+                       AP_Motors& motors, bool register_singleton = true) :
         _p_angle_roll(AC_ATTITUDE_CONTROL_ANGLE_P),
         _p_angle_pitch(AC_ATTITUDE_CONTROL_ANGLE_P),
         _p_angle_yaw(AC_ATTITUDE_CONTROL_ANGLE_P),
@@ -58,7 +58,10 @@ public:
         _ahrs(ahrs),
         _motors(motors)
         {
-            _singleton = this;
+            // Opt-out is only for independent diagnostic instances, never the live controller.
+            if (register_singleton) {
+                _singleton = this;
+            }
             AP_Param::setup_object_defaults(this, var_info);
         }
 

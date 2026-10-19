@@ -1,5 +1,12 @@
 # UTB: současný funkční stav
 
+FÁZE 3B: [pasivní hardware benchmark – příprava a omezení](UTB_PHASE_3B_CS.md).
+Read-only COM5 preflight a záloha parametrů jsou hotové. Nová matematika má
+samostatný DISARMED diagnostický build; na H743 zatím nebyl nahraný ani měřený.
+Aktivní pilotní UTB autorita zůstává compile-out. Změny3B čekají na HW validaci
+samostatně v pracovním stromu.
+
+
 Aktuální FÁZE3A nahrazuje pilotní42/43 devíti vlastními moduly s původní
 AP matematikou. [Architektura, výsledky a omezení](UTB_PHASE_3A_CS.md).
 Nová cesta má společný Rate/PID, native rate-only ACRO a quaternion ANGLE,

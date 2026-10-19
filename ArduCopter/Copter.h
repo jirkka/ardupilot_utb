@@ -81,6 +81,7 @@
 #if AP_UTB_ENABLED
 #include <AP_UTB/AP_UTB.h>
 #include <AP_UTB/UTB_Core.h>
+#include <AP_UTB/AP_UTB_NativeBench.h>
 #endif
 
 // Configuration
@@ -260,6 +261,10 @@ private:
 
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     AP_UTB utb;
+#if AP_UTB_NATIVE_BENCH_AVAILABLE
+    AP_UTB_NativeBench utb_native_bench;
+    void utb_native_bench_update();
+#endif
     void utb_shadow_update();
     void utb_log_init();
     void utb_log_thread();

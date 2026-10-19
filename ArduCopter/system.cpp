@@ -470,6 +470,9 @@ void Copter::allocate_motors(void)
         AP_BoardConfig::allocation_error("AttitudeControl");
     }
     AP_Param::load_object_from_eeprom(attitude_control, attitude_control_var_info);
+#if AP_UTB_NATIVE_BENCH_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb_native_bench.init(*ahrs_view);
+#endif
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     utb3_core = NEW_NOTHROW UTB_Core(*ahrs_view, *motors);
     if (utb3_core == nullptr) {

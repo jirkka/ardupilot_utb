@@ -16,7 +16,7 @@
    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "AP_UTB_config.h"
-#if AP_UTB_RATE_SITL_AVAILABLE
+#if AP_UTB_MATH_AVAILABLE
 #include <AP_AHRS/AP_AHRS_View.h>
 #include <AP_Math/AP_Math.h>
 

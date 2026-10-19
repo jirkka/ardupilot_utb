@@ -42,6 +42,7 @@ class Feature:
 #                 (a single string with commas and no spaces). e.g., 'dependency1,dependency2'.
 BUILD_OPTIONS = [
     Feature('Other', 'UTB_RATE_SITL', 'AP_UTB_RATE_SITL_ENABLED', 'Copter UTB rate authority, SITL only', 0, 'UTB'),
+    Feature('Other', 'UTB_NATIVE_BENCH', 'AP_UTB_NATIVE_BENCH_ENABLED', 'Disarmed AP vs UTB native math benchmark', 0, 'UTB'),
     Feature('Other', 'UTB_BENCH', 'AP_UTB_BENCH_ENABLED', 'Enable diagnostic UTB hardware benchmark', 0, None),
     Feature('Other', 'UTB', 'AP_UTB_ENABLED', 'Enable Copter UTB disarmed diagnostic skeleton', 0, None),
     Feature('AHRS', 'EKF3', 'HAL_NAVEKF3_AVAILABLE', 'Enable EKF3', 1, None),

@@ -15,7 +15,7 @@
    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "AP_UTB_config.h"
-#if AP_UTB_RATE_SITL_AVAILABLE
+#if AP_UTB_MATH_AVAILABLE
 #include "UTB_Attitude.h"
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Vehicle/AP_Vehicle.h>
@@ -38,7 +38,7 @@ static void utb3_shape_pos_vel_accel(postype_t pos_desired, float vel_desired, f
                                      float accel_min, float accel_max,
                                      float jerk_max, float dt, bool limit_total);
 static float utb3_sqrt_controller(float error, float p, float second_ord_lim, float dt);
-static Vector2f utb3_sqrt_controller(const Vector2f& error, float p, float second_ord_lim, float dt);
+static inline Vector2f utb3_sqrt_controller(const Vector2f& error, float p, float second_ord_lim, float dt);
 static float utb3_sqrt_controller_accel(float error, float rate_cmd, float rate_state, float p, float second_ord_lim);
 
 static float utb3_inv_sqrt_controller(float output, float p, float D_max)
@@ -215,7 +215,7 @@ static float utb3_sqrt_controller(float error, float p, float second_ord_lim, fl
     }
 }
 
-static Vector2f utb3_sqrt_controller(const Vector2f& error, float p, float second_ord_lim, float dt)
+static inline Vector2f utb3_sqrt_controller(const Vector2f& error, float p, float second_ord_lim, float dt)
 {
     const float error_length = error.length();
     if (!is_positive(error_length)) {

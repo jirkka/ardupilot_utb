@@ -1,5 +1,10 @@
 # FÁZE 3A – vlastní výpočet podle ArduPilot Copter 4.7.1
 
+Navazující [FÁZE 3B](UTB_PHASE_3B_CS.md) přidává samostatně povolitelnou
+pasivní kompilaci matematických tříd pro H743. Nemění SITL-only dostupnost
+pilotních režimů ani výsledky historických buildů3A uvedených zde.
+
+
 Stav: implementace v pracovním stromu nad `b25e828b86f945996489b26fb0357ce05f72afcb`,
 větev `test/skystars-5inch`. Výsledky a omezení jsou uvedené níže.
 Aktivní řízení je výhradně SITL. Hardware nebyl připojen ani testován.

@@ -15,7 +15,7 @@
    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "AP_UTB_config.h"
-#if AP_UTB_RATE_SITL_AVAILABLE
+#if AP_UTB_MATH_AVAILABLE
 /// @file	UTB_PID.cpp
 /// @brief	General-purpose PID controller with input, error, and derivative filtering, plus slew rate limiting and EEPROM gain storage.
 

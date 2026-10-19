@@ -388,6 +388,12 @@ const AP_Param::Info Copter::var_info[] = {
 #endif
 
 
+#if AP_UTB_NATIVE_BENCH_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // @Group: UB3_
+    // @Path: ../libraries/AP_UTB/AP_UTB_NativeBench.cpp
+    GOBJECT(utb_native_bench, "UB3_", AP_UTB_NativeBench),
+#endif
+
     // @Group: PSC
     // @Path: ../libraries/AC_AttitudeControl/AC_PosControl.cpp
     GOBJECTPTR(pos_control, "PSC", AC_PosControl),

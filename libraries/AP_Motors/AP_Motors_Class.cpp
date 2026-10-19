@@ -29,7 +29,7 @@ extern const AP_HAL::HAL& hal;
 AP_Motors *AP_Motors::_singleton;
 
 // Constructor
-AP_Motors::AP_Motors(uint16_t speed_hz) :
+AP_Motors::AP_Motors(uint16_t speed_hz, bool register_singleton) :
     _speed_hz(speed_hz),
     _throttle_filter(),
     _throttle_slew(),
@@ -37,7 +37,10 @@ AP_Motors::AP_Motors(uint16_t speed_hz) :
     _spool_desired(DesiredSpoolState::SHUT_DOWN),
     _spool_state(SpoolState::SHUT_DOWN)
 {
-    _singleton = this;
+    // Isolated diagnostic sinks must never replace the vehicle motor singleton.
+    if (register_singleton) {
+        _singleton = this;
+    }
 
     // setup throttle filtering
     _throttle_filter.set_cutoff_frequency(0.0f);

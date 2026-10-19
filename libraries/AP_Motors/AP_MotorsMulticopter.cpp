@@ -258,8 +258,8 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
 };
 
 // Constructor
-AP_MotorsMulticopter::AP_MotorsMulticopter(uint16_t speed_hz) :
-                AP_Motors(speed_hz),
+AP_MotorsMulticopter::AP_MotorsMulticopter(uint16_t speed_hz, bool register_singleton) :
+                AP_Motors(speed_hz, register_singleton),
                 _throttle_limit(1.0f)
 {
     AP_Param::setup_object_defaults(this, var_info);

@@ -102,7 +102,7 @@ public:
     void get_frame_and_type_string(char *buffer, uint8_t buflen) const;
 
     // Constructor
-    AP_Motors(uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT);
+    AP_Motors(uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT, bool register_singleton = true);
 
     // singleton support
     static AP_Motors    *get_singleton(void) { return _singleton; }

@@ -265,6 +265,10 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
     // don't delete this, there is an equivalent (virtual) in AP_Vehicle for the non-rate loop case
     SCHED_TASK(update_dynamic_notch_at_specified_rate_main,                       LOOP_RATE, 200, 215),
 #endif
+#if AP_UTB_NATIVE_BENCH_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // Lowest priority: diagnostic work uses scheduler slack, never a FAST_TASK slot.
+    SCHED_TASK(utb_native_bench_update, 50, 300, 255),
+#endif
 };
 
 void Copter::get_scheduler_tasks(const AP_Scheduler::Task *&tasks,

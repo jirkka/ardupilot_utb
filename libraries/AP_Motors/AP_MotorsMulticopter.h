@@ -29,7 +29,7 @@ class AP_MotorsMulticopter : public AP_Motors {
 public:
 
     // Constructor
-    AP_MotorsMulticopter(uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT);
+    AP_MotorsMulticopter(uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT, bool register_singleton = true);
 
     // output - sends commands to the motors
     virtual void        output() override;
