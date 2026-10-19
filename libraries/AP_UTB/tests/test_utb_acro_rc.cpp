@@ -19,6 +19,7 @@
 #include <AP_gtest.h>
 #include <functional>
 #include <AP_UTB/AP_UTB_AcroRC.h>
+#include <AP_UTB/AP_UTB_PilotRates.h>
 #include <AP_UTB/AP_UTB.h>
 #include <AP_UTB/AP_UTB_SITLAttitude.h>
 #include <AP_UTB/AP_UTB_SITLRate.h>
@@ -340,6 +341,99 @@ TEST_F(UTBAcroRC, InvalidStoredPilotGain)
     ASSERT_TRUE(AP_Param::set_object_value(&manager, AP_UTB::var_info, "P_PIT_D", 0.01f));
     manager.pilot_gains(gains);
     EXPECT_FALSE(AP_UTB_AngleRC::pilot_gains_valid(gains));
+}
+
+
+/// @brief Check Actual endpoints, signs, center slope and expo independently.
+/// @param[in] None
+/// @return None; GTest reports discrepancies.
+/// @details No plant capability is inferred from the reference curve.
+TEST_F(UTBAcroRC, ActualRatesCurve)
+{
+    // Sign and normalized stick sweep; endpoint independent of expo.
+    int sign;
+    float x;
+    float expected;
+    for (sign = -1; sign <= 1; sign += 2) {
+        EXPECT_NEAR(AP_UTB_PilotRates::actual(sign, 160, 670, 0.3f), sign * radians(670.0f), 2e-6);
+        for (x = 0; x <= 1; x += 0.01f) {
+            expected = 160 * x + 510 * (0.7f * x * x + 0.3f * powf(x, 6));
+            EXPECT_NEAR(AP_UTB_PilotRates::actual(sign * x, 160, 670, 0.3f), sign * radians(expected), 3e-6);
+        }
+    }
+    EXPECT_NEAR(degrees(AP_UTB_PilotRates::actual(1e-5f, 160, 670, 0.3f)) / 1e-5f, 160, 0.01);
+    EXPECT_FLOAT_EQ(AP_UTB_PilotRates::actual(0, 160, 670, 1), 0);
+    EXPECT_NEAR(degrees(AP_UTB_PilotRates::actual(0.5f, 160, 670, 0.3f)), 171.640625f, 2e-5);
+}
+/// @brief Reject invalid Actual domains and frozen-profile edits.
+/// @param[in] None
+/// @return None; GTest reports discrepancies.
+/// @details Legacy fields remain opt-in and no gains are modified.
+TEST_F(UTBAcroRC, ActualConfiguration)
+{
+    // Independent fixed snapshots and parameter manager defaults.
+    AP_UTB_PilotRates::Config a;
+    AP_UTB_PilotRates::Config b;
+    EXPECT_TRUE(a.valid());
+    a.type = b.type = 1;
+    EXPECT_TRUE(a.valid());
+    EXPECT_TRUE(a == b);
+    b.expo.x += 0.001f;
+    EXPECT_FALSE(a == b);
+    EXPECT_TRUE(isnan(AP_UTB_PilotRates::actual(NAN, 160, 670, 0.3f)));
+    EXPECT_TRUE(isnan(AP_UTB_PilotRates::actual(1.01f, 160, 670, 0.3f)));
+    EXPECT_TRUE(isnan(AP_UTB_PilotRates::actual(0, 671, 670, 0.3f)));
+    EXPECT_TRUE(isnan(AP_UTB_PilotRates::actual(0, 160, 671, 0.3f)));
+    EXPECT_TRUE(isnan(AP_UTB_PilotRates::actual(0, 160, 670, -0.1f)));
+    a.angle = 61;
+    EXPECT_FALSE(a.valid());
+}
+/// @brief Keep legacy ANGLE bounds and validate only explicit expanded configuration.
+/// @param[in] None
+/// @return None; GTest reports discrepancies.
+/// @details Pure input-domain test, not a 60 degree flight qualification.
+TEST_F(UTBAcroRC, ExtendedAngleOptIn)
+{
+    // Shared RC configuration, expanded only by an explicit bit.
+    AP_UTB_AngleRC::Config cfg{60, 0.1f};
+    EXPECT_FALSE(AP_UTB_AngleRC::valid_config(cfg));
+    cfg.extended = true;
+    EXPECT_TRUE(AP_UTB_AngleRC::valid_config(cfg));
+    cfg.angle_deg = 61;
+    EXPECT_FALSE(AP_UTB_AngleRC::valid_config(cfg));
+}
+
+/// @brief Verify expanded ANGLE reference, self-level sign and retained attitude guard.
+/// @param[in] None
+/// @return None; GTest reports mismatches.
+/// @details Kinematic validation only; no claim that the SITL airframe can hold 60 degrees.
+TEST_F(UTBAcroRC, ExtendedAngleKinematicsAndRateLimit)
+{
+    // Explicit healthy identity sample and frozen experimental outer-loop configuration.
+    AP_UTB_State sample;
+    AP_UTB_SITLAttitude attitude;
+    AP_UTB_SITLAttitude::Config cfg{3.25f, 3.25f, radians(90.0f)};
+    AP_UTB_SITLAttitude::Result result;
+    sample.attitude_body_to_ned = Quaternion(1, 0, 0, 0);
+    sample.attitude_valid = sample.rates_valid = true;
+    sample.sampled_us = sample.imu_updated_us = 100000;
+    sample.primary_gyro = 0;
+    EXPECT_FALSE(attitude.configure(cfg));
+    cfg.extended = true;
+    ASSERT_TRUE(attitude.configure(cfg));
+    result = attitude.update(sample, {radians(60.0f), 0, 0}, .0025f, 100010);
+    ASSERT_TRUE(result.valid);
+    EXPECT_TRUE(result.limited);
+    EXPECT_NEAR(result.rates.x, radians(90.0f), 1e-6);
+    sample.attitude_body_to_ned.from_euler(radians(45.0f), 0, 0);
+    sample.sampled_us = sample.imu_updated_us = 102500;
+    result = attitude.update(sample, {}, .0025f, 102510);
+    ASSERT_TRUE(result.valid);
+    EXPECT_LT(result.rates.x, 0);
+    sample.attitude_body_to_ned.from_euler(radians(76.0f), 0, 0);
+    sample.sampled_us = sample.imu_updated_us = 105000;
+    EXPECT_FALSE(attitude.update(sample, {}, .0025f, 105010).valid);
+    EXPECT_EQ(attitude.fault(), AP_UTB_SITLAttitude::Fault::ENVELOPE);
 }
 
 #endif // AP_UTB_RATE_SITL_AVAILABLE

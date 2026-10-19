@@ -1,0 +1,20 @@
+# Experimental SITL reference profile, not a hardware qualification.
+# Jiri Kovar, revision 2026-10-18. PID gains remain those of phase 2H.
+UTB_ENABLE 1
+UTB_SHADOW 0
+UTB_C_ENABLE 1
+UTB_A_ENABLE 1
+UTB_C_AW 1
+UTB_A_AW 1
+UTB_BF_TYPE 1
+UTB_BF_R_C 160
+UTB_BF_R_M 670
+UTB_BF_R_E 0.3
+UTB_BF_P_C 160
+UTB_BF_P_M 670
+UTB_BF_P_E 0.3
+UTB_BF_Y_C 160
+UTB_BF_Y_M 500
+UTB_BF_Y_E 0.3
+UTB_BF_ANGLE 45
+UTB_BF_ARATE 90

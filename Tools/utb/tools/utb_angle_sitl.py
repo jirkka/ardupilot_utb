@@ -59,6 +59,7 @@ class AngleSITL(ActiveSITL):
         self.send_rc = self.send_heartbeat = True
         self.expected_mode = None
         self.bench_altitude = None
+        self.pilot_tilt_limit_deg = 35
         self.telemetry = {}
         self.native_rc = False
         self.rc_socket = None
@@ -154,7 +155,7 @@ class AngleSITL(ActiveSITL):
             if self.expected_mode is not None and typ == 'HEARTBEAT':
                 assert msg.custom_mode == self.expected_mode, ('Unexpected mode', msg.custom_mode)
             if self.expected_mode in (0, 1, 42, 43) and typ == 'ATTITUDE':
-                assert max(abs(msg.roll), abs(msg.pitch)) <= math.radians(35), 'Tilt envelope'
+                assert max(abs(msg.roll), abs(msg.pitch)) <= math.radians(self.pilot_tilt_limit_deg), 'Tilt envelope'
             if self.bench_altitude is not None and typ == 'GLOBAL_POSITION_INT':
                 assert abs(msg.relative_alt * .001 - self.bench_altitude) <= 2, 'Harness altitude envelope'
                 assert abs(msg.vz) <= 50, 'Harness vertical speed envelope'

@@ -1,5 +1,19 @@
 # UTB: mapa souborů, funkcí a regulačních cest
 
+## Doplnění2I: experimentální pilotní profil
+
+| Soubor | Úloha a vazby | Rozsah |
+|---|---|---|
+| [AP_UTB_PilotRates.h](../libraries/AP_UTB/AP_UTB_PilotRates.h), [.cpp](../libraries/AP_UTB/AP_UTB_PilotRates.cpp) | Pevný AP_Param profil a čistá Actual Rates mapa; G2 var_info2 index22, stávající UTB indexy zachované. | pouze aktivníSITL; žádný motorový setter |
+| [utb_pilot_rates_sitl.py](../Tools/utb/tools/utb_pilot_rates_sitl.py) | SHA-vázaný DISARMED gate, stupňované rates/náklony, přechody a nativní failsafe; oddělený skriptovaný ruční throttle experiment. | pouze vlastní lokálníSITL |
+| [test_utb_pilot_rates.py](../Tools/utb/tests/test_utb_pilot_rates.py) | Nezávislá fyzikální mapa, expo, doména a inverze. | Python unit |
+| [actual_670_sitl.parm](../Tools/utb/profiles/actual_670_sitl.parm) | Výslovný příklad profilu, nikoli přesná kopie osobního BF nastavení nebo firmware pro FC. | pouzeSITL |
+
+Pilotní adaptér zmrazí profil při vstupu; rozšířené helper domény jsou opt-in.
+Mode41 a legacy helper defaults zůstávají původní. C++ regresní scénáře jsou
+v existujících `test_utb_acro_rc.cpp` a `test_utb_sitl_rate.cpp`.
+[Matematika, testy a neověřené rozsahy2I](UTB_PILOT_RATES_CS.md).
+
 ## Aktuální doplnění2H
 
 [Společný pilotní tune](UTB_PILOT_PID_TUNING_CS.md) popisuje `UTB_P_*` banku

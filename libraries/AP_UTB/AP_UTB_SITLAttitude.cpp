@@ -4,8 +4,8 @@
 ///  @file       AP_UTB_SITLAttitude.cpp
 ///  @brief      Vlastní reduced rotation P: error z RᵀRd·ez, common XY rate limiter, explicitní yaw body rate.
 ///  @author     Jiri Kovar
-///  @version    2026-10-17
-///  @date       2026-10-17
+///  @version    2026-10-18
+///  @date       2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@
 //--------------------------------------------------------------------------------------------------------------------
 bool AP_UTB_SITLAttitude::Config::operator==(const Config &other) const
 {
-    return roll_p <= other.roll_p && roll_p >= other.roll_p &&
+    return extended == other.extended && roll_p <= other.roll_p && roll_p >= other.roll_p &&
            pitch_p <= other.pitch_p && pitch_p >= other.pitch_p &&
            rate_max <= other.rate_max && rate_max >= other.rate_max;
 }
@@ -93,7 +93,7 @@ bool AP_UTB_SITLAttitude::configure(const Config &config)
     reset();
     if (!isfinite(config.roll_p) || !isfinite(config.pitch_p) || !isfinite(config.rate_max) ||
         config.roll_p < 1 || config.roll_p > 6 || config.pitch_p < 1 || config.pitch_p > 6 ||
-        config.rate_max < 0.05f || config.rate_max > 0.3f) {
+        config.rate_max < (config.extended ? radians(1.0f) : 0.05f) || config.rate_max > (config.extended ? radians(180.0f) : 0.3f)) {
         invalidate(Fault::CONFIG);
         return false;
     }
@@ -143,7 +143,7 @@ AP_UTB_SITLAttitude::Result AP_UTB_SITLAttitude::update(const AP_UTB_State &stat
         invalidate(Fault::STATE);
     } else if (_context && (state.imu_updated_us == _last_imu || state.primary_gyro != _gyro)) {
         invalidate(Fault::IMU);
-    } else if (ref.is_nan() || ref.is_inf() || Vector2f(ref.x, ref.y).length() > radians(5.0f) + 1.0e-7f ||
+    } else if (ref.is_nan() || ref.is_inf() || Vector2f(ref.x, ref.y).length() > radians(_config.extended ? 60.0f : 5.0f) + 1.0e-7f ||
                fabsf(ref.z) > 0.1f) {
         invalidate(Fault::REFERENCE);
     }
@@ -151,7 +151,7 @@ AP_UTB_SITLAttitude::Result AP_UTB_SITLAttitude::update(const AP_UTB_State &stat
         return out;
     }
     state.attitude_body_to_ned.to_euler(out.euler);
-    if (MAX(fabsf(out.euler.x), fabsf(out.euler.y)) > radians(35.0f)) {
+    if (MAX(fabsf(out.euler.x), fabsf(out.euler.y)) > radians(_config.extended ? 75.0f : 35.0f)) {
         invalidate(Fault::ENVELOPE);
         return {};
     }

@@ -4,8 +4,8 @@
 /// @file AP_UTB_AngleRC.cpp
 /// @brief Pilotní ANGLE reference ze skutečné AP RC normalizace, pouze SITL.
 /// @author Jiri Kovar
-/// @version 2026-10-17
-/// @date 2026-10-17
+/// @version 2026-10-18
+/// @date 2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -25,10 +25,10 @@
 /// @brief Ověřit požadované limity proti aktuálně podporované obálce.
 /// @param[in] config Úhel v ° a yaw rate v rad/s.
 /// @return True pro konečné hodnoty uvnitř podporované obálky.
-/// @details Úhlový norm limit 5° odpovídá původnímu attitude guardu.
+/// @details Legacy reference má limit 5°, explicitní experimentální reference 60°; nejde o letovou kvalifikaci.
 bool AP_UTB_AngleRC::valid_config(const Config &config)
 {
-    return isfinite(config.angle_deg) && config.angle_deg > 0 && config.angle_deg <= 5 &&
+    return isfinite(config.angle_deg) && config.angle_deg > 0 && config.angle_deg <= (config.extended ? 60 : 5) &&
            isfinite(config.yaw_rate) && config.yaw_rate > 0 && config.yaw_rate <= 0.1f;
 }
 /// @brief Rozlišit výpadek signálu od zastaralého timestampu.

@@ -5,6 +5,7 @@
 #include <AP_Common/AP_Common.h>
 #include "RC_Channel_Copter.h"
 #include <AP_Proximity/AP_Proximity.h>
+#include <AP_UTB/AP_UTB_PilotRates.h>
 
 class ModeRTL;
 
@@ -700,6 +701,9 @@ public:
     void *mode_land_ptr;
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     void *utb_ptr;
+#if AP_UTB_RATE_SITL_AVAILABLE
+    AP_UTB_PilotRates utb_pilot_rates;
+#endif
 #endif
 
 #if MODE_POSHOLD_ENABLED

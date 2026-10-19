@@ -1173,6 +1173,11 @@ const AP_Param::GroupInfo ParametersG2::var_info2[] = {
     // @Group: UTB_
     // @Path: ../libraries/AP_UTB/AP_UTB.cpp
     AP_SUBGROUPPTR(utb_ptr, "UTB_", 21, ParametersG2, AP_UTB),
+#if AP_UTB_RATE_SITL_AVAILABLE
+    // @Group: UTB_BF_
+    // @Path: ../libraries/AP_UTB/AP_UTB_PilotRates.cpp
+    AP_SUBGROUPINFO(utb_pilot_rates, "UTB_BF_", 22, ParametersG2, AP_UTB_PilotRates),
+#endif
 #endif
 
     // ID 62 is reserved for the AP_SUBGROUPEXTENSION

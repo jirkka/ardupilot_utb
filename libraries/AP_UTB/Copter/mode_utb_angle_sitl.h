@@ -18,6 +18,7 @@
 // Include Files
 //--------------------------------------------------------------------------------------------------------------------
 #include <AP_UTB/AP_UTB_AcroRC.h>
+#include <AP_UTB/AP_UTB_PilotRates.h>
 // End Include Files
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
 //====================================================================================================================
@@ -188,6 +189,7 @@ private:
     Vector2f _angle_p;
     AP_UTB_AngleRC::Config _config;
     // Frozen per-axis ACRO rate limits and ANGLE outer rate norm limit.
+    AP_UTB_PilotRates::Config _rates_profile;
     Vector3f _acro_limits;
     float _angle_rate_max = 0.3f;
     AP_UTB_AngleRC::Result _pilot;

@@ -41,3 +41,10 @@ JSON model má relativní cestu od run adresáře. Chybějící settling zůstá
 neověřený. `tests/test_utb_pilot_tuning.py` kontroluje metrické/parametrické
 kontrakty bez připojení k vozidlu.
 [Metoda, výsledky a reprodukce](../../docs/UTB_PILOT_PID_TUNING_CS.md).
+
+## Experimentální profil2I
+
+`tools/utb_pilot_rates_sitl.py` a `tests/test_utb_pilot_rates.py` ověřují Actual
+Rates a oddělené ANGLE limity. `profiles/actual_670_sitl.parm` je příklad pro
+SITL, nemění PID gains. Vyšší nastavení není automaticky dosažená rychlost.
+[Postup a konkrétní omezení](../../docs/UTB_PILOT_RATES_CS.md).

@@ -4,8 +4,8 @@
 ///  @file       test_utb_sitl_rate.cpp
 ///  @brief      Analytické/lifecycle regrese příslušné komponenty; 9 deklarovaných TEST případů.
 ///  @author     Jiri Kovar
-///  @version    2026-10-16
-///  @date       2026-10-16
+///  @version    2026-10-18
+///  @date       2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -260,6 +260,29 @@ TEST(UTBSITL, BoundedTransportDelayAndReset)
     rate.invalidate(AP_UTB_SITLRate::Fault::STATE);
     EXPECT_FLOAT_EQ(rate.transport(command, false, true).length(), 0);
 }
+/// @brief Verify opt-in high-rate bounds and restoration of mode41 limits.
+/// @param[in] None
+/// @return None; GTest reports mismatches.
+/// @details A pure envelope test does not certify tracking at these rates.
+TEST(UTBSITL, ExtendedPilotEnvelopeIsExplicitAndReset)
+{
+    // Controller and explicit fresh snapshot, without armed allocation dependencies.
+    AP_UTB_SITLRate rate;
+    AP_UTB_SITLRate::Inputs in;
+    in = inputs();
+    in.target = {radians(670.0f), radians(670.0f), radians(670.0f)};
+    in.state.rates_rads = {radians(670.0f), 0, 0};
+    ASSERT_TRUE(rate.configure(gains));
+    rate.step(in, true);
+    EXPECT_EQ(rate.fault(), AP_UTB_SITLRate::Fault::ENVELOPE);
+    ASSERT_TRUE(rate.configure(gains, true, false, true));
+    EXPECT_TRUE(rate.step(in, true).priming);
+    EXPECT_EQ(rate.fault(), AP_UTB_SITLRate::Fault::NONE);
+    ASSERT_TRUE(rate.configure(gains));
+    rate.step(in, true);
+    EXPECT_EQ(rate.fault(), AP_UTB_SITLRate::Fault::ENVELOPE);
+}
+
 #endif
 AP_GTEST_MAIN()
 

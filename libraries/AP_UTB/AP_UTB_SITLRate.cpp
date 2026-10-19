@@ -4,8 +4,8 @@
 ///  @file       AP_UTB_SITLRate.cpp
 ///  @brief      SITL rate adaptér: frozen config, čerstvost/IMU/frame/dt/envelope guard, fault latch, delay a
 ///  @author     Jiri Kovar
-///  @version    2026-10-17
-///  @date       2026-10-17
+///  @version    2026-10-18
+///  @date       2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -34,17 +34,19 @@
 ///  @param[in]  gains Per-axis controller gains.
 ///  @param[in]  allocation_feedback Allocation feedback.
 ///  @param[in]  delayed Whether to use the explicit one-cycle transport delay.
+///  @param[in]  pilot_extended Explicit pilot-only norm domain; false retains mode41 limits.
 ///  @return     bool.
 ///
 ///  @details    Public class member. Declaration/definition: bool AP_UTB_SITLRate::configure(const
-///              AP_UTB_RateController::Gains (&gains)[3], bool allocation_feedback, bool delayed).
+///              AP_UTB_RateController::Gains (&gains)[3], bool allocation_feedback, bool delayed, bool pilot_extended).
 //--------------------------------------------------------------------------------------------------------------------
-bool AP_UTB_SITLRate::configure(const AP_UTB_RateController::Gains (&gains)[3], bool allocation_feedback, bool delayed)
+bool AP_UTB_SITLRate::configure(const AP_UTB_RateController::Gains (&gains)[3], bool allocation_feedback, bool delayed, bool pilot_extended)
 {
     // Index průchodu pevnou kolekcí.
     uint8_t i;
 
     reset();
+    _pilot_extended = pilot_extended;
     _allocation_feedback = allocation_feedback;
     _delayed = delayed;
     for (i = 0; i < 3; i++) {
@@ -96,6 +98,7 @@ void AP_UTB_SITLRate::reset()
     _gyro = 255;
     _context = false;
     _configured = false;
+    _pilot_extended = false;
     _previous_command.zero();
     _feedback = {};
     _allocation_feedback = _delayed = false;
@@ -179,7 +182,8 @@ AP_UTB_RateController::Result AP_UTB_SITLRate::step(const Inputs &in, bool utb_o
         invalidate(Fault::STATE);
     } else if (_context && (in.state.imu_updated_us == _last_imu || in.state.primary_gyro != _gyro)) {
         invalidate(Fault::IMU);
-    } else if (in.target.length() > 0.6f || in.state.rates_rads.length() > 2.0f) {
+    } else if (in.target.length() > (_pilot_extended ? radians(670.0f) * sqrtf(3.0f) + 1.0e-5f : 0.6f) ||
+               in.state.rates_rads.length() > (_pilot_extended ? radians(800.0f) * sqrtf(3.0f) : 2.0f)) {
         invalidate(Fault::ENVELOPE);
     } else if (!_allocation_feedback && _context && _armed && _full_spool && in.armed && in.full_spool && in.allocation_limited) {
         invalidate(Fault::SATURATION);

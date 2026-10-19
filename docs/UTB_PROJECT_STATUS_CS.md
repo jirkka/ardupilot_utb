@@ -1,6 +1,23 @@
 # UTB: současný funkční stav
 
-Stav k **18. 10. 2026**, větev `test/skystars-5inch`.
+Stav k **19. 10. 2026**, větev `test/skystars-5inch`.
+
+FÁZE2I přidává experimentální profil `UTB_BF_TYPE=1`: Actual Rates,
+samostatné RP/Yaw maximum a citlivost středu/expo, ANGLE limit do60° a nezávislý
+rate cap. Výchozí TYPE=0 zachovává2H. [Parametry, skutečná měření a omezení](UTB_PILOT_RATES_CS.md).
+PID gains a generický3kg model zůstávají beze změny. Vyšší nastavitelná hodnota
+není automaticky prokázaná dosažená rychlost ani schválení pro hardware.
+Aktivní profily jsou pouze SITL; plné roll/pitch rotace přes180° zůstávají neověřené
+se zachovaným attitude guardem75°. Nové ověření:133 C++/156 Python a30946 nezávislých matematických vzorků;
+20 pilotních legacy sad,5 mode41/basic sad a packed SHADOW prošlo.
+RP peak přibližně659°/s u670 reference, Yaw337°/s u500 reference.
+ANGLE krátké menší kroky se vracejí; delší45° kosinusově kompenzovaný pokus
+končí vertical guardem i při náklonu44,95°. Plný45/60° rozsah není PASS.
+Yaw otáčka přes360° v obou směrech ověřena, roll/pitch flip nikoli.
+Celá letová obálka2I tedy zůstává nedokvalifikovaná.
+Následující souhrn2H je historický základ.
+
+## Ověřený základ2H
 
 FÁZE2G je lokální commit `e9a003cb532c65c0acc54b5bd4f5930d4ce0fdd8`.
 FÁZE2H obsahuje společný pilotní Rate PID přes samostatné `UTB_P_*` parametry,

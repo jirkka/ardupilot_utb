@@ -1,5 +1,13 @@
 # UTB: vlastní regulační vrstva v ArduPilot Copter
 
+FÁZE2I: [experimentální Actual Rates a rozšířený ANGLE](UTB_PILOT_RATES_CS.md).
+Nová samostatná skupina `UTB_BF_*` nabízí RP/Yaw maximum, citlivost středu a expo,
+maximální ANGLE náklon a nezávislý RP rate cap. Aktivní pouze v SITL;
+`UTB_BF_TYPE=0` je výchozí původní chování. PID gains2H se nemění.
+Níže uvedené lineární mapy a malé reference caps platí pro tento legacy profil.
+
+## Základ2H a výchozí legacy profil
+
 FÁZE2G je lokální commit `e9a003cb532c65c0acc54b5bd4f5930d4ce0fdd8`.
 FÁZE2H obsahuje společný pilotní Rate PID přes samostatné `UTB_P_*` parametry,
 ladění ANGLE P a skutečné opakované SITL ověření. Původní RAT_* konfigurace

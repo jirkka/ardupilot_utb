@@ -4,8 +4,8 @@
 ///  @file       AP_UTB_SITLRate.h
 ///  @brief      SITL rate adaptér: frozen config, čerstvost/IMU/frame/dt/envelope guard, fault latch, delay a
 ///  @author     Jiri Kovar
-///  @version    2026-10-16
-///  @date       2026-10-16
+///  @version    2026-10-18
+///  @date       2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -69,12 +69,13 @@ public:
     ///  @param[in]  gains Per-axis controller gains.
     ///  @param[in]  allocation_feedback Allocation feedback.
     ///  @param[in]  delayed Whether to use the explicit one-cycle transport delay.
+    ///  @param[in]  pilot_extended Explicit pilot-only norm domain; false retains mode41 limits.
     ///  @return     bool.
     ///
     ///  @details    Public class member. Declaration/definition: bool configure(const AP_UTB_RateController::Gains
     ///              (&gains)[3], bool allocation_feedback = false, bool delayed = false).
     //--------------------------------------------------------------------------------------------------------------------
-    bool configure(const AP_UTB_RateController::Gains (&gains)[3], bool allocation_feedback = false, bool delayed = false);
+    bool configure(const AP_UTB_RateController::Gains (&gains)[3], bool allocation_feedback = false, bool delayed = false, bool pilot_extended = false);
     //--------------------------------------------------------------------------------------------------------------------
     ///  @brief      Read the completed AP motor allocation for feedback on the next rate cycle.
     ///
@@ -194,6 +195,8 @@ private:
     Fault _fault = Fault::NONE;
     uint32_t _calls = 0;
     uint32_t _last_imu = 0;
+    // Explicit experimental pilot envelope; never enabled by mode41.
+    bool _pilot_extended = false;
     uint8_t _gyro = 255;
     bool _configured = false;
     bool _context = false;

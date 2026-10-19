@@ -33,6 +33,8 @@ public:
         // Maximum normového náklonu a tělové yaw rychlosti.
         float angle_deg;
         float yaw_rate;
+        // Explicit pilot experimental reference domain; legacy callers default false.
+        bool extended = false;
         /// @brief Inicializovat explicitní omezenou konfiguraci.
         /// @param[in] angle Maximální náklon v °.
         /// @param[in] yaw Maximální yaw rate v rad/s.
@@ -89,10 +91,10 @@ public:
         return true;
     }
     //----------------------------------------------------------------------------------------------------------------
-    /// @brief Ověřit nastavený limit uvnitř dosud validované úhlové/rate obálky.
+    /// @brief Ověřit nastavený limit uvnitř podporované matematické domény.
     /// @param[in] config Maximální normový náklon v ° a yaw rate v rad/s.
     /// @return True pouze pro konečné podporované hodnoty.
-    /// @details Nezvětšuje hard limit existujícího attitude controlleru.
+    /// @details Rozšířená doména vyžaduje explicitní opt-in; nezaručuje dosažený náklon modelu.
     static bool valid_config(const Config &config);
     /// @brief Ověřit čerstvost skutečného AP RC timestampu včetně přetečení hodin.
     /// @param[in] signal Stav signálu a existující AP timeout.

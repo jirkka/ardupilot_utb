@@ -4,8 +4,8 @@
 ///  @file       AP_UTB_SITLAttitude.h
 ///  @brief      Vlastní reduced rotation P: error z RᵀRd·ez, common XY rate limiter, explicitní yaw body rate.
 ///  @author     Jiri Kovar
-///  @version    2026-10-16
-///  @date       2026-10-16
+///  @version    2026-10-18
+///  @date       2026-10-18
 //--------------------------------------------------------------------------------------------------------------------
 /*
    This program is free software: you can redistribute it and/or modify
@@ -38,6 +38,8 @@ public:
     // Data type, constant, macro definition
     //--------------------------------------------------------------------------------------------------------------------
     struct Config {
+        // Explicit pilot-only expansion; automated mode41 keeps false.
+        bool extended = false;
         //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         // End Data type, constant, macro definition
         //====================================================================================================================

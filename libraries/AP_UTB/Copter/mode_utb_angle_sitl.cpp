@@ -55,6 +55,9 @@ bool ModeUTBAngleSITL::configuration_valid() const
     // Index porovnávané tělové osy.
     uint8_t axis;
 
+    if (!(_rates_profile == copter.g2.utb_pilot_rates.snapshot()) || !_rates_profile.valid()) {
+        return false;
+    }
     copter.utb.pilot_gains(gains);
     for (axis = 0; axis < 3; axis++) {
         if (!(gains[axis] == _pilot_gains[axis])) {
@@ -82,9 +85,11 @@ bool ModeUTBAngleSITL::configuration_valid() const
               _angle_p.y <= angle_p.y && _angle_p.y >= angle_p.y)) {
             return false;
         }
-        limits_unchanged = (_config.angle_deg <= copter.utb.angle_max() && _config.angle_deg >= copter.utb.angle_max()) &&
-                           (_config.yaw_rate <= copter.utb.angle_yaw_max() && _config.yaw_rate >= copter.utb.angle_yaw_max()) &&
-                           (_angle_rate_max <= copter.utb.angle_rate_max() && _angle_rate_max >= copter.utb.angle_rate_max());
+        limits_unchanged = (_config.yaw_rate <= copter.utb.angle_yaw_max() &&
+                            _config.yaw_rate >= copter.utb.angle_yaw_max()) &&
+                           (_rates_profile.type == 1 ||
+                            ((_config.angle_deg <= copter.utb.angle_max() && _config.angle_deg >= copter.utb.angle_max()) &&
+                             (_angle_rate_max <= copter.utb.angle_rate_max() && _angle_rate_max >= copter.utb.angle_rate_max())));
         if (!limits_unchanged || _antiwindup != copter.utb.angle_aw()) {
             return false;
         }
@@ -116,6 +121,8 @@ bool ModeUTBAngleSITL::read_pilot()
     AP_UTB_AngleRC::Signal signal;
     // Střed AP throttle mapy s neprázdnými intervaly na obě strany.
     int16_t midpoint;
+    // Axis index for the independent Actual Rates map.
+    uint8_t axis;
 
     _pilot = {};
     signal = {AP_HAL::millis(), copter.g2.rc_channels.last_input_ms(), copter.g2.rc_channels.get_fs_timeout_ms(),
@@ -149,6 +156,12 @@ bool ModeUTBAngleSITL::read_pilot()
     } else {
         _pilot = AP_UTB_AngleRC::read(*channel_roll, *channel_pitch, *channel_yaw, *channel_throttle,
                                       get_pilot_desired_throttle(), _config, signal);
+    }
+    if (_pilot.valid && mode_number() == Number::UTB_ACRO_SITL && _rates_profile.type == 1) {
+        for (axis = 0; axis < 3; axis++) {
+            _pilot.reference[axis] = AP_UTB_PilotRates::actual(_pilot.normalized[axis],
+                                     _rates_profile.center[axis], _rates_profile.maximum[axis], _rates_profile.expo[axis]);
+        }
     }
     return _pilot.valid;
 }
@@ -189,16 +202,24 @@ bool ModeUTBAngleSITL::init(bool ignore_checks)
     // Původní throttle kontext a AP hover parametr; nemění se jimi RC mapa.
     float entry_throttle;
     float ap_hover;
+    // Optional outer-loop domain; never changes gains.
+    AP_UTB_SITLAttitude::Config attitude_config;
 
     copter.utb.pilot_gains(_pilot_gains);
     _angle_p = copter.utb.pilot_angle_gains();
     _config = {copter.utb.angle_max(), copter.utb.angle_yaw_max()};
     _acro_limits = {copter.utb.acro_roll_max(), copter.utb.acro_pitch_max(), copter.utb.acro_yaw_max()};
+    _rates_profile = copter.g2.utb_pilot_rates.snapshot();
     _angle_rate_max = copter.utb.angle_rate_max();
+    if (_rates_profile.type == 1 && mode_number() != Number::UTB_ACRO_SITL) {
+        _config.angle_deg = _rates_profile.angle;
+        _config.extended = true;
+        _angle_rate_max = radians(_rates_profile.angle_rate);
+    }
     _antiwindup = mode_number() == Number::UTB_ACRO_SITL ? copter.utb.acro_aw() : copter.utb.angle_aw();
     if (!configuration_valid() || (mode_number() == Number::UTB_ACRO_SITL ?
                                    !AP_UTB_AcroRC::valid_config(_acro_limits) : !AP_UTB_AngleRC::valid_config(_config)) ||
-        _antiwindup < 0 || _antiwindup > 1 || copter.any_failsafe_triggered()) {
+        _antiwindup < 0 || _antiwindup > 1 || (_rates_profile.type == 1 && _antiwindup != 1) || copter.any_failsafe_triggered()) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry1 cfg=%u fs=%u", unsigned(configuration_valid()),
                       unsigned(copter.any_failsafe_triggered()));
         return false;
@@ -224,14 +245,16 @@ bool ModeUTBAngleSITL::init(bool ignore_checks)
         return false;
     }
     _sample.attitude_body_to_ned.to_euler(euler);
-    if (MAX(fabsf(euler.x), fabsf(euler.y)) > radians(35.0f)) {
+    if (MAX(fabsf(euler.x), fabsf(euler.y)) > radians(_rates_profile.type == 1 ? 75.0f : 35.0f)) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry4 tilt");
         return false;
     }
     copter.utb.pilot_gains(gains);
     _attitude.reset();
-    if (!AP_UTB_AngleRC::pilot_gains_valid(gains) || !_rate.configure(gains, _antiwindup == 1, false) || (mode_number() != Number::UTB_ACRO_SITL &&
-            !_attitude.configure({_angle_p.x, _angle_p.y, _angle_rate_max}))) {
+    attitude_config = {_angle_p.x, _angle_p.y, _angle_rate_max};
+    attitude_config.extended = _rates_profile.type == 1;
+    if (!AP_UTB_AngleRC::pilot_gains_valid(gains) || !_rate.configure(gains, _antiwindup == 1, false, _rates_profile.type == 1) || (mode_number() != Number::UTB_ACRO_SITL &&
+            !_attitude.configure(attitude_config))) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "UTB entry5 gains or outer limit");
         return false;
     }
@@ -421,7 +444,7 @@ void ModeUTBAngleSITL::rate_control(float dt)
                 _angle_result = {};
                 _angle_result.euler = euler;
                 _angle_result.rates = _pilot.reference;
-                _angle_result.valid = MAX(fabsf(euler.x), fabsf(euler.y)) <= radians(35.0f);
+                _angle_result.valid = MAX(fabsf(euler.x), fabsf(euler.y)) <= radians(_rates_profile.type == 1 ? 75.0f : 35.0f);
             } else {
                 _angle_result = _attitude.update(_sample, _angle_reference, dt, AP_HAL::micros());
             }
