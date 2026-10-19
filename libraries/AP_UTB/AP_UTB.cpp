@@ -292,14 +292,14 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: A_ENABLE
     // @DisplayName: SITL pilot ANGLE mode enable
-    // @Description: Enable pilot controlled UTB ANGLE only in an active-authority SITL build. Uses the verified fixed SITL PID preset. No effect or parameter on hardware targets.
+    // @Description: Enable AP-derived UTB ANGLE mode42 in active SITL builds. Controller settings use UT3_; unavailable on hardware.
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
     AP_GROUPINFO("A_ENABLE", 36, AP_UTB, _angle_enable, 0),
 
     // @Param: A_ANGLE
     // @DisplayName: SITL ANGLE maximum tilt reference
-    // @Description: Circular roll/pitch reference norm limit. Limited to the previously validated 5 degree attitude envelope. Changes while in ANGLE cause a latched stop.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Circular roll/pitch reference norm limit. Limited to the previously validated 5 degree attitude envelope. Changes while in ANGLE cause a latched stop.
     // @Units: deg
     // @Range: 0.1 5
     // @User: Advanced
@@ -307,7 +307,7 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: A_YMAX
     // @DisplayName: SITL ANGLE maximum body yaw rate
-    // @Description: Maximum absolute pilot body yaw rate. Center stick commands zero rate, not heading hold. Changes while in ANGLE cause a latched stop.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Maximum absolute pilot body yaw rate. Center stick commands zero rate, not heading hold. Changes while in ANGLE cause a latched stop.
     // @Units: rad/s
     // @Range: 0.01 0.1
     // @User: Advanced
@@ -315,21 +315,21 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: A_AW
     // @DisplayName: SITL ANGLE allocation feedback opt in
-    // @Description: Zero keeps the existing saturation-stop policy. One enables the existing validated normalized BF_X_REV allocation feedback. Changes while in ANGLE cause a latched stop.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Zero keeps the existing saturation-stop policy. One enables the existing validated normalized BF_X_REV allocation feedback. Changes while in ANGLE cause a latched stop.
     // @Values: 0:Saturation stop,1:Allocation feedback
     // @User: Advanced
     AP_GROUPINFO("A_AW", 39, AP_UTB, _angle_aw, 0),
 
     // @Param: C_ENABLE
     // @DisplayName: SITL UTB C_ENABLE
-    // @Description: Enable independent pilot UTB ACRO mode 43 only on SITL. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Description: Enable AP-derived UTB ACRO mode43 in active SITL builds. Native AP ACRO maps and UT3_ controller settings apply; unavailable on hardware.
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
     AP_GROUPINFO("C_ENABLE", 40, AP_UTB, _acro_enable, 0),
 
     // @Param: C_RMAX
     // @DisplayName: SITL UTB C_RMAX
-    // @Description: Maximum absolute pilot roll body rate. Frozen at entry; hard cap 0.15 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Maximum absolute pilot roll body rate. Frozen at entry; hard cap 0.15 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
     // @Units: rad/s
     // @Range: 0.01 0.15
     // @User: Advanced
@@ -337,7 +337,7 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: C_PMAX
     // @DisplayName: SITL UTB C_PMAX
-    // @Description: Maximum absolute pilot pitch body rate. Frozen at entry; hard cap 0.15 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Maximum absolute pilot pitch body rate. Frozen at entry; hard cap 0.15 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
     // @Units: rad/s
     // @Range: 0.01 0.15
     // @User: Advanced
@@ -345,7 +345,7 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: C_YMAX
     // @DisplayName: SITL UTB C_YMAX
-    // @Description: Maximum absolute pilot yaw body rate. Frozen at entry; hard cap 0.05 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Maximum absolute pilot yaw body rate. Frozen at entry; hard cap 0.05 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
     // @Units: rad/s
     // @Range: 0.01 0.05
     // @User: Advanced
@@ -353,14 +353,14 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: C_AW
     // @DisplayName: SITL UTB C_AW
-    // @Description: Existing allocation feedback opt in for pilot ACRO. Frozen at entry. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Existing allocation feedback opt in for pilot ACRO. Frozen at entry. Change limits outside the pilot mode. Hardware has no such parameter.
     // @Values: 0:Saturation stop,1:Allocation feedback
     // @User: Advanced
     AP_GROUPINFO("C_AW", 44, AP_UTB, _acro_aw, 0),
 
     // @Param: A_RMAX
     // @DisplayName: SITL UTB A_RMAX
-    // @Description: Maximum norm of ANGLE roll/pitch body rate target. Frozen at entry; existing hard cap 0.3 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Maximum norm of ANGLE roll/pitch body rate target. Frozen at entry; existing hard cap 0.3 rad/s. Change limits outside the pilot mode. Hardware has no such parameter.
     // @Units: rad/s
     // @Range: 0.05 0.3
     // @User: Advanced
@@ -368,35 +368,35 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: P_RLL_P
     // @DisplayName: SITL pilot RLL P
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.3
     // @User: Advanced
     AP_GROUPINFO("P_RLL_P", 46, AP_UTB, _pilot_p[0], 0.095f),
 
     // @Param: P_RLL_I
     // @DisplayName: SITL pilot RLL I
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.6
     // @User: Advanced
     AP_GROUPINFO("P_RLL_I", 47, AP_UTB, _pilot_i[0], 0.24f),
 
     // @Param: P_RLL_D
     // @DisplayName: SITL pilot RLL D
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.004
     // @User: Advanced
     AP_GROUPINFO("P_RLL_D", 48, AP_UTB, _pilot_d[0], 0.00075f),
 
     // @Param: P_RLL_IMAX
     // @DisplayName: SITL pilot RLL IMAX
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.19
     // @User: Advanced
     AP_GROUPINFO("P_RLL_IMAX", 49, AP_UTB, _pilot_imax[0], 0.19f),
 
     // @Param: P_RLL_D_HZ
     // @DisplayName: SITL pilot RLL D_HZ
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 40
     // @Units: Hz
     // @User: Advanced
@@ -404,35 +404,35 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: P_PIT_P
     // @DisplayName: SITL pilot PIT P
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.3
     // @User: Advanced
     AP_GROUPINFO("P_PIT_P", 51, AP_UTB, _pilot_p[1], 0.1425f),
 
     // @Param: P_PIT_I
     // @DisplayName: SITL pilot PIT I
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.6
     // @User: Advanced
     AP_GROUPINFO("P_PIT_I", 52, AP_UTB, _pilot_i[1], 0.24f),
 
     // @Param: P_PIT_D
     // @DisplayName: SITL pilot PIT D
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.004
     // @User: Advanced
     AP_GROUPINFO("P_PIT_D", 53, AP_UTB, _pilot_d[1], 0.0015f),
 
     // @Param: P_PIT_IMAX
     // @DisplayName: SITL pilot PIT IMAX
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.19
     // @User: Advanced
     AP_GROUPINFO("P_PIT_IMAX", 54, AP_UTB, _pilot_imax[1], 0.19f),
 
     // @Param: P_PIT_D_HZ
     // @DisplayName: SITL pilot PIT D_HZ
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 40
     // @Units: Hz
     // @User: Advanced
@@ -440,35 +440,35 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: P_YAW_P
     // @DisplayName: SITL pilot YAW P
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.3
     // @User: Advanced
     AP_GROUPINFO("P_YAW_P", 56, AP_UTB, _pilot_p[2], 0.3f),
 
     // @Param: P_YAW_I
     // @DisplayName: SITL pilot YAW I
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.6
     // @User: Advanced
     AP_GROUPINFO("P_YAW_I", 57, AP_UTB, _pilot_i[2], 0.6f),
 
     // @Param: P_YAW_D
     // @DisplayName: SITL pilot YAW D
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.004
     // @User: Advanced
     AP_GROUPINFO("P_YAW_D", 58, AP_UTB, _pilot_d[2], 0.0f),
 
     // @Param: P_YAW_IMAX
     // @DisplayName: SITL pilot YAW IMAX
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 0.19
     // @User: Advanced
     AP_GROUPINFO("P_YAW_IMAX", 59, AP_UTB, _pilot_imax[2], 0.19f),
 
     // @Param: P_YAW_D_HZ
     // @DisplayName: SITL pilot YAW D_HZ
-    // @Description: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Shared pilot ACRO and ANGLE rate gain; does not change mode41 or SHADOW. Frozen at entry; edit outside both pilot modes. D requires a positive cutoff.
     // @Range: 0 40
     // @Units: Hz
     // @User: Advanced
@@ -476,14 +476,14 @@ const AP_Param::GroupInfo AP_UTB::var_info[] = {
 
     // @Param: P_ANG_R
     // @DisplayName: SITL pilot ANGLE R attitude P
-    // @Description: Outer attitude proportional gain for pilot ANGLE only. Frozen at entry; edit outside pilot modes. Existing angle and rate reference caps remain unchanged.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Outer attitude proportional gain for pilot ANGLE only. Frozen at entry; edit outside pilot modes. Existing angle and rate reference caps remain unchanged.
     // @Range: 1 6
     // @User: Advanced
     AP_GROUPINFO("P_ANG_R", 61, AP_UTB, _pilot_angle_r, 3.25f),
 
     // @Param: P_ANG_P
     // @DisplayName: SITL pilot ANGLE P attitude P
-    // @Description: Outer attitude proportional gain for pilot ANGLE only. Frozen at entry; edit outside pilot modes. Existing angle and rate reference caps remain unchanged.
+    // @Description: Legacy pre-3A pilot setting, ignored by current modes42/43; use UT3_ and native AP pilot parameters. Historical meaning: Outer attitude proportional gain for pilot ANGLE only. Frozen at entry; edit outside pilot modes. Existing angle and rate reference caps remain unchanged.
     // @Range: 1 6
     // @User: Advanced
     AP_GROUPINFO("P_ANG_P", 62, AP_UTB, _pilot_angle_p, 3.25f),

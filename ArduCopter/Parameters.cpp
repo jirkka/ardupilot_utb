@@ -381,6 +381,12 @@ const AP_Param::Info Copter::var_info[] = {
     // @Group: ATC_
     // @Path: ../libraries/AC_AttitudeControl/AC_AttitudeControl.cpp,../libraries/AC_AttitudeControl/AC_AttitudeControl_Multi.cpp,../libraries/AC_AttitudeControl/AC_AttitudeControl_Heli.cpp
     GOBJECTVARPTR(attitude_control, "ATC_", &copter.attitude_control_var_info),
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // @Group: UT3_
+    // @Path: ../libraries/AP_UTB/UTB_Attitude.cpp,../libraries/AP_UTB/UTB_Rate.cpp
+    GOBJECTVARPTR(utb3_control, "UT3_", &copter.utb3_var_info),
+#endif
+
 
     // @Group: PSC
     // @Path: ../libraries/AC_AttitudeControl/AC_PosControl.cpp

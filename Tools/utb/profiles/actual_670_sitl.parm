@@ -1,3 +1,5 @@
+# Historical phase2I profile; not a phase3A pilot profile.
+# Current modes42/43 use native AP pilot maps and UT3_ gains; see docs/UTB_PHASE_3A_CS.md.
 # Experimental SITL reference profile, not a hardware qualification.
 # Jiri Kovar, revision 2026-10-18. PID gains remain those of phase 2H.
 UTB_ENABLE 1

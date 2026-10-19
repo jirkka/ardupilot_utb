@@ -80,6 +80,7 @@
 #include <AP_Logger/AP_Logger_UTBBench.h>
 #if AP_UTB_ENABLED
 #include <AP_UTB/AP_UTB.h>
+#include <AP_UTB/UTB_Core.h>
 #endif
 
 // Configuration
@@ -216,8 +217,8 @@ public:
 #endif
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     friend class ModeUTBRateSITL;
-    friend class ModeUTBAngleSITL;
-    friend class ModeUTBAcroSITL;
+    friend class UTB_Angle;
+    friend class UTB_Acro;
 #endif
     friend class ModeAcro_Heli;
     friend class ModeAltHold;
@@ -505,6 +506,15 @@ private:
     // Attitude, Position and Waypoint navigation objects
     // To-Do: move inertial nav up or other navigation variables down here
     AC_AttitudeControl *attitude_control;
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // Allocated once alongside the native controller; never swapped into AP's singleton.
+    UTB_Core *utb3_core = nullptr;
+    // Borrowed alias permits an independent top-level parameter group of native depth.
+    UTB_Rate *utb3_control = nullptr;
+    const AP_Param::GroupInfo *utb3_var_info = UTB_Rate::var_info;
+    bool utb3_active() const { return flightmode == &mode_utb_acro_sitl || flightmode == &mode_utb_angle_sitl; }
+#endif
+
     const struct AP_Param::GroupInfo *attitude_control_var_info;
     AC_PosControl *pos_control;
     AC_WPNav *wp_nav;
@@ -1081,8 +1091,8 @@ private:
 #endif
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     ModeUTBRateSITL mode_utb_rate_sitl;
-    ModeUTBAngleSITL mode_utb_angle_sitl;
-    ModeUTBAcroSITL mode_utb_acro_sitl;
+    UTB_Angle mode_utb_angle_sitl;
+    UTB_Acro mode_utb_acro_sitl;
 #endif
     ModeAltHold mode_althold;
 #if MODE_AUTO_ENABLED

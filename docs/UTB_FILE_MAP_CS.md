@@ -1,6 +1,11 @@
 # UTB: mapa souborů, funkcí a regulačních cest
 
-## Doplnění2I: experimentální pilotní profil
+## FÁZE3A – aktuální pilotní cesta
+
+`libraries/AP_UTB/UTB_{Core,Input,State,PID,Rate,Attitude,Output}.*` a `Copter/UTB_{Acro,Angle}.*` tvoří nový funkční řetězec. `Copter/UTB_Core.cpp` serializuje diagnostiku. [Rozhraní, původ algoritmů a stav testů](UTB_PHASE_3A_CS.md). `Tools/utb/tools/utb_native_sitl.py` je odpovídající nový runner. Níže uvedené2F–2I adaptéry jsou historické.
+
+
+## Historické doplnění2I: experimentální pilotní profil
 
 | Soubor | Úloha a vazby | Rozsah |
 |---|---|---|
@@ -14,11 +19,11 @@ Mode41 a legacy helper defaults zůstávají původní. C++ regresní scénáře
 v existujících `test_utb_acro_rc.cpp` a `test_utb_sitl_rate.cpp`.
 [Matematika, testy a neověřené rozsahy2I](UTB_PILOT_RATES_CS.md).
 
-## Aktuální doplnění2H
+## Historické doplnění2H
 
 [Společný pilotní tune](UTB_PILOT_PID_TUNING_CS.md) popisuje `UTB_P_*` banku
 v [manageru](../libraries/AP_UTB/AP_UTB.cpp) a frozen snapshots v
-[pilotním adaptéru](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp).
+historickém `mode_utb_angle_sitl.cpp` (b25e828b; nahrazeno3A).
 [Řízené experimenty](../Tools/utb/tools/utb_pilot_tuning.py) a
 [analytické unit testy](../Tools/utb/tests/test_utb_pilot_tuning.py) zůstávají
 oddělené od C++. Původní PID/mixer/attitude matematika a nativní AP cesty
@@ -63,8 +68,8 @@ je ověření konkrétního experimentu vždy v příslušném reportu.
 | Soubor | Úloha a vazby | Rozsah |
 |---|---|---|
 | [AP_UTB_AcroRC.h](../libraries/AP_UTB/AP_UTB_AcroRC.h) | AP AngleRC validace → normalizované sticks × samostatné rate limity; hard caps a failsafe policy predicate. | pouze aktivníSITL, žádné motorové setters |
-| [mode_utb_acro_sitl.h](../libraries/AP_UTB/Copter/mode_utb_acro_sitl.h) | Samostatný mode43 wrapper, sdílí pilotní lifecycle/adaptér; nevyžaduje předchozíANGLE. | pouze aktivníSITL |
-| [mode_utb_angle_sitl.cpp](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp), [.h](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.h) | Společné RC/throttle/rate/capture;42 volá attitude,43 přímé rates bez attitude update. | aktivníSITL, původní jedinýAP_Motors output |
+| `mode_utb_acro_sitl.h` (historie b25e828b) | Samostatný mode43 wrapper, sdílí pilotní lifecycle/adaptér; nevyžaduje předchozíANGLE. | pouze aktivníSITL |
+| `mode_utb_angle_sitl.cpp` (historie b25e828b), `mode_utb_angle_sitl.h` (historie b25e828b) | Společné RC/throttle/rate/capture;42 volá attitude,43 přímé rates bez attitude update. | aktivníSITL, původní jedinýAP_Motors output |
 | [AP_UTB.cpp](../libraries/AP_UTB/AP_UTB.cpp), [.h](../libraries/AP_UTB/AP_UTB.h) | Nové parametry index40–45, zachované staré indexy. | runtime parametry pouze aktivníSITL |
 | [test_utb_acro_rc.cpp](../libraries/AP_UTB/tests/test_utb_acro_rc.cpp) | SkutečnéRC_Channel, lineární rates, guards, nulovárate při náklonu a historie. | 11novýchCpp testů |
 | [utb_pilot_sitl.py](../Tools/utb/tools/utb_pilot_sitl.py) | Skutečné RC/GCS/FLTMODE, konečné scénáře a společný manuální runner. | vlastní lokálníSITL, žádný hardware endpoint |

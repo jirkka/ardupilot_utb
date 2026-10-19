@@ -1,10 +1,15 @@
 # UTB: návrh paralelní řídicí vrstvy
 
-## Aktuální doplnění2H
+Pilotní režimy42/43 nyní nahrazuje [FÁZE3A – vlastní moduly podle AP](UTB_PHASE_3A_CS.md).
+Starší pilotní návrhy zde nejsou cílovou architekturou. Historický SHADOW/mode41
+rozsah níže zůstává oddělený; aktuální ověření a omezení uvádí report3A.
+
+
+## Historické doplnění2H
 
 [Společný pilotní tune](UTB_PILOT_PID_TUNING_CS.md) popisuje `UTB_P_*` banku
 v [manageru](../libraries/AP_UTB/AP_UTB.cpp) a frozen snapshots v
-[pilotním adaptéru](../libraries/AP_UTB/Copter/mode_utb_angle_sitl.cpp).
+historickém `mode_utb_angle_sitl.cpp` (b25e828b; nahrazeno3A).
 [Řízené experimenty](../Tools/utb/tools/utb_pilot_tuning.py) a
 [analytické unit testy](../Tools/utb/tests/test_utb_pilot_tuning.py) zůstávají
 oddělené od C++. Původní PID/mixer/attitude matematika a nativní AP cesty

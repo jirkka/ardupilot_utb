@@ -1,5 +1,17 @@
 # UTB: současný funkční stav
 
+Aktuální FÁZE3A nahrazuje pilotní42/43 devíti vlastními moduly s původní
+AP matematikou. [Architektura, výsledky a omezení](UTB_PHASE_3A_CS.md).
+Nová cesta má společný Rate/PID, native rate-only ACRO a quaternion ANGLE,
+parametry UT3_, původní arming/spool/failsafe a H743 active compile-out.
+Finálních19 pilotních SITL scénářů prošlo včetně roll/pitch flipů, ±45° ANGLE,
+RC/GCS failsafe a přechodů. Hardware aktivní řízení není ověřené ani povolené.
+
+## Historické checkpointy2F–2I
+
+Následující hodnoty, BF profily, omezení a počty testů popisují původní
+experimentální implementaci, kterou pilotní3A nahrazuje. Nejsou popisem nové cesty.
+
 Stav k **19. 10. 2026**, větev `test/skystars-5inch`.
 
 FÁZE2I přidává experimentální profil `UTB_BF_TYPE=1`: Actual Rates,

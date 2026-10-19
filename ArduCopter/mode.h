@@ -146,6 +146,14 @@ public:
     virtual bool allows_autotune() const { return false; }
     virtual bool allows_flip() const { return false; }
     virtual bool crash_check_enabled() const { return true; }
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // Prepare inactive native controller history before the new mode's init reads its targets.
+    virtual void prepare_mode_change() {}
+    // Monitoring only: detectors must observe the controller that actually owns the motors.
+    virtual Vector3f monitoring_attitude_target() const;
+    virtual float monitoring_attitude_error() const;
+    virtual void monitoring_yaw_pid(float &ki, float &imax, float &integrator) const;
+#endif
     virtual bool move_vehicle_on_ekf_reset() const { return false; }
 
     // "no pilot input" here means eg. in RC failsafe
@@ -543,8 +551,8 @@ private:
 #endif
 
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
-#include <AP_UTB/Copter/mode_utb_angle_sitl.h>
-#include <AP_UTB/Copter/mode_utb_acro_sitl.h>
+#include <AP_UTB/Copter/UTB_Angle.h>
+#include <AP_UTB/Copter/UTB_Acro.h>
 #endif
 
 #if MODE_ACRO_ENABLED

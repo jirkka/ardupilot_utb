@@ -663,7 +663,11 @@ void Copter::loop_rate_logging()
 void Copter::ten_hz_logging_loop()
 {
     // always write AHRS attitude at 10Hz
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    ahrs.Write_Attitude(flightmode->monitoring_attitude_target() * RAD_TO_DEG);
+#else
     ahrs.Write_Attitude(attitude_control->get_att_target_euler_rad() * RAD_TO_DEG);
+#endif
     // log attitude controller data if we're not already logging at the higher rate
     if (should_log(MASK_LOG_ATTITUDE_MED) && !should_log(MASK_LOG_ATTITUDE_FAST) && !copter.flightmode->logs_attitude()) {
         Log_Write_Attitude();
@@ -817,6 +821,12 @@ void Copter::one_hz_loop()
     // slowly update the PID notches with the average loop rate
     if (!using_rate_thread) {
         attitude_control->set_notch_sample_rate(AP::scheduler().get_filtered_loop_rate_hz());
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        if (utb3_control != nullptr) {
+            utb3_control->set_notch_sample_rate(AP::scheduler().get_filtered_loop_rate_hz());
+        }
+#endif
+
     }
     pos_control->D_get_accel_pid().set_notch_sample_rate(AP::scheduler().get_filtered_loop_rate_hz());
 #if AC_CUSTOMCONTROL_MULTI_ENABLED

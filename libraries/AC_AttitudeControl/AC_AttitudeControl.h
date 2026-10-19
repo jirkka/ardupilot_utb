@@ -407,6 +407,11 @@ public:
     // get throttle passed into attitude controller (i.e. throttle_in provided to set_throttle_out)
     float get_throttle_in() const { return _throttle_in; }
 
+    // Seed the manual-input cache before a separate controller hands off to native position control.
+    // No motor setter or controller computation runs here.
+    void set_throttle_input_for_handoff(float input) { if (isfinite(input)) { _throttle_in = constrain_float(input, 0.0f, 1.0f); } }
+
+
     // Return throttle increase applied for tilt compensation
     float angle_boost() const { return _angle_boost; }
 

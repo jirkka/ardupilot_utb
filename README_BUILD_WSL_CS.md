@@ -469,3 +469,36 @@ Firmware nahrán a CRC/identita ověřené. Zachované motor/arming zákazy; FC
 po testu SHADOW=0 a LOG_DISARMED=0. Capture se provede před stahováním
 logu. Nový host nástroj a přesné příkazy, celý manifest, data/hashes i
 startup/download omezení: [aktuální report](docs/UTB_400_RECOVERY_20261011_CS.md).
+
+## FÁZE3A – AP-derived pilotní moduly (pouze SITL)
+
+[Architektura, odchylky a skutečný stav ověření](docs/UTB_PHASE_3A_CS.md).
+Nebyly instalovány žádné nové balíčky ani nástroje. Používá se existující
+`.venv`, astyle a `/opt/gcc-arm-none-eabi-10-2020-q4-major/bin`.
+
+```sh
+export PATH="$PWD/.venv/bin:/opt/gcc-arm-none-eabi-10-2020-q4-major/bin:$PATH"
+./waf configure --board sitl --enable-UTB --enable-UTB_RATE_SITL --enable-UTB_BENCH
+./waf copter -j6
+./waf --targets tests/test_utb_native -j6
+build/sitl/tests/test_utb_native
+# Nový adresář; flight vyžaduje úspěšný gate pro totožný SHA firmware.
+.venv/bin/python Tools/utb/tools/utb_native_sitl.py --binary build/sitl/bin/arducopter \
+  --output tmp/new-utb3-session --name disarmed --stage gate
+.venv/bin/python Tools/utb/tools/utb_native_sitl.py --binary build/sitl/bin/arducopter \
+  --output tmp/new-utb3-session --name acro-roll --stage flight --mode 43 --axis 0 --sign 1
+# H743: záměrný požadavek active flagu musí stále vyřadit aktivní řízení.
+./waf configure --board SkystarsH7HD-bdshot --enable-UTB --enable-UTB_RATE_SITL --enable-UTB_BENCH
+./waf copter -j6
+# Ostatní ověřované varianty:
+./waf configure --board SkystarsH7HD-bdshot --disable-UTB --disable-UTB_RATE_SITL --disable-UTB_BENCH
+./waf copter -j6
+./waf configure --board sitl --disable-UTB --disable-UTB_RATE_SITL --enable-UTB_BENCH
+./waf copter -j6
+./waf configure --board sitl --enable-UTB --disable-UTB_RATE_SITL --enable-UTB_BENCH
+./waf copter -j6
+```
+
+Po každé variantě archivovat binárku/APJ před další konfigurací, včetně SHA-256,
+velikosti, přesných flagů a source manifestu. H743 APJ se v této fázi nenahrává.
+Příklady nejsou hardware testovací postup. Nové42/43 jsou na H743 nedostupné.

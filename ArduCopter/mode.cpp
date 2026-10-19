@@ -443,6 +443,9 @@ bool Copter::set_mode(Mode::Number mode, ModeReason reason)
         return false;
     }
 
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    flightmode->prepare_mode_change();
+#endif
     if (!new_flightmode->init(ignore_checks)) {
         mode_change_failed(new_flightmode, "init failed");
         return false;
@@ -518,7 +521,14 @@ void Copter::update_flight_mode()
 #if AP_RANGEFINDER_ENABLED
     surface_tracking.invalidate_for_logging();  // invalidate surface tracking alt, flight mode will set to true if used
 #endif
-    attitude_control->landed_gain_reduction(copter.ap.land_complete); // Adjust gains when landed to attenuate ground oscillation
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    if (utb3_active()) {
+        utb3_control->landed_gain_reduction(copter.ap.land_complete);
+    } else
+#endif
+    {
+        attitude_control->landed_gain_reduction(copter.ap.land_complete); // Adjust gains when landed to attenuate ground oscillation
+    }
 
     // set ekf reset handling method
     pos_control->set_reset_handling_method(flightmode->move_vehicle_on_ekf_reset() ? AC_PosControl::EKFResetMethod::MoveVehicle : AC_PosControl::EKFResetMethod::MoveTarget);
@@ -1187,3 +1197,22 @@ Location Mode::get_stopping_point() const
     copter.pos_control->get_stopping_point_D_m(stopping_point_ned_m.z);
     return Location::from_ekf_offset_NED_m(stopping_point_ned_m, Location::AltFrame::ABOVE_ORIGIN);
 }
+
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+Vector3f Mode::monitoring_attitude_target() const
+{
+    return attitude_control->get_att_target_euler_rad();
+}
+
+float Mode::monitoring_attitude_error() const
+{
+    return attitude_control->get_att_error_angle_deg();
+}
+
+void Mode::monitoring_yaw_pid(float &ki, float &imax, float &integrator) const
+{
+    ki = attitude_control->get_rate_yaw_pid().kI();
+    imax = attitude_control->get_rate_yaw_pid().imax();
+    integrator = attitude_control->get_rate_yaw_pid().get_pid_info().I;
+}
+#endif

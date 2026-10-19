@@ -597,7 +597,12 @@ bool AP_Arming_Copter::arm_checks(AP_Arming::Method method)
 
     // check lean angle
     if (check_enabled(Check::INS)) {
-        if (acosf(ahrs.cos_roll()*ahrs.cos_pitch()) > copter.attitude_control->lean_angle_max_rad()) {
+        const float maximum_lean_rad =
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+            copter.utb3_active() ? copter.utb3_control->lean_angle_max_rad() :
+#endif
+            copter.attitude_control->lean_angle_max_rad();
+        if (acosf(ahrs.cos_roll()*ahrs.cos_pitch()) > maximum_lean_rad) {
             check_failed(Check::INS, true, "Leaning");
             return false;
         }
@@ -658,6 +663,15 @@ bool AP_Arming_Copter::mandatory_checks(bool display_failure)
     // Force-arm skips arm_checks(), so the phase-0 mode needs this mandatory guard.
     if (copter.flightmode->mode_number() == Mode::Number::UTB_ACRO) {
         check_failed(display_failure, "UTB phase 0 is not armable");
+        return false;
+    }
+#endif
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // Force-arm must not bypass the active controller/configuration/RC readiness checks.
+    if ((copter.flightmode->mode_number() == Mode::Number::UTB_ANGLE ||
+         copter.flightmode->mode_number() == Mode::Number::UTB_ACRO_SITL) &&
+        !copter.flightmode->allows_arming(AP_Arming::Method::MAVLINK)) {
+        check_failed(display_failure, "UTB controller is not ready");
         return false;
     }
 #endif

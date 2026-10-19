@@ -19,5 +19,11 @@ void Copter::standby_update()
 
     attitude_control->reset_rate_controller_I_terms();
     attitude_control->reset_yaw_target_and_rate();
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    if (utb3_active()) {
+        utb3_control->reset_rate_controller_I_terms();
+        utb3_control->reset_yaw_target_and_rate();
+    }
+#endif
     pos_control->NED_standby_reset();
 }

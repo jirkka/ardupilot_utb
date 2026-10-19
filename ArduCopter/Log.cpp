@@ -30,6 +30,14 @@ struct PACKED log_Control_Tuning {
 // Write a control tuning packet
 void Copter::Log_Write_Control_Tuning()
 {
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    const float throttle_input = utb3_active() ? utb3_control->get_throttle_in() : attitude_control->get_throttle_in();
+    const float boost = utb3_active() ? utb3_control->angle_boost() : attitude_control->angle_boost();
+#else
+    const float throttle_input = attitude_control->get_throttle_in();
+    const float boost = attitude_control->angle_boost();
+#endif
+
     // get terrain altitude
     float terr_alt = 0.0f;
 #if AP_TERRAIN_AVAILABLE
@@ -57,8 +65,8 @@ void Copter::Log_Write_Control_Tuning()
     struct log_Control_Tuning pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CONTROL_TUNING_MSG),
         time_us                 : AP_HAL::micros64(),
-        throttle_in             : attitude_control->get_throttle_in(),
-        angle_boost             : attitude_control->angle_boost(),
+        throttle_in             : throttle_input,
+        angle_boost             : boost,
         throttle_out            : motors->get_throttle(),
         throttle_hover          : motors->get_throttle_hover(),
         desired_alt             : des_alt_m,
@@ -80,11 +88,17 @@ void Copter::Log_Write_Control_Tuning()
 // Write an attitude packet
 void Copter::Log_Write_Attitude()
 {
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    if (utb3_active()) { utb3_control->Write_ANG(); return; }
+#endif
     attitude_control->Write_ANG();
 }
 
 void Copter::Log_Write_Rate()
 {
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    if (utb3_active()) { utb3_control->Write_Rate(*pos_control); return; }
+#endif
     attitude_control->Write_Rate(*pos_control);
 }
 
@@ -92,9 +106,18 @@ void Copter::Log_Write_Rate()
 void Copter::Log_Write_PIDS()
 {
    if (should_log(MASK_LOG_PID)) {
-        logger.Write_PID(LOG_PIDR_MSG, attitude_control->get_rate_roll_pid().get_pid_info());
-        logger.Write_PID(LOG_PIDP_MSG, attitude_control->get_rate_pitch_pid().get_pid_info());
-        logger.Write_PID(LOG_PIDY_MSG, attitude_control->get_rate_yaw_pid().get_pid_info());
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        if (utb3_active()) {
+            logger.Write_PID(LOG_PIDR_MSG, utb3_control->get_rate_roll_pid().get_pid_info());
+            logger.Write_PID(LOG_PIDP_MSG, utb3_control->get_rate_pitch_pid().get_pid_info());
+            logger.Write_PID(LOG_PIDY_MSG, utb3_control->get_rate_yaw_pid().get_pid_info());
+        } else
+#endif
+        {
+            logger.Write_PID(LOG_PIDR_MSG, attitude_control->get_rate_roll_pid().get_pid_info());
+            logger.Write_PID(LOG_PIDP_MSG, attitude_control->get_rate_pitch_pid().get_pid_info());
+            logger.Write_PID(LOG_PIDY_MSG, attitude_control->get_rate_yaw_pid().get_pid_info());
+        }
         logger.Write_PID(LOG_PIDA_MSG, pos_control->D_get_accel_pid().get_pid_info() );
         if (should_log(MASK_LOG_NTUN) && (flightmode->requires_position() || landing_with_GPS())) {
             logger.Write_PID(LOG_PIDN_MSG, pos_control->NE_get_vel_pid().get_pid_info_x());

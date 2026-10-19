@@ -1,5 +1,12 @@
 # UTB: vlastní regulační vrstva v ArduPilot Copter
 
+[FÁZE3A: AP-derived vlastní moduly, výsledky a omezení](UTB_PHASE_3A_CS.md) nahrazuje dosavadní pilotní42/43; starší reporty2F–2I jsou historické.
+
+
+## Historický pilotní návrh2F–2I
+
+Následující pilotní mapy a gains nejsou aktivní cestou3A.
+
 FÁZE2I: [experimentální Actual Rates a rozšířený ANGLE](UTB_PILOT_RATES_CS.md).
 Nová samostatná skupina `UTB_BF_*` nabízí RP/Yaw maximum, citlivost středu a expo,
 maximální ANGLE náklon a nezávislý RP rate cap. Aktivní pouze v SITL;

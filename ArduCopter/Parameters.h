@@ -205,6 +205,7 @@ public:
         k_param_circle_nav,
         k_param_loiter_nav,     // 105
         k_param_custom_control,
+        k_param_utb3_control = 107, // new root group; existing keys are unchanged
 
         // 110: Telemetry control
         //

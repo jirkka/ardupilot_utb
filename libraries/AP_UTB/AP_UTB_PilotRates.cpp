@@ -21,81 +21,81 @@
 const AP_Param::GroupInfo AP_UTB_PilotRates::var_info[] = {
     // @Param: TYPE
     // @DisplayName: SITL pilot TYPE
-    // @Description: Select Actual Rates and expanded pilot envelopes in SITL only. Edit outside pilot modes. Legacy C/A limits remain stored and unchanged.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Select Actual Rates and expanded pilot envelopes in SITL only. Edit outside pilot modes. Legacy C/A limits remain stored and unchanged.
     // @Range: 0 1
     // @Values: 0:Legacy,1:Actual experimental
     // @User: Advanced
     AP_GROUPINFO("TYPE", 1, AP_UTB_PilotRates, _type, 0),
     // @Param: R_C
     // @DisplayName: SITL pilot R_C
-    // @Description: Actual Rates center slope.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates center slope.
     // @Range: 0 670
     // @Units: deg/s
     // @User: Advanced
     AP_GROUPINFO("R_C", 2, AP_UTB_PilotRates, _center[0], 160),
     // @Param: R_M
     // @DisplayName: SITL pilot R_M
-    // @Description: Actual Rates full-stick request; must be at least center. Not a validated achieved rate.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates full-stick request; must be at least center. Not a validated achieved rate.
     // @Range: 1 670
     // @Units: deg/s
     // @User: Advanced
     AP_GROUPINFO("R_M", 3, AP_UTB_PilotRates, _maximum[0], 670),
     // @Param: R_E
     // @DisplayName: SITL pilot R_E
-    // @Description: Actual Rates expo fraction; 0.3 corresponds to 30 percent.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates expo fraction; 0.3 corresponds to 30 percent.
     // @Range: 0 1
     // @User: Advanced
     AP_GROUPINFO("R_E", 4, AP_UTB_PilotRates, _expo[0], 0.3),
     // @Param: P_C
     // @DisplayName: SITL pilot P_C
-    // @Description: Actual Rates center slope.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates center slope.
     // @Range: 0 670
     // @Units: deg/s
     // @User: Advanced
     AP_GROUPINFO("P_C", 5, AP_UTB_PilotRates, _center[1], 160),
     // @Param: P_M
     // @DisplayName: SITL pilot P_M
-    // @Description: Actual Rates full-stick request; must be at least center. Not a validated achieved rate.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates full-stick request; must be at least center. Not a validated achieved rate.
     // @Range: 1 670
     // @Units: deg/s
     // @User: Advanced
     AP_GROUPINFO("P_M", 6, AP_UTB_PilotRates, _maximum[1], 670),
     // @Param: P_E
     // @DisplayName: SITL pilot P_E
-    // @Description: Actual Rates expo fraction; 0.3 corresponds to 30 percent.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates expo fraction; 0.3 corresponds to 30 percent.
     // @Range: 0 1
     // @User: Advanced
     AP_GROUPINFO("P_E", 7, AP_UTB_PilotRates, _expo[1], 0.3),
     // @Param: Y_C
     // @DisplayName: SITL pilot Y_C
-    // @Description: Actual Rates center slope.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates center slope.
     // @Range: 0 670
     // @Units: deg/s
     // @User: Advanced
     AP_GROUPINFO("Y_C", 8, AP_UTB_PilotRates, _center[2], 160),
     // @Param: Y_M
     // @DisplayName: SITL pilot Y_M
-    // @Description: Actual Rates full-stick request; must be at least center. Not a validated achieved rate.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates full-stick request; must be at least center. Not a validated achieved rate.
     // @Range: 1 670
     // @Units: deg/s
     // @User: Advanced
     AP_GROUPINFO("Y_M", 9, AP_UTB_PilotRates, _maximum[2], 500),
     // @Param: Y_E
     // @DisplayName: SITL pilot Y_E
-    // @Description: Actual Rates expo fraction; 0.3 corresponds to 30 percent.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Actual Rates expo fraction; 0.3 corresponds to 30 percent.
     // @Range: 0 1
     // @User: Advanced
     AP_GROUPINFO("Y_E", 10, AP_UTB_PilotRates, _expo[2], 0.3),
     // @Param: ANGLE
     // @DisplayName: SITL pilot ANGLE
-    // @Description: Experimental ANGLE circular reference limit. Vertical and attitude guards still apply.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: Experimental ANGLE circular reference limit. Vertical and attitude guards still apply.
     // @Range: 1 60
     // @Units: deg
     // @User: Advanced
     AP_GROUPINFO("ANGLE", 11, AP_UTB_PilotRates, _angle, 45),
     // @Param: ARATE
     // @DisplayName: SITL pilot ARATE
-    // @Description: ANGLE RP body-rate norm cap; independent of maximum angle and ACRO rates.
+    // @Description: Legacy optional pre-3A profile, not connected to current pilot modes42/43. Historical meaning: ANGLE RP body-rate norm cap; independent of maximum angle and ACRO rates.
     // @Range: 1 180
     // @Units: deg/s
     // @User: Advanced

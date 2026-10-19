@@ -4,8 +4,8 @@
 /// @file utb_angle_log.h
 /// @brief Pevná RC a režimová evidence pilotního ANGLE experimentu, pouze SITL.
 /// @author Jiri Kovar
-/// @version 2026-10-17
-/// @date 2026-10-17
+/// @version 2026-10-19
+/// @date 2026-10-19
 //--------------------------------------------------------------------------------------------------------------------
 #pragma once
 /*
@@ -33,15 +33,15 @@
 // @Field: NP: Actual AP calibrated and reversed normalized pitch with deadband
 // @Field: NY: Actual AP calibrated and reversed normalized yaw with deadband
 // @Field: Thr: AP manual throttle map output from the same pilot sample
-// @Field: Out: Manual throttle handed to AP after spool and fault guards
+// @Field: Out: Manual throttle before native ANGLE angle boost, after spool and internal validation
 // @Field: V: Pilot snapshot valid
-// @Field: RCF: RC reason 0 none 1 config 2 signal 3 stale 4 calibration 5 range 6 throttle
-// @Field: Stop: Latched mode reason 0 none 1 config 2 RC 3 state 4 attitude 5 rate 6 vertical 7 failsafe
-// @Field: Md: Actual pilot mode number 42
+// @Field: RCF: Legacy RC reason; UTB3A 0 valid 1 AP RC input unavailable
+// @Field: Stop: Legacy stop code; UTB3A 0 valid 255 current state/output invalid, not a latched stop
+// @Field: Md: Actual pilot mode number 42 ANGLE or 43 ACRO
 // @Field: Age: Age of the sampled AP RC data in milliseconds
-// @Field: Mix: Explicit AP manual throttle versus attitude headroom mix
-// @Field: Log: Previous post-output capture and log callback host duration in microseconds
-// @Field: Run: Last pilot mode run host duration in microseconds
+// @Field: Mix: Native AP throttle versus attitude headroom mix
+// @Field: Log: Legacy post-output callback host duration microseconds; UTB3A reserved zero
+// @Field: Run: Legacy mode-run host duration microseconds; UTB3A reserved zero
 struct PACKED log_UARC {
     LOG_PACKET_HEADER;
     uint64_t time_us;

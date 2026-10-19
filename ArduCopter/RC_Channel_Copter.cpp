@@ -617,7 +617,14 @@ bool RC_Channel_Copter::do_aux_function(const AuxFuncTrigger &trigger)
         case AUX_FUNC::AIRMODE:
             do_aux_function_change_air_mode(ch_flag);
 #if MODE_ACRO_ENABLED && FRAME_CONFIG != HELI_FRAME
-            copter.mode_acro.air_mode_aux_changed();
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+            if (copter.utb3_active() && copter.flightmode->mode_number() == Mode::Number::UTB_ACRO_SITL) {
+                copter.mode_utb_acro_sitl.air_mode_aux_changed();
+            } else
+#endif
+            {
+                copter.mode_acro.air_mode_aux_changed();
+            }
 #endif
             break;
 
@@ -803,10 +810,15 @@ void RC_Channels_Copter::auto_trim_run()
             return;
         }
         // calculate roll trim adjustment, divisor set subjectively to give same "feel" as previous RC input method
-        float roll_trim_adjustment_rad = copter.attitude_control->get_att_target_euler_rad().x / 20.0f;
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        const Vector3f trim_target = copter.flightmode->monitoring_attitude_target();
+#else
+        const Vector3f trim_target = copter.attitude_control->get_att_target_euler_rad();
+#endif
+        float roll_trim_adjustment_rad = trim_target.x / 20.0f;
 
         // calculate pitch trim adjustment, divisor set subjectively to give same "feel" as previous RC input method
-        float pitch_trim_adjustment_rad = copter.attitude_control->get_att_target_euler_rad().y / 20.0f;
+        float pitch_trim_adjustment_rad = trim_target.y / 20.0f;
 
         // add trim to ahrs object, but do not save to permanent storage:
         AP::ahrs().add_trim(roll_trim_adjustment_rad, pitch_trim_adjustment_rad, false);

@@ -6,8 +6,8 @@
 # @file utb_angle_sitl.py
 # @brief Skutečné RC override vstupy do vlastního lokálního SITL procesu a analýza ANGLE.
 # @author Jiri Kovar
-# @version 2026-10-18
-# @date 2026-10-18
+# @version 2026-10-19
+# @date 2026-10-19
 # --------------------------------------------------------------------------------------------------------------------
 # Include Files
 import argparse
@@ -60,6 +60,11 @@ class AngleSITL(ActiveSITL):
         self.expected_mode = None
         self.bench_altitude = None
         self.pilot_tilt_limit_deg = 35
+        self.pilot_gyro_limit_rads = 2.0
+        self.pilot_min_height_m = 0
+        self.pilot_altitude_delta_m = 2
+        self.pilot_vertical_speed_mps = .5
+        self.takeoff_height_m = 10
         self.telemetry = {}
         self.native_rc = False
         self.rc_socket = None
@@ -155,10 +160,16 @@ class AngleSITL(ActiveSITL):
             if self.expected_mode is not None and typ == 'HEARTBEAT':
                 assert msg.custom_mode == self.expected_mode, ('Unexpected mode', msg.custom_mode)
             if self.expected_mode in (0, 1, 42, 43) and typ == 'ATTITUDE':
+                assert all(math.isfinite(x) for x in (msg.roll, msg.pitch, msg.yaw, msg.rollspeed,
+                                                      msg.pitchspeed, msg.yawspeed)), 'Nonfinite attitude telemetry'
                 assert max(abs(msg.roll), abs(msg.pitch)) <= math.radians(self.pilot_tilt_limit_deg), 'Tilt envelope'
+                assert math.sqrt(msg.rollspeed**2 + msg.pitchspeed**2 + msg.yawspeed**2) <= self.pilot_gyro_limit_rads, \
+                    'Harness gyro envelope'
             if self.bench_altitude is not None and typ == 'GLOBAL_POSITION_INT':
-                assert abs(msg.relative_alt * .001 - self.bench_altitude) <= 2, 'Harness altitude envelope'
-                assert abs(msg.vz) <= 50, 'Harness vertical speed envelope'
+                assert msg.relative_alt * .001 >= self.pilot_min_height_m, 'Harness minimum height'
+                assert abs(msg.relative_alt * .001 - self.bench_altitude) <= self.pilot_altitude_delta_m, \
+                    'Harness altitude envelope'
+                assert abs(msg.vz) * .01 <= self.pilot_vertical_speed_mps, 'Harness vertical speed envelope'
             if typ == kind and predicate(msg):
                 return msg
         raise AssertionError('Timeout waiting for ' + kind)
@@ -387,8 +398,8 @@ def prepare_flight(sim):
     sim.mode(4, 4)
     sim.standard_arm()
     sim.throttle = 1500
-    assert sim.command(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, 10) == 0
-    sim.wait('GLOBAL_POSITION_INT', lambda m: m.relative_alt >= 9700, timeout=45)
+    assert sim.command(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, sim.takeoff_height_m) == 0
+    sim.wait('GLOBAL_POSITION_INT', lambda m: m.relative_alt >= (sim.takeoff_height_m - .3) * 1000, timeout=45)
     sim.duration(4)
     sim.wait('ATTITUDE', lambda m: max(abs(m.rollspeed), abs(m.pitchspeed), abs(m.yawspeed)) < .03
              and max(abs(m.roll), abs(m.pitch)) < math.radians(3), timeout=15)

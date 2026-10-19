@@ -102,6 +102,9 @@ void Copter::init_ardupilot()
 #endif
 
     attitude_control->parameter_sanity_check();
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb3_control->parameter_sanity_check();
+#endif
 
 #if AP_OPTICALFLOW_ENABLED
     // initialise optical flow sensor
@@ -467,6 +470,16 @@ void Copter::allocate_motors(void)
         AP_BoardConfig::allocation_error("AttitudeControl");
     }
     AP_Param::load_object_from_eeprom(attitude_control, attitude_control_var_info);
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb3_core = NEW_NOTHROW UTB_Core(*ahrs_view, *motors);
+    if (utb3_core == nullptr) {
+        AP_BoardConfig::allocation_error("UTB_Core");
+    }
+    utb3_control = &utb3_core->rate;
+    AP_Param::load_object_from_eeprom(utb3_control, utb3_var_info);
+    utb3_control->set_notch_sample_rate(AP::scheduler().get_loop_rate_hz());
+#endif
+
         
     pos_control = NEW_NOTHROW AC_PosControl(*ahrs_view, *motors, *attitude_control);
     if (pos_control == nullptr) {

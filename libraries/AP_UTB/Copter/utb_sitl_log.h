@@ -34,13 +34,13 @@
 // @Field: TimeUS: INS/control sample time since boot
 // @Field: Seq: Mode-local scheduler cycle
 // @Field: Ax: Body axis 0 roll 1 pitch 2 yaw
-// @Field: Own: Fixed owner 1 UTB 2 AP comparison
-// @Field: Flt: Latched AP_UTB_SITLRate fault
+// @Field: Own: Owner 1 legacy UTB 2 AP comparison 3 AP-derived UTB3A
+// @Field: Flt: Legacy latched AP_UTB_SITLRate fault; UTB3A 0 valid 255 current data/output invalid
 // @Field: Arm: Simulator armed state
 // @Field: Spl: AP_Motors spool state
 // @Field: Dt: Actual virtual scheduler interval seconds
 // @Field: Ref: RATE-only raw previous-mode-update reference; attitude mode selected body rate target (angles in UAAT)
-// @Field: Tar: Body rate target used this sample; AP shaping only in RATE-only or explicit AP attitude comparison
+// @Field: Tar: Body rate target used this sample; AP shaping in RATE-only/AP comparison; UTB3A uses its own AP-derived shaping
 // @Field: Gyr: Actual AHRS primary gyro radians per second
 // @Field: P: Actual selected controller proportional term
 // @Field: I: Actual selected controller integral term
@@ -57,8 +57,8 @@ struct PACKED log_UARX {
 // @Description: SITL-only outputs read after the single existing AP_Motors chain
 // @Field: TimeUS: Matching UARX control sample time
 // @Field: Seq: Matching UARX sequence
-// @Field: Ph: 0 waiting 1 running 2 complete 3 latched fault
-// @Field: Flt: Latched AP_UTB_SITLRate fault
+// @Field: Ph: 0 disarmed/waiting 1 running 2 legacy complete 3 invalid or legacy latched fault
+// @Field: Flt: Legacy latched AP_UTB_SITLRate fault; UTB3A 0 valid 255 current data/output invalid
 // @Field: C1: Actual simulated channel 1 PWM
 // @Field: C2: Actual simulated channel 2 PWM
 // @Field: C3: Actual simulated channel 3 PWM
@@ -67,10 +67,10 @@ struct PACKED log_UARX {
 // @Field: M2: Raw normalized AP_Motors actuator 2
 // @Field: M3: Raw normalized AP_Motors actuator 3
 // @Field: M4: Raw normalized AP_Motors actuator 4
-// @Field: APN: AP rate PID invocation count in this mode
-// @Field: UN: UTB rate PID invocation count in this mode
+// @Field: APN: Legacy AP rate PID invocation count; UTB3A zero denotes excluded native dispatch, not an independent call probe
+// @Field: UN: Legacy UTB rate PID invocation count; UTB3A rate-slot attempt count, inspect Flt for validity
 // @Field: MN: Existing motor output callback count in this mode
-// @Field: Ex: Rate slot host steady-clock duration microseconds, not virtual dt
+// @Field: Ex: Legacy rate-slot host duration microseconds, not virtual dt; UTB3A reserved zero
 struct PACKED log_UAMT {
     LOG_PACKET_HEADER;
     uint64_t time_us;

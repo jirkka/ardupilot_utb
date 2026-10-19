@@ -10,6 +10,7 @@
 # @date 2026-10-18
 # --------------------------------------------------------------------------------------------------------------------
 # Include Files
+# Standalone scenarios below target historical2G; current3A runner: utb_native_sitl.py.
 import argparse
 import hashlib
 from functools import partial

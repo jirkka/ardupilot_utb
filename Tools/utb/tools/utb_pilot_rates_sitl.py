@@ -9,6 +9,7 @@
 # GNU General Public License version 3 or later.
 # ----------------------------------------------------------------------------------------------------
 # Include Files
+# Historical2I scenarios/profile; current3A pilot validation: utb_native_sitl.py.
 import argparse
 import hashlib
 import json
@@ -115,6 +116,7 @@ def inverse_actual(desired, center, maximum):
 # @details Only expected firmware attitude/vertical stops are recorded as unsupported maneuvers.
 def rate_ladder(sim):
     sim.pilot_tilt_limit_deg = 75
+    sim.pilot_gyro_limit_rads = math.radians(800) * math.sqrt(3)
     angle.prepare_flight(sim)
     tuning.recover(sim)
     for maximum in (90, 180, 360, 670):
@@ -141,6 +143,7 @@ def rate_ladder(sim):
 # @details Guard-limited cases remain explicitly unsupported, followed by native recovery.
 def angle_ladder(sim):
     sim.pilot_tilt_limit_deg = 75
+    sim.pilot_gyro_limit_rads = math.radians(800) * math.sqrt(3)
     angle.prepare_flight(sim)
     tuning.recover(sim)
     for degrees in (10, 20, 30, 45, 60):
@@ -190,6 +193,7 @@ def manual_throttle_pwm(collective, hover):
 # @details Test-input generator only: no height/position feedback, firmware angle boost or UTB altitude controller.
 def angle_throttle(sim, target, axis, sign):
     sim.pilot_tilt_limit_deg = 75
+    sim.pilot_gyro_limit_rads = math.radians(800) * math.sqrt(3)
     assert sim.command(mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
                        mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 20000) == 0
     angle.prepare_flight(sim)
@@ -247,6 +251,7 @@ def angle_throttle(sim, target, axis, sign):
 # @details Global scenario. Standard vertical/health/envelope guards remain enforced.
 def probe(sim, mode, axis, sign, hold):
     sim.pilot_tilt_limit_deg = 75
+    sim.pilot_gyro_limit_rads = math.radians(800) * math.sqrt(3)
     angle.prepare_flight(sim)
     tuning.recover(sim)
     sim.select(mode, armed=True, settle=False)
@@ -263,6 +268,7 @@ def probe(sim, mode, axis, sign, hold):
 # @details Global scenario retains manual throttle and ends in explicit native recovery.
 def switching(sim):
     sim.pilot_tilt_limit_deg = 75
+    sim.pilot_gyro_limit_rads = math.radians(800) * math.sqrt(3)
     angle.prepare_flight(sim)
     tuning.recover(sim)
     sim.select(43, armed=True, settle=False)

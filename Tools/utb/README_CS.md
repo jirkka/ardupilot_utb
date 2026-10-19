@@ -1,5 +1,8 @@
 # UTB: Python nástroje a testy
 
+Aktuální3A runner: `tools/utb_native_sitl.py`; [rozhraní a stav ověření](../../docs/UTB_PHASE_3A_CS.md). Starší pilotní runnery ověřují historické implementace2F–2I.
+
+
 Python je oddělený od [C++ knihovny](../../libraries/AP_UTB/README_CS.md).
 [Hlavní přehled](../../docs/UTB_README_CS.md) a
 [mapa souborů](../../docs/UTB_FILE_MAP_CS.md) popisují návaznosti.

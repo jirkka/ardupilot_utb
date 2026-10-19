@@ -70,7 +70,11 @@ void Copter::crash_check()
     }
 
     // check for angle error over 30 degrees
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    const float angle_error = flightmode->monitoring_attitude_error();
+#else
     const float angle_error = attitude_control->get_att_error_angle_deg();
+#endif
     if (angle_error <= CRASH_CHECK_ANGLE_DEVIATION_DEG) {
         crash_counter = 0;
         return;
@@ -124,7 +128,11 @@ void Copter::thrust_loss_check()
 
     // check for desired angle over 15 degrees
     // todo: add thrust angle to AC_AttitudeControl
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    const Vector3f angle_target_rad = flightmode->monitoring_attitude_target();
+#else
     const Vector3f& angle_target_rad = attitude_control->get_att_target_euler_rad();
+#endif
     if (angle_target_rad.xy().length_squared() > sq(THRUST_LOSS_CHECK_ANGLE_DEVIATION_RAD)) {
         thrust_loss_counter = 0;
         return;
@@ -151,7 +159,11 @@ void Copter::thrust_loss_check()
     }
 
     // check for angle error over 30 degrees to ensure the aircraft has attitude control
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    const float angle_error = flightmode->monitoring_attitude_error();
+#else
     const float angle_error = attitude_control->get_att_error_angle_deg();
+#endif
     if (angle_error >= CRASH_CHECK_ANGLE_DEVIATION_DEG) {
         thrust_loss_counter = 0;
         return;
@@ -188,8 +200,18 @@ void Copter::yaw_imbalance_check()
         return;
     }
 
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    float yaw_ki, yaw_imax, yaw_integrator;
+    flightmode->monitoring_yaw_pid(yaw_ki, yaw_imax, yaw_integrator);
+#endif
     // If I is disabled it is unlikely that the issue is not obvious
-    if (!is_positive(attitude_control->get_rate_yaw_pid().kI())) {
+    if (!is_positive(
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+            yaw_ki
+#else
+            attitude_control->get_rate_yaw_pid().kI()
+#endif
+        )) {
         return;
     }
 
@@ -212,14 +234,23 @@ void Copter::yaw_imbalance_check()
     }
 
     // magnitude of low pass filtered I term
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    const float I_term = yaw_integrator;
+    const float I = fabsf(yaw_I_filt.apply(I_term,G_Dt));
+#else
     const float I_term = attitude_control->get_rate_yaw_pid().get_pid_info().I;
     const float I = fabsf(yaw_I_filt.apply(attitude_control->get_rate_yaw_pid().get_pid_info().I,G_Dt));
+#endif
     if (I > fabsf(I_term)) {
         // never allow to be larger than I
         yaw_I_filt.reset(I_term);
     }
 
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    const float I_max = yaw_imax;
+#else
     const float I_max = attitude_control->get_rate_yaw_pid().imax();
+#endif
     if ((is_positive(I_max) && ((I > YAW_IMBALANCE_IMAX_THRESHOLD * I_max) || (is_equal(I_term,I_max))))) {
         // filtered using over percentage of I max or unfiltered = I max
         // I makes up more than percentage of total available control power
@@ -297,7 +328,11 @@ void Copter::parachute_check()
     parachute.check_sink_rate();
 
     // check for angle error over 30 degrees
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    const float angle_error = flightmode->monitoring_attitude_error();
+#else
     const float angle_error = attitude_control->get_att_error_angle_deg();
+#endif
     if (angle_error <= PARACHUTE_CHECK_ANGLE_DEVIATION_DEG) {
         if (control_loss_count > 0) {
             control_loss_count--;

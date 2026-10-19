@@ -111,12 +111,20 @@ void Copter::update_land_detector()
 #endif
 
         // check for aggressive flight requests - requested roll or pitch angle below 15 degrees
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        const Vector3f angle_target_rad = flightmode->monitoring_attitude_target();
+#else
         const Vector3f& angle_target_rad = attitude_control->get_att_target_euler_rad();
+#endif
         bool large_angle_request = angle_target_rad.xy().length_squared() > sq(LAND_CHECK_LARGE_ANGLE_RAD);
         SET_LOG_FLAG(large_angle_request, LandDetectorLoggingFlag::LARGE_ANGLE_REQUEST);
 
         // check for large external disturbance - angle error over 30 degrees
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+        const float angle_error = flightmode->monitoring_attitude_error();
+#else
         const float angle_error = attitude_control->get_att_error_angle_deg();
+#endif
         bool large_angle_error = (angle_error > LAND_CHECK_ANGLE_ERROR_DEG);
         SET_LOG_FLAG(large_angle_error, LandDetectorLoggingFlag::LARGE_ANGLE_ERROR);
 
@@ -280,6 +288,13 @@ void Copter::set_land_complete_maybe(bool b)
 //  has no effect when throttle is above hover throttle
 void Copter::update_throttle_mix()
 {
+#if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    if (utb3_active()) {
+        utb3_core->update_mix(motors->armed(), ap.land_complete, channel_throttle->get_control_in() <= 0, air_mode == AirMode::AIRMODE_ENABLED);
+        return;
+    }
+#endif
+
 #if FRAME_CONFIG != HELI_FRAME
     // if disarmed or landed prioritise throttle
     if (!motors->armed() || ap.land_complete) {
