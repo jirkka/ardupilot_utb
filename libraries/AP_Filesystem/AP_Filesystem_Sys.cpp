@@ -19,6 +19,7 @@
  */
 #include "AP_Filesystem.h"
 #include <AP_UTB/AP_UTB_Timing.h>
+#include <AP_UTB/AP_UTB_ChainShadow.h>
 #include "AP_Filesystem_Sys.h"
 
 #if AP_FILESYSTEM_SYS_ENABLED
@@ -50,6 +51,9 @@ static const SysFileList sysfs_file_list[] = {
 #endif
 #if AP_UTB_ATTITUDE_SHADOW_ENABLED && APM_BUILD_TYPE(APM_BUILD_ArduCopter) && AP_UTB_ENABLED
     {"utb_attitude_shadow.txt"},
+#endif
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    {"utb_chain_shadow.txt"},
 #endif
     {"threads.txt"},
     {"tasks.txt"},
@@ -118,6 +122,11 @@ int AP_Filesystem_Sys::open(const char *fname, int flags, bool allow_absolute_pa
         return -1;
     }
 
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (strcmp(fname, "utb_chain_shadow.txt") == 0) {
+        AP_UTB_ChainShadow::dump(*r.str);
+    }
+#endif
 #if AP_UTB_TIMING_ENABLED
     if (strcmp(fname, "utb_timing.txt") == 0) {
         AP_UTB_Timing::dump(*r.str);

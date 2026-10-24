@@ -4,6 +4,7 @@
 /// @author Jiri Kovar
 /// @version 2026-10-23
 #include "AP_UTB_AttitudeShadow.h"
+#include "AP_UTB_ChainShadow.h"
 #if AP_UTB_ATTITUDE_SHADOW_AVAILABLE
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Common/ExpandingString.h>
@@ -383,23 +384,71 @@ namespace UTBAttitudeCapture
 {
 bool enabled()
 {
-    return AP_UTB_AttitudeShadow::enabled();
+    return AP_UTB_AttitudeShadow::enabled()
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+           || AP_UTB_ChainShadow::enabled()
+#endif
+           ;
 }
 void before(Command k, const Vector3f &c, bool reset, const Config &config, const Sensors &sensors, const History &history)
 {
-    AP_UTB_AttitudeShadow::before(k, c, reset, config, sensors, history);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_AttitudeShadow::enabled()) {
+#endif
+        AP_UTB_AttitudeShadow::before(k, c, reset, config, sensors, history);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    }
+#endif
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_ChainShadow::enabled()) {
+        AP_UTB_ChainShadow::get_singleton()->before_attitude(k, c, reset, config, sensors, history);
+    }
+#endif
 }
 void after(const History &h)
 {
-    AP_UTB_AttitudeShadow::after(h);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_AttitudeShadow::enabled()) {
+#endif
+        AP_UTB_AttitudeShadow::after(h);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    }
+#endif
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_ChainShadow::enabled()) {
+        AP_UTB_ChainShadow::get_singleton()->after_attitude(h);
+    }
+#endif
 }
 void audit(bool changed)
 {
-    AP_UTB_AttitudeShadow::audit(changed);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_AttitudeShadow::enabled()) {
+#endif
+        AP_UTB_AttitudeShadow::audit(changed);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    }
+#endif
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_ChainShadow::enabled()) {
+        AP_UTB_ChainShadow::get_singleton()->audit(changed);
+    }
+#endif
 }
 void capture_time(bool post, uint32_t elapsed_us)
 {
-    AP_UTB_AttitudeShadow::capture_time(post, elapsed_us);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_AttitudeShadow::enabled()) {
+#endif
+        AP_UTB_AttitudeShadow::capture_time(post, elapsed_us);
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    }
+#endif
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (AP_UTB_ChainShadow::enabled()) {
+        AP_UTB_ChainShadow::get_singleton()->capture_time(post, elapsed_us);
+    }
+#endif
 }
 }
 #endif

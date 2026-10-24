@@ -199,6 +199,9 @@ void UTB_RateShadow::process(const Frame &frame)
     }
     math_start_us = AP_HAL::micros();
     output = UTB_Rate::shadow_rate_step(_pid, frame.input);
+#if AP_UTB_CHAIN_SHADOW_ENABLED
+    _output = output;
+#endif
     math_us = AP_HAL::micros() - math_start_us;
     // Reject the entire diagnostic result before accumulating any metrics.
     for (uint8_t axis = 0; axis < 3; axis++) {

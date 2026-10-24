@@ -48,11 +48,25 @@ public:
     {
         return _continuous;
     }
+#if AP_UTB_CHAIN_SHADOW_ENABLED
+    // Value-only observation for the integrated passive consumer.
+    const UTB_Rate::ShadowOutput &output() const
+    {
+        return _output;
+    }
+    AC_PID_Shadow history(uint8_t axis) const
+    {
+        return _pid[axis].shadow_snapshot();
+    }
+#endif
     static bool same_history(const AC_PID_Shadow &a, const AC_PID_Shadow &b);
 private:
     // One independent history per axis; never reconstructed in the fast path.
     UTB_PID _pid[3] {{0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}};
     Statistics _stats {};
+#if AP_UTB_CHAIN_SHADOW_ENABLED
+    UTB_Rate::ShadowOutput _output;
+#endif
     bool _continuous = false, _synchronized = false;
     uint32_t _last_seq = 0;
     uint8_t _last_mode = 0, _last_gyro = 0;

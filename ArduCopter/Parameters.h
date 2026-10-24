@@ -393,6 +393,7 @@ public:
 
         k_param_utb_attitude_shadow = 263,
         k_param_utb_timing = 264,
+        k_param_utb_chain_shadow = 265,
 
         // the k_param_* space is 9-bits in size
         // 511: reserved

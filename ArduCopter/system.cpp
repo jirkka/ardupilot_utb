@@ -476,6 +476,9 @@ void Copter::allocate_motors(void)
 #if AP_UTB_ATTITUDE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     utb_attitude_shadow.init();
 #endif
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb_chain_shadow.init();
+#endif
 #if AP_UTB_NATIVE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     utb_native_shadow.init();
 #endif

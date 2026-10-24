@@ -1,5 +1,6 @@
 #include "AC_AttitudeControl_Multi.h"
 #include <AP_UTB/AP_UTB_Timing.h>
+#include <AP_UTB/AP_UTB_ChainShadow.h>
 #include <AC_PID/AC_PID_Shadow.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #if AP_UTB_NATIVE_SHADOW_ENABLED && APM_BUILD_TYPE(APM_BUILD_ArduCopter)
@@ -466,17 +467,34 @@ void AC_AttitudeControl_Multi::rate_controller_run_dt(const Vector3f& gyro_rads,
     // Main-only diagnostic snapshots; rate-thread execution is explicitly unsupported.
     AP_UTB_NativeShadow *shadow = AP_UTB_NativeShadow::get_singleton();
     const bool capture = shadow != nullptr && hal.scheduler->in_main_thread() && shadow->capturing();
-    if (capture) {
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    AP_UTB_ChainShadow *chain = AP_UTB_ChainShadow::get_singleton();
+    const bool chain_capture = AP_UTB_ChainShadow::enabled();
+#else
+    const bool chain_capture = false;
+#endif
+    if (capture || chain_capture) {
         UTB_Rate::ShadowInput input;
         input.target = ang_vel_body; input.gyro = gyro_rads; input.dt = dt;
         input.pd_scale = _pd_scale; input.i_scale = _i_scale;
         input.actuator = _actuator_sysid; input.yaw_ff_scale = _feedforward_scalar;
         input.limited[0] = _motors.limit.roll; input.limited[1] = _motors.limit.pitch; input.limited[2] = _motors.limit.yaw;
-        shadow->before(input, uint32_t(_rate_gyro_time_us), AP::ins().get_last_update_usec(),
-                       AP::ahrs().get_primary_gyro_index());
-        shadow->pre_axis(0, get_rate_roll_pid().shadow_snapshot());
-        shadow->pre_axis(1, get_rate_pitch_pid().shadow_snapshot());
-        shadow->pre_axis(2, get_rate_yaw_pid().shadow_snapshot());
+        if (capture) {
+            shadow->before(input, uint32_t(_rate_gyro_time_us), AP::ins().get_last_update_usec(),
+                           AP::ahrs().get_primary_gyro_index());
+            shadow->pre_axis(0, get_rate_roll_pid().shadow_snapshot());
+            shadow->pre_axis(1, get_rate_pitch_pid().shadow_snapshot());
+            shadow->pre_axis(2, get_rate_yaw_pid().shadow_snapshot());
+        }
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+        if (chain_capture) {
+            chain->before_rate(input, _sysid_ang_vel_body_rads, uint32_t(_rate_gyro_time_us),
+                               AP::ins().get_last_update_usec(), AP::ahrs().get_primary_gyro_index());
+            chain->pre_axis(0, get_rate_roll_pid().shadow_snapshot());
+            chain->pre_axis(1, get_rate_pitch_pid().shadow_snapshot());
+            chain->pre_axis(2, get_rate_yaw_pid().shadow_snapshot());
+        }
+#endif
     }
 #endif
 
@@ -496,6 +514,22 @@ void AC_AttitudeControl_Multi::rate_controller_run_dt(const Vector3f& gyro_rads,
         shadow->post_axis(2, get_rate_yaw_pid().shadow_snapshot(), _motors.get_yaw(), _motors.get_yaw_ff());
         shadow->complete();
     }
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE
+    if (chain_capture) {
+        const Vector3f control_before{_motors.get_roll(), _motors.get_pitch(), _motors.get_yaw()};
+        const Vector3f ff_before{_motors.get_roll_ff(), _motors.get_pitch_ff(), _motors.get_yaw_ff()};
+        const Vector3f target_before = _ang_vel_body_rads;
+        chain->post_axis(0, get_rate_roll_pid().shadow_snapshot(), _motors.get_roll(), _motors.get_roll_ff());
+        chain->post_axis(1, get_rate_pitch_pid().shadow_snapshot(), _motors.get_pitch(), _motors.get_pitch_ff());
+        chain->post_axis(2, get_rate_yaw_pid().shadow_snapshot(), _motors.get_yaw(), _motors.get_yaw_ff());
+        chain->complete_rate();
+        const Vector3f control_after{_motors.get_roll(), _motors.get_pitch(), _motors.get_yaw()};
+        const Vector3f ff_after{_motors.get_roll_ff(), _motors.get_pitch_ff(), _motors.get_yaw_ff()};
+        chain->audit(memcmp(&control_before, &control_after, sizeof(control_before)) != 0 ||
+                     memcmp(&ff_before, &ff_after, sizeof(ff_before)) != 0 ||
+                     memcmp(&target_before, &_ang_vel_body_rads, sizeof(target_before)) != 0);
+    }
+#endif
 #endif
     _pd_scale_used = _pd_scale;
     _i_scale_used = _i_scale;

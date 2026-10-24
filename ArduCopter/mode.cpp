@@ -537,6 +537,9 @@ void Copter::update_flight_mode()
 #if AP_UTB_ATTITUDE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     utb_attitude_shadow.finish();
 #endif
+#if AP_UTB_CHAIN_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb_chain_shadow.finish();
+#endif
 #if AP_UTB_TIMING_ENABLED && AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     AP_UTB_Timing::finish();
 #endif

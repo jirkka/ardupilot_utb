@@ -78,6 +78,11 @@ public:
     {
         return _stats;
     }
+    // Own computed state, never the native post-history used as oracle.
+    UTBAttitudeCapture::History history() const
+    {
+        return _math.shadow_history();
+    }
     static void values(const UTBAttitudeCapture::History &h, float (&v)[METRICS]);
     static bool same_history(const UTBAttitudeCapture::History &a, const UTBAttitudeCapture::History &b);
 private:

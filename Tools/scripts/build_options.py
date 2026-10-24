@@ -41,6 +41,8 @@ class Feature:
 # dependencies  : Comma-separated list of feature labels that this feature depends on
 #                 (a single string with commas and no spaces). e.g., 'dependency1,dependency2'.
 BUILD_OPTIONS = [
+    Feature('Other', 'UTB_CHAIN_SHADOW', 'AP_UTB_CHAIN_SHADOW_ENABLED', 'Integrated attitude to rate RAM shadow', 0,
+            'UTB,UTB_NATIVE_SHADOW,UTB_ATTITUDE_SHADOW'),
     Feature('Other', 'UTB_TIMING', 'AP_UTB_TIMING_ENABLED', 'Paired main Rate Attitude RAM timing', 0, 'UTB'),
     Feature('Other', 'UTB_LOGGER_TRACE', 'AP_UTB_LOGGER_TRACE_ENABLED', 'Disarmed main logger RAM timing trace', 0, None),
     Feature('Other', 'UTB_RATE_SITL', 'AP_UTB_RATE_SITL_ENABLED', 'Copter UTB rate authority, SITL only', 0, 'UTB'),
