@@ -16,6 +16,7 @@
  */
 
 #include "GCS_config.h"
+#include <AP_Logger/AP_Logger_UTBTrace.h>
 
 #if HAL_GCS_ENABLED
 
@@ -264,6 +265,7 @@ void GCS_MAVLINK::handle_param_request_read(const mavlink_message_t &msg)
 
 void GCS_MAVLINK::handle_param_set(const mavlink_message_t &msg)
 {
+    UTB_TRACE_SCOPE(trace_param_set, PARAM_SET);
     mavlink_param_set_t packet;
     mavlink_msg_param_set_decode(&msg, &packet);
     enum ap_var_type var_type;

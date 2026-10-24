@@ -1,11 +1,13 @@
 # FÁZE 3B – pasivní porovnání AP a UTB na H743
 
-Stav k 19. 10. 2026: diagnostika implementovaná; unit/SITL a cílové buildy
-prošly v níže uvedeném rozsahu. **Nový firmware nebyl nahraný, numerika ani časování
-nových regulátorů na H743 zatím nejsou ověřené.** Aktivní UTB řízení zůstává
-pouze SITL. Výchozí HEAD `3949c920831c2faab8f13420c12b3a254423e326`, větev
-`test/skystars-5inch`; tento checkpoint zachycuje softwarově ověřenou přípravu 3B.
-Hardwarová validace zůstává nedokončená.
+Stav k **20. 10. 2026**: diagnostika implementovaná; unit/SITL a cílové buildy
+prošly v níže uvedeném rozsahu. **Skutečný H743 DISARMED benchmark dokončen:**
+2000/2000 kompletních a validních sad, maximální rozdíl i RMSE AP/UTB 0 ve všech
+čtyřech profilech. Během benchmarku PM.NLon=0 a DSF.Dp=0; předchozí baseline
+obsahuje jeden neobjasněný dlouhý cyklus 5503 µs. Nejde o kvalifikaci aktivního
+400Hz řízení ani letu. Aktivní UTB řízení na H743 zůstává compile-out.
+Výchozí3A HEAD `3949c920831c2faab8f13420c12b3a254423e326`, příprava3B commit
+`070c189cdfa8357307ee1aebe8f3677cd849d520`, větev `test/skystars-5inch`.
 
 Evidence: `tmp/utb-3b-20261019_194419/`. Zdrojový manifest a checkpoint
 obsahují také nové untracked soubory, nejen tracked Git diff.
@@ -191,8 +193,9 @@ Built z HEAD 3949c920 s necommitnutými 3B změnami; přesná vazba na source je
 v `source-manifest.json` a `source-checkpoint.tar.gz`. Binárka je archivovaná
 před další konfigurací waf. Poslední obecný build adresář nyní může obsahovat OFF variantu.
 
-Hardware matematika, CPU/mutex/stack chování, logger propustnost a úspěšný
-start tohoto nového firmware na konkrétní FC **NEOVĚŘENO**. Full 400Hz streaming
+Při přípravě19.10. byly hardware numerika, časování a start neověřené.
+Aktuální20.10. měření numeriky, wall timing a log completeness je uvedené níže;
+nejde o úplnou mutex/stack nebo propustnostní kvalifikaci. Full 400Hz streaming
 nové matematiky, aktivní slew limiting, notch fixture, reset při poruše reálných
 senzorů a aktivní let jsou také **NEOVĚŘENO**. Logging-disabled compile varianta
 nebyla v 3B sestavená; v kódu je compile guard, který v takovém buildu RUN zastaví.
@@ -244,3 +247,56 @@ a `upload-console.txt` v adresáři evidence. Firmware ani parametry FC
 nebyly změněné. Po opětovném připojení je nutné znovu ověřit identitu
 a DISARMED stav, potom navázat schváleným uploadem a pasivním měřením.
 Tento commit neoznačuje hardware část 3B jako dokončenou.
+
+## Skutečný H743 výsledek 20. 10. 2026
+
+Evidence: `tmp/utb-3b-measure-20261020_143658/REPORT_CS.md`, detailní CSV/JSON
+v `analysis/`, grafy `ap-utb-curves.svg`, `differences.svg`, `timing.svg`,
+`timing-distribution.svg`. Jde výhradně o skutečný FC BIN.
+
+Identita1075/200024001251303433333336/COM5, FW4.7.1/3949c920. Před benchmarkem
+byly přesně tři původní logy smazány jedním schváleným MAVLink LOG_ERASE;
+Chip erase complete a prázdný seznam ověřeny. Žádný další firmware upload,
+MCU erase, přepis bootloaderu nebo změna regulátorů.
+
+| Profil | Kompletní / invalidní sady | Max chyba / RMSE | AP mean / max µs | UTB mean / max µs |
+| --- | --- | --- | --- | --- |
+| PID, syntetické gyro/reference | 500 / 0 | 0 / 0 | 11,152 / 105 | 10,774 / 50 |
+| Rate-only shaping + Rate | 500 / 0 | 0 / 0 | 26,894 / 141 | 25,900 / 121 |
+| Attitude+Rate, fixture gyro + skutečný AHRS | 500 / 0 | 0 / 0 | 54,196 / 162 | 51,352 / 160 |
+| Attitude+Rate, skutečné gyro/AHRS | 500 / 0 | 0 / 0 | 53,080 / 159 | 51,380 / 158 |
+
+P/I/D, FF/D_FF, PID/total výstupy, rates a quaternion komponenty shodné
+v uložených hodnotách;0 missing/partial/NaN/Inf/changed-input/tainted sad.
+Wall časy zahrnují preempci, bez setup/reset/capture a bez exportu; AP běží
+v páru první, takže nelze z drobného rozdílu průměrů odvodit rychlostní výhodu.
+Výpočetní percentily a všechny jednotlivé odchylky jsou v CSV/JSON.
+
+- Dosažená frekvence49,999577 Hz; průměr periody20 000,169 µs,
+  min19 127, max20 876, průměr absolutního jitteru311,872 µs. Jde o50Hz task,
+  nikoliv400Hz main loop. První3 profily mají model dt2,5ms, poslední wall dt.
+- Logger export předchozí sady: průměr101,098 µs, max325 µs; poslední export
+  není pozorovaný. Skutečný průměr se čte z `hardware-details.json`.
+- SYS_STATUS load: logged baseline18,355 %, benchmark18,854 %,
+  po benchmarku18,036 %. Rozdíl přibližně+0,499 procentního bodu; jeden běh.
+- PM během benchmarku:4 záznamy, NLon0, MaxT nejvýše2551 µs, InE/ErC0;
+  po testu NLon0. Před testem baseline NLon1/MaxT5503 µs, příčina neprokázaná.
+  Cumulative since-boot main maximum31 020 µs není maximum benchmarku.
+- UBMT delta main period2500,000064 µs; delta mean absolute jitter2,608 µs.
+  UBST8 delta477/39,056 s je task budget overrun, nikoliv ztracený main cyklus.
+- DSF.Dp0 v celém BIN,0 ERR. UBST17 export-skip delta0 během měřených oken;
+  starý kumulativní stav1105 není ztráta nového experimentu.
+
+BIN2 516 746 B, SHA-256
+`8f719b8e75a3b9e752a06221c21fb31abdbdded3c6a99c7fa76b0528bf031275`.
+Omezený download: nejvýše900 B/request,50ms mezery,0 retries,295 s,
+2797 requests, úplná velikost a navazující offsety. Po downloadu read-only
+health kontrola prošla: DISARMED/STABILIZE, EKF167, senzory/logger healthy,
+UB3_RUN0, LOG_DISARMED0, SHADOW0, FSTRATE0. Port uzavřený, nový log zachován.
+
+Numerická shoda fixture na H743 prokázána. Jeden DISARMED50Hz běh bez ztrát
+prošel; dlouhodobá stabilita, další konfigurace, SMAX/notch, skutečné motorové
+limity a let nejsou kvalifikované. Před pasivním porovnáváním za letu objasnit
+baseline5503µs událost, ověřit opakovatelnost a plný capture/export overhead.
+Současný benchmark je DISARMED-only a není live in-flight srovnávač; další
+návrh/schválení musí zachovat výhradní původní AP motorovou autoritu.

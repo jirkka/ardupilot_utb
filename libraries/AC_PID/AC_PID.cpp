@@ -446,3 +446,30 @@ void AC_PID::relax_integrator(float integrator, float dt, float time_constant)
         _integrator = _integrator + (integrator - _integrator) * (dt / (dt + time_constant));
     }
 }
+
+#if AP_UTB_NATIVE_SHADOW_ENABLED
+AC_PID_Shadow AC_PID::shadow_snapshot() const
+{
+    AC_PID_Shadow state;
+    const float config[] = {_kp.get(), _ki.get(), _kd.get(), _kff.get(), _kimax.get(), _kpdmax.get(),
+                            _filt_T_hz.get(), _filt_E_hz.get(), _filt_D_hz.get(), _slew_rate_max.get(),
+                            _kdff.get(), _slew_rate_tau.get()};
+    for (uint8_t i = 0; i < AC_PID_Shadow::CONFIG_COUNT; i++) {
+        state.config[i] = config[i];
+    }
+    state.integrator = _integrator;
+    state.target = _target;
+    state.error = _error;
+    state.derivative = _derivative;
+    state.target_derivative = _target_derivative;
+    state.reset_filter = _flags._reset_filter;
+    state.i_set = _flags._I_set;
+    state.slew_scale = _slew_limit_scale;
+    state.info = _pid_info;
+#if AP_FILTER_ENABLED
+    state.notch = _notch_T_filter.get() != 0 || _notch_E_filter.get() != 0 ||
+                  _target_notch != nullptr || _error_notch != nullptr;
+#endif
+    return state;
+}
+#endif

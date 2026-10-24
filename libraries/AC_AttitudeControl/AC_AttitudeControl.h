@@ -1,4 +1,5 @@
 #pragma once
+#include "AC_AttitudeControl_Shadow.h"
 
 /// @file    AC_AttitudeControl.h
 /// @brief   ArduCopter attitude control library
@@ -46,6 +47,13 @@
 
 class AC_AttitudeControl {
 public:
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    UTBAttitudeCapture::History attitude_shadow_history() const;
+    UTBAttitudeCapture::Config attitude_shadow_config();
+    UTBAttitudeCapture::Sensors attitude_shadow_sensors() const;
+    void attitude_shadow_compare() const;
+#endif
+
     AC_AttitudeControl(AP_AHRS_View &ahrs,
                        AP_Motors& motors, bool register_singleton = true) :
         _p_angle_roll(AC_ATTITUDE_CONTROL_ANGLE_P),

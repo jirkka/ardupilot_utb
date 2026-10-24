@@ -82,6 +82,8 @@
 #include <AP_UTB/AP_UTB.h>
 #include <AP_UTB/UTB_Core.h>
 #include <AP_UTB/AP_UTB_NativeBench.h>
+#include <AP_UTB/AP_UTB_NativeShadow.h>
+#include <AP_UTB/AP_UTB_AttitudeShadow.h>
 #endif
 
 // Configuration
@@ -261,6 +263,12 @@ private:
 
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     AP_UTB utb;
+#if AP_UTB_NATIVE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    AP_UTB_NativeShadow utb_native_shadow;
+#endif
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    AP_UTB_AttitudeShadow utb_attitude_shadow;
+#endif
 #if AP_UTB_NATIVE_BENCH_AVAILABLE
     AP_UTB_NativeBench utb_native_bench;
     void utb_native_bench_update();

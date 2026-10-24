@@ -1,4 +1,5 @@
 #pragma once
+#include <AC_PID/AC_PID_Shadow.h>
 
 /// @file	AC_PID.h
 /// @brief	General-purpose PID controller with input, error, and derivative filtering, plus slew rate limiting and EEPROM gain storage.
@@ -151,6 +152,11 @@ public:
     // Configures optional notch filters for target and error signals using the given sample rate.
     // Filters are dynamically allocated and validated via the AP_Filter API.
     void set_notch_sample_rate(float);
+
+#if AP_UTB_NATIVE_SHADOW_ENABLED
+    // Read-only control-relevant state; no pointers, AP_Param or filter objects escape.
+    AC_PID_Shadow shadow_snapshot() const;
+#endif
 
     // parameter var table
     static const struct AP_Param::GroupInfo var_info[];

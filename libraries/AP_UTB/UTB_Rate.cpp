@@ -415,14 +415,14 @@ float UTB_Rate::get_throttle_boosted(float throttle_in)
 float UTB_Rate::get_throttle_avg_max(float throttle_in)
 {
     throttle_in = constrain_float(throttle_in, 0.0f, 1.0f);
-    return MAX(throttle_in, throttle_in * MAX(0.0f, 1.0f - _throttle_rpy_mix) + _motors.get_throttle_hover() * _throttle_rpy_mix);
+    return MAX(throttle_in, throttle_in * MAX(0.0f, 1.0f - _throttle_rpy_mix) + _motors->get_throttle_hover() * _throttle_rpy_mix);
 }
 
 // update_throttle_gain_boost - boost angle_p/pd each cycle on high throttle slew
 void UTB_Rate::update_throttle_gain_boost()
 {
     // Boost PD and Angle P on very rapid throttle changes
-    if (_motors.get_throttle_slew_rate() > AC_ATTITUDE_CONTROL_THR_G_BOOST_THRESH) {
+    if (_motors->get_throttle_slew_rate() > AC_ATTITUDE_CONTROL_THR_G_BOOST_THRESH) {
         const float pd_boost = constrain_float(_throttle_gain_boost + 1.0f, 1.0, 2.0);
         set_PD_scale_mult(Vector3f{pd_boost, pd_boost, 1.0f});
 
@@ -443,9 +443,9 @@ void UTB_Rate::update_throttle_rpy_mix()
         _throttle_rpy_mix -= MIN(0.5f * _dt_s, _throttle_rpy_mix - _throttle_rpy_mix_desired);
 
         // if the mix is still higher than that being used, reset immediately
-        const float throttle_hover = _motors.get_throttle_hover();
-        const float throttle_in = _motors.get_throttle();
-        const float throttle_out = MAX(_motors.get_throttle_out(), throttle_in);
+        const float throttle_hover = _motors->get_throttle_hover();
+        const float throttle_in = _motors->get_throttle();
+        const float throttle_out = MAX(_motors->get_throttle_out(), throttle_in);
         float mix_used;
         // since throttle_out >= throttle_in at this point we don't need to check throttle_in < throttle_hover
         if (throttle_out < throttle_hover) {
@@ -476,13 +476,13 @@ void UTB_Rate::rate_controller_run_dt(const Vector3f& gyro_rads, float dt)
     _rate_gyro_rads = gyro_rads;
     _rate_gyro_time_us = AP_HAL::micros64();
 
-    _output.roll(get_rate_roll_pid().update_all(ang_vel_body.x, gyro_rads.x,  dt, _motors.limit.roll, _pd_scale.x, _i_scale.x) + _actuator_sysid.x);
+    _output.roll(get_rate_roll_pid().update_all(ang_vel_body.x, gyro_rads.x,  dt, _motors->limit.roll, _pd_scale.x, _i_scale.x) + _actuator_sysid.x);
     _output.roll_ff(get_rate_roll_pid().get_ff());
 
-    _output.pitch(get_rate_pitch_pid().update_all(ang_vel_body.y, gyro_rads.y,  dt, _motors.limit.pitch, _pd_scale.y, _i_scale.y) + _actuator_sysid.y);
+    _output.pitch(get_rate_pitch_pid().update_all(ang_vel_body.y, gyro_rads.y,  dt, _motors->limit.pitch, _pd_scale.y, _i_scale.y) + _actuator_sysid.y);
     _output.pitch_ff(get_rate_pitch_pid().get_ff());
 
-    _output.yaw(get_rate_yaw_pid().update_all(ang_vel_body.z, gyro_rads.z,  dt, _motors.limit.yaw, _pd_scale.z, _i_scale.z) + _actuator_sysid.z);
+    _output.yaw(get_rate_yaw_pid().update_all(ang_vel_body.z, gyro_rads.z,  dt, _motors->limit.yaw, _pd_scale.z, _i_scale.z) + _actuator_sysid.z);
     _output.yaw_ff(get_rate_yaw_pid().get_ff()*_feedforward_scalar);
 
     _pd_scale_used = _pd_scale;
@@ -529,4 +529,19 @@ void UTB_Rate::set_notch_sample_rate(float sample_rate)
 #endif
 }
 
+#if AP_UTB_NATIVE_SHADOW_ENABLED
+UTB_Rate::ShadowOutput UTB_Rate::shadow_rate_step(UTB_PID (&pid)[3], const ShadowInput &input)
+{
+    // Same PID, actuator and yaw FF ordering as rate_controller_run_dt above.
+    // Effective scales and saturation are captured after native AP gain boost/mix.
+    ShadowOutput result;
+    for (uint8_t axis = 0; axis < 3; axis++) {
+        result.control[axis] = pid[axis].update_all(input.target[axis], input.gyro[axis], input.dt,
+                              input.limited[axis], input.pd_scale[axis], input.i_scale[axis]) + input.actuator[axis];
+        result.feedforward[axis] = pid[axis].get_ff();
+    }
+    result.feedforward[2] *= input.yaw_ff_scale;
+    return result;
+}
+#endif
 #endif // AP_UTB_RATE_SITL_AVAILABLE

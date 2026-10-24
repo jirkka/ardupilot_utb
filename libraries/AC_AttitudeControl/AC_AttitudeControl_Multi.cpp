@@ -1,4 +1,11 @@
 #include "AC_AttitudeControl_Multi.h"
+#include <AC_PID/AC_PID_Shadow.h>
+#include <AP_Vehicle/AP_Vehicle_Type.h>
+#if AP_UTB_NATIVE_SHADOW_ENABLED && APM_BUILD_TYPE(APM_BUILD_ArduCopter)
+#include <AP_UTB/AP_UTB_NativeShadow.h>
+#include <AP_InertialSensor/AP_InertialSensor.h>
+extern const AP_HAL::HAL &hal;
+#endif
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include <AC_PID/AC_PID.h>
@@ -454,6 +461,23 @@ void AC_AttitudeControl_Multi::rate_controller_run_dt(const Vector3f& gyro_rads,
 
     _rate_gyro_rads = gyro_rads;
     _rate_gyro_time_us = AP_HAL::micros64();
+#if AP_UTB_NATIVE_SHADOW_ENABLED && APM_BUILD_TYPE(APM_BUILD_ArduCopter) && AP_UTB_ENABLED
+    // Main-only diagnostic snapshots; rate-thread execution is explicitly unsupported.
+    AP_UTB_NativeShadow *shadow = AP_UTB_NativeShadow::get_singleton();
+    const bool capture = shadow != nullptr && hal.scheduler->in_main_thread() && shadow->capturing();
+    if (capture) {
+        UTB_Rate::ShadowInput input;
+        input.target = ang_vel_body; input.gyro = gyro_rads; input.dt = dt;
+        input.pd_scale = _pd_scale; input.i_scale = _i_scale;
+        input.actuator = _actuator_sysid; input.yaw_ff_scale = _feedforward_scalar;
+        input.limited[0] = _motors.limit.roll; input.limited[1] = _motors.limit.pitch; input.limited[2] = _motors.limit.yaw;
+        shadow->before(input, uint32_t(_rate_gyro_time_us), AP::ins().get_last_update_usec(),
+                       AP::ahrs().get_primary_gyro_index());
+        shadow->pre_axis(0, get_rate_roll_pid().shadow_snapshot());
+        shadow->pre_axis(1, get_rate_pitch_pid().shadow_snapshot());
+        shadow->pre_axis(2, get_rate_yaw_pid().shadow_snapshot());
+    }
+#endif
 
     _motors.set_roll(get_rate_roll_pid().update_all(ang_vel_body.x, gyro_rads.x,  dt, _motors.limit.roll, _pd_scale.x, _i_scale.x) + _actuator_sysid.x);
     _motors.set_roll_ff(get_rate_roll_pid().get_ff());
@@ -464,6 +488,14 @@ void AC_AttitudeControl_Multi::rate_controller_run_dt(const Vector3f& gyro_rads,
     _motors.set_yaw(get_rate_yaw_pid().update_all(ang_vel_body.z, gyro_rads.z,  dt, _motors.limit.yaw, _pd_scale.z, _i_scale.z) + _actuator_sysid.z);
     _motors.set_yaw_ff(get_rate_yaw_pid().get_ff()*_feedforward_scalar);
 
+#if AP_UTB_NATIVE_SHADOW_ENABLED && APM_BUILD_TYPE(APM_BUILD_ArduCopter) && AP_UTB_ENABLED
+    if (capture) {
+        shadow->post_axis(0, get_rate_roll_pid().shadow_snapshot(), _motors.get_roll(), _motors.get_roll_ff());
+        shadow->post_axis(1, get_rate_pitch_pid().shadow_snapshot(), _motors.get_pitch(), _motors.get_pitch_ff());
+        shadow->post_axis(2, get_rate_yaw_pid().shadow_snapshot(), _motors.get_yaw(), _motors.get_yaw_ff());
+        shadow->complete();
+    }
+#endif
     _pd_scale_used = _pd_scale;
     _i_scale_used = _i_scale;
     _angle_P_scale_used = _angle_P_scale;

@@ -207,6 +207,7 @@ public:
         k_param_custom_control,
         k_param_utb3_control = 107, // new root group; existing keys are unchanged
         k_param_utb_native_bench = 108,
+        k_param_utb_native_shadow = 109,
 
         // 110: Telemetry control
         //
@@ -389,6 +390,8 @@ public:
         k_param__gcs,
         k_param_throw_altitude_descend,
         k_param_throw_altitude_ascend,
+
+        k_param_utb_attitude_shadow = 263,
 
         // the k_param_* space is 9-bits in size
         // 511: reserved

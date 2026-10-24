@@ -245,6 +245,16 @@ const Vector3f AC_AttitudeControl::get_latest_gyro() const
 // Ensure attitude controller have zero errors to relax rate controller output
 void AC_AttitudeControl::relax_attitude_controllers()
 {
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    const bool utb_capture = UTBAttitudeCapture::enabled();
+    if (utb_capture) {
+        const uint32_t utb_capture_start = AP_HAL::micros();
+        UTBAttitudeCapture::before(UTBAttitudeCapture::Command::RELAX, {}, false,
+                                  attitude_shadow_config(), attitude_shadow_sensors(), attitude_shadow_history());
+        UTBAttitudeCapture::capture_time(false, AP_HAL::micros() - utb_capture_start);
+    }
+#endif
+
     // take a copy of the last gyro used by the rate controller before using it
     Vector3f gyro = get_latest_gyro();
     // Initialize the attitude variables to the current attitude
@@ -268,6 +278,12 @@ void AC_AttitudeControl::relax_attitude_controllers()
     reset_rate_controller_I_terms();
     // finally update the attitude target
     _ang_vel_body_rads = gyro;
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    if (utb_capture) {
+        attitude_shadow_compare();
+    }
+#endif
 }
 
 void AC_AttitudeControl::reset_rate_controller_I_terms()
@@ -403,6 +419,16 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_cd(float eu
 // Otherwise, updates the attitude target directly and zeros rate/accel feedforward targets.
 void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_rad(float euler_roll_angle_rad, float euler_pitch_angle_rad, float euler_yaw_rate_rads)
 {
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    const bool utb_capture = UTBAttitudeCapture::enabled();
+    if (utb_capture) {
+        const uint32_t utb_capture_start = AP_HAL::micros();
+        UTBAttitudeCapture::before(UTBAttitudeCapture::Command::STABILIZE, {euler_roll_angle_rad, euler_pitch_angle_rad, euler_yaw_rate_rads}, false,
+                                  attitude_shadow_config(), attitude_shadow_sensors(), attitude_shadow_history());
+        UTBAttitudeCapture::capture_time(false, AP_HAL::micros() - utb_capture_start);
+    }
+#endif
+
     // update attitude target
     update_attitude_target();
 
@@ -454,6 +480,12 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_rad(float e
 
     // Call quaternion attitude controller
     attitude_controller_run_quat();
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    if (utb_capture) {
+        attitude_shadow_compare();
+    }
+#endif
 }
 
 // Sets the desired roll, pitch, and yaw angles (in centidegrees).
@@ -608,6 +640,16 @@ void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_cds(float roll_rate_bf_cds
 // Otherwise, the attitude target is incrementally rotated using the rate inputs and feedforward targets are zeroed.
 void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_rads(float roll_rate_bf_rads, float pitch_rate_bf_rads, float yaw_rate_bf_rads)
 {
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    const bool utb_capture = UTBAttitudeCapture::enabled();
+    if (utb_capture) {
+        const uint32_t utb_capture_start = AP_HAL::micros();
+        UTBAttitudeCapture::before(UTBAttitudeCapture::Command::ACRO, {roll_rate_bf_rads, pitch_rate_bf_rads, yaw_rate_bf_rads}, false,
+                                  attitude_shadow_config(), attitude_shadow_sensors(), attitude_shadow_history());
+        UTBAttitudeCapture::capture_time(false, AP_HAL::micros() - utb_capture_start);
+    }
+#endif
+
     // update attitude target
     update_attitude_target();
 
@@ -638,6 +680,12 @@ void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_rads(float roll_rate_bf_ra
 
     // Call quaternion attitude controller
     attitude_controller_run_quat();
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    if (utb_capture) {
+        attitude_shadow_compare();
+    }
+#endif
 }
 
 // Sets the desired roll, pitch, and yaw angular rates in body-frame (in centidegrees/s).
@@ -659,6 +707,16 @@ void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_2_cds(float roll_rate_bf_c
 // Attitude targets are updated from the current AHRS attitude to keep target state coherent for mode transitions.
 void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_2_rads(float roll_rate_bf_rads, float pitch_rate_bf_rads, float yaw_rate_bf_rads)
 {
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    const bool utb_capture = UTBAttitudeCapture::enabled();
+    if (utb_capture) {
+        const uint32_t utb_capture_start = AP_HAL::micros();
+        UTBAttitudeCapture::before(UTBAttitudeCapture::Command::RATE_ONLY, {roll_rate_bf_rads, pitch_rate_bf_rads, yaw_rate_bf_rads}, false,
+                                  attitude_shadow_config(), attitude_shadow_sensors(), attitude_shadow_history());
+        UTBAttitudeCapture::capture_time(false, AP_HAL::micros() - utb_capture_start);
+    }
+#endif
+
     // Shape body-frame rate inputs into body-frame angular velocity/acceleration targets,
     // applying acceleration limits and configured time constants.
     attitude_command_model(0.0, roll_rate_bf_rads, _ang_vel_target_rads.x, _ang_accel_target_rads.x, 0.0, get_accel_roll_max_radss(), _rate_rp_tc, _dt_s);
@@ -673,6 +731,12 @@ void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_2_rads(float roll_rate_bf_
 
     // Update body-frame angular velocity target used by the rate controller.
     _ang_vel_body_rads = _ang_vel_target_rads;
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    if (utb_capture) {
+        attitude_shadow_compare();
+    }
+#endif
 }
 
 // Sets the desired roll, pitch, and yaw angular rates in body-frame (in centidegrees/s).
@@ -1251,6 +1315,16 @@ Vector3f AC_AttitudeControl::body_to_euler_limit(const Quaternion &att, const Ve
 // If reset_rate is false rates are not reset to allow the rate controllers to run
 void AC_AttitudeControl::reset_target_and_rate(bool reset_rate)
 {
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    const bool utb_capture = UTBAttitudeCapture::enabled();
+    if (utb_capture) {
+        const uint32_t utb_capture_start = AP_HAL::micros();
+        UTBAttitudeCapture::before(UTBAttitudeCapture::Command::RESET, {}, reset_rate,
+                                  attitude_shadow_config(), attitude_shadow_sensors(), attitude_shadow_history());
+        UTBAttitudeCapture::capture_time(false, AP_HAL::micros() - utb_capture_start);
+    }
+#endif
+
     // move attitude target to current attitude
     _ahrs.get_quat_body_to_ned(_attitude_target);
     _attitude_target.to_euler(_euler_angle_target_rad);
@@ -1260,12 +1334,28 @@ void AC_AttitudeControl::reset_target_and_rate(bool reset_rate)
         _ang_accel_target_rads.zero();
         _euler_rate_target_rads.zero();
     }
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    if (utb_capture) {
+        attitude_shadow_compare();
+    }
+#endif
 }
 
 // Sets yaw target to vehicle heading and sets yaw rate to zero
 // If reset_rate is false rates are not reset to allow the rate controllers to run
 void AC_AttitudeControl::reset_yaw_target_and_rate(bool reset_rate)
 {
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    const bool utb_capture = UTBAttitudeCapture::enabled();
+    if (utb_capture) {
+        const uint32_t utb_capture_start = AP_HAL::micros();
+        UTBAttitudeCapture::before(UTBAttitudeCapture::Command::RESET_YAW, {}, reset_rate,
+                                  attitude_shadow_config(), attitude_shadow_sensors(), attitude_shadow_history());
+        UTBAttitudeCapture::capture_time(false, AP_HAL::micros() - utb_capture_start);
+    }
+#endif
+
     // move attitude target to current heading
     float yaw_shift = _ahrs.yaw - _euler_angle_target_rad.z;
     Quaternion _attitude_target_update;
@@ -1280,11 +1370,27 @@ void AC_AttitudeControl::reset_yaw_target_and_rate(bool reset_rate)
         // Convert euler angle derivative of desired attitude into a body-frame angular velocity vector for feedforward
         euler_derivative_to_body(_attitude_target, _euler_rate_target_rads, _ang_vel_target_rads);
     }
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    if (utb_capture) {
+        attitude_shadow_compare();
+    }
+#endif
 }
 
 // Shifts the target attitude to maintain the current error in the event of an EKF reset
 void AC_AttitudeControl::inertial_frame_reset()
 {
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    const bool utb_capture = UTBAttitudeCapture::enabled();
+    if (utb_capture) {
+        const uint32_t utb_capture_start = AP_HAL::micros();
+        UTBAttitudeCapture::before(UTBAttitudeCapture::Command::INERTIAL, {}, false,
+                                  attitude_shadow_config(), attitude_shadow_sensors(), attitude_shadow_history());
+        UTBAttitudeCapture::capture_time(false, AP_HAL::micros() - utb_capture_start);
+    }
+#endif
+
     // Retrieve quaternion body attitude
     Quaternion attitude_body;
     _ahrs.get_quat_body_to_ned(attitude_body);
@@ -1294,6 +1400,12 @@ void AC_AttitudeControl::inertial_frame_reset()
 
     // calculate the attitude target euler angles
     _attitude_target.to_euler(_euler_angle_target_rad);
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+    if (utb_capture) {
+        attitude_shadow_compare();
+    }
+#endif
 }
 
 // euler_derivative_to_body - transform euler angle derivative to body-frame
@@ -1548,3 +1660,58 @@ void AC_AttitudeControl::get_rpy_srate(float &roll_srate, float &pitch_srate, fl
     pitch_srate = get_rate_pitch_pid().get_pid_info().slew_rate;
     yaw_srate = get_rate_yaw_pid().get_pid_info().slew_rate;
 }
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+UTBAttitudeCapture::History AC_AttitudeControl::attitude_shadow_history() const
+{
+    UTBAttitudeCapture::History h;
+    h.target = _attitude_target;
+    h.error = _attitude_ang_error;
+    h.euler = _euler_angle_target_rad;
+    h.euler_rate = _euler_rate_target_rads;
+    h.velocity = _ang_vel_target_rads;
+    h.acceleration = _ang_accel_target_rads;
+    h.body = _ang_vel_body_rads;
+    h.thrust = _thrust_angle_rad;
+    h.thrust_error = _thrust_error_angle_rad;
+    h.feedforward = _feedforward_scalar;
+    return h;
+}
+UTBAttitudeCapture::Config AC_AttitudeControl::attitude_shadow_config()
+{
+    UTBAttitudeCapture::Config c;
+    c.angle_p = {_p_angle_roll.kP(), _p_angle_pitch.kP(), _p_angle_yaw.kP()};
+    c.accel = {_accel_roll_max_degss, _accel_pitch_max_degss, _accel_yaw_max_degss};
+    c.rate_max = {_ang_vel_roll_max_degs, _ang_vel_pitch_max_degs, _ang_vel_yaw_max_degs};
+    c.angle_scale = _angle_P_scale;
+    c.dt = _dt_s; c.input_tc = _input_tc; c.rp_tc = _rate_rp_tc; c.yaw_tc = _rate_y_tc;
+    c.yaw_p = get_rate_yaw_pid().kP(); c.trim = get_roll_trim_rad();
+    c.feedforward = _rate_bf_ff_enabled; c.sqrt_controller = _use_sqrt_controller;
+    return c;
+}
+UTBAttitudeCapture::Sensors AC_AttitudeControl::attitude_shadow_sensors() const
+{
+    UTBAttitudeCapture::Sensors s;
+    _ahrs.get_quat_body_to_ned(s.attitude);
+    s.gyro = get_latest_gyro(); s.yaw = _ahrs.yaw;
+    return s;
+}
+#endif
+
+#if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
+void AC_AttitudeControl::attitude_shadow_compare() const
+{
+    // Same-call audit brackets only the inert UTB calculation. No native output setters.
+    const uint32_t capture_start = AP_HAL::micros();
+    const Vector3f control_before{_motors.get_roll(), _motors.get_pitch(), _motors.get_yaw()};
+    const Vector3f ff_before{_motors.get_roll_ff(), _motors.get_pitch_ff(), _motors.get_yaw_ff()};
+    const Vector3f rate_before = _ang_vel_body_rads;
+    UTBAttitudeCapture::after(attitude_shadow_history());
+    const Vector3f control_after{_motors.get_roll(), _motors.get_pitch(), _motors.get_yaw()};
+    const Vector3f ff_after{_motors.get_roll_ff(), _motors.get_pitch_ff(), _motors.get_yaw_ff()};
+    UTBAttitudeCapture::audit(memcmp(&control_before, &control_after, sizeof(control_before)) != 0 ||
+                             memcmp(&ff_before, &ff_after, sizeof(ff_before)) != 0 ||
+                             memcmp(&rate_before, &_ang_vel_body_rads, sizeof(rate_before)) != 0);
+    UTBAttitudeCapture::capture_time(true, AP_HAL::micros() - capture_start);
+}
+#endif

@@ -40,6 +40,22 @@
 //--------------------------------------------------------------------------------------------------------------------
 void Copter::utb_shadow_update()
 {
+#if AP_UTB_NATIVE_SHADOW_AVAILABLE
+    // Original AP motor output has already run. Neither historical UTB_ENABLE nor its logger gates this session.
+    if (utb_native_shadow.active() && !utb_native_shadow.can_audit()) {
+        // No PID or motor getter is touched when an AP rate thread may own them.
+        utb_native_shadow.consume({});
+        utb_native_shadow.finish_unsupported();
+    } else if (utb_native_shadow.active()) {
+        UTB_Rate::ShadowOutput before, after;
+        before.control[0] = motors->get_roll(); before.control[1] = motors->get_pitch(); before.control[2] = motors->get_yaw();
+        before.feedforward[0] = motors->get_roll_ff(); before.feedforward[1] = motors->get_pitch_ff(); before.feedforward[2] = motors->get_yaw_ff();
+        utb_native_shadow.consume(before);
+        after.control[0] = motors->get_roll(); after.control[1] = motors->get_pitch(); after.control[2] = motors->get_yaw();
+        after.feedforward[0] = motors->get_roll_ff(); after.feedforward[1] = motors->get_pitch_ff(); after.feedforward[2] = motors->get_yaw_ff();
+        utb_native_shadow.finish_motor_audit(after);
+    }
+#endif
 #if AP_UTB_BENCH_ENABLED
     // Příznak požadavku na interní diagnostickou referenci.
     bool synthetic;

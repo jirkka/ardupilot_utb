@@ -1,10 +1,23 @@
 # UTB: současný funkční stav
 
-FÁZE 3B: [pasivní hardware benchmark – příprava a omezení](UTB_PHASE_3B_CS.md).
-Read-only COM5 preflight a záloha parametrů jsou hotové. Nová matematika má
-samostatný DISARMED diagnostický build; na H743 zatím nebyl nahraný ani měřený.
-Aktivní pilotní UTB autorita zůstává compile-out. Změny3B čekají na HW validaci
-samostatně v pracovním stromu.
+FÁZE 3C: [opakované skutečné H743 měření](UTB_PHASE_3C_CS.md).
+Tři DISARMED 50Hz opakování: 6000/6000 validních sad, max. rozdíl i RMSE 0,
+PM.NLon během RUN=0 a drops=0. Režie native výpočtu+exportu přibližně
++0,8 procentního bodu AP load proti logged baseline. Před prvním RUN se
+zopakovala neobjasněná logger-start časová anomálie (6480 µs); další dvě
+baseline bez podobné události. Numerika je opakovatelná, logger startup
+není kvalifikovaný. Lze připravovat návrh pasivního 400Hz SHADOW, nikoliv let.
+Kód/firmware beze změny, diagnostické parametry obnovené.
+
+FÁZE 3B: [pasivní hardware benchmark – skutečné výsledky a omezení](UTB_PHASE_3B_CS.md).
+Dne20.10.2026 proběhl na SkystarsH743 jeden DISARMED50Hz experiment:
+2000/2000 kompletních validních sad, nulová maximální chyba i RMSE AP/UTB
+ve všech čtyřech profilech včetně skutečných gyro/AHRS vstupů. PM.NLon během
+benchmarku0, DSF drops0; baseline před testem obsahuje neobjasněný cyklus5503µs.
+Výsledek nekvalifikuje aktivní400Hz řízení ani let. H743 aktivní UTB autorita
+zůstává compile-out, diagnostické parametry obnovené. Příprava3B je commitnutá
+v070c189cdf; měření a grafy v `tmp/utb-3b-measure-20261020_143658/`.
+
 
 
 Aktuální FÁZE3A nahrazuje pilotní42/43 devíti vlastními moduly s původní

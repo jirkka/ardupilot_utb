@@ -1,4 +1,5 @@
 #pragma once
+#include <AC_PID/AC_PID_Shadow.h>
 /// @file UTB_PID.h
 /// @brief AP-derived flight control; independent UTB computation, source: libraries/AC_PID/AC_PID.h.
 /// @author Jiri Kovar; original algorithms: ArduPilot contributors
@@ -300,6 +301,12 @@ public:
     // Configures optional notch filters for target and error signals using the given sample rate.
     // Filters are dynamically allocated and validated via the AP_Filter API.
     void set_notch_sample_rate(float);
+
+#if AP_UTB_NATIVE_SHADOW_ENABLED
+    // Read-only control-relevant state; no pointers, AP_Param or filter objects escape.
+    AC_PID_Shadow shadow_snapshot() const;
+    void shadow_restore(const AC_PID_Shadow &state);
+#endif
 
     // parameter var table
     static const struct AP_Param::GroupInfo var_info[];

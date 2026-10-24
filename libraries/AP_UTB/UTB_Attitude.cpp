@@ -1063,6 +1063,9 @@ void UTB_Attitude::Write_ANG() const
 // Write a rate packet
 void UTB_Attitude::Write_Rate(const AC_PosControl &pos_control) const
 {
+    if (_motors == nullptr) {
+        return;
+    }
     const Vector3f rate_targets_degs = rate_bf_targets() * RAD_TO_DEG;
     const Vector3f &accel_target_ned_mss = pos_control.get_accel_target_NED_mss();
     const Vector3f gyro_rate = _rate_gyro_rads * RAD_TO_DEG;
@@ -1071,17 +1074,17 @@ void UTB_Attitude::Write_Rate(const AC_PosControl &pos_control) const
                            time_us         : _rate_gyro_time_us,
                            control_roll    : rate_targets_degs.x,
                            roll            : gyro_rate.x,
-                           roll_out        : _motors.get_roll()+_motors.get_roll_ff(),
+                           roll_out        : _motors->get_roll()+_motors->get_roll_ff(),
                            control_pitch   : rate_targets_degs.y,
                            pitch           : gyro_rate.y,
-                           pitch_out       : _motors.get_pitch()+_motors.get_pitch_ff(),
+                           pitch_out       : _motors->get_pitch()+_motors->get_pitch_ff(),
                            control_yaw     : rate_targets_degs.z,
                            yaw             : gyro_rate.z,
-                           yaw_out         : _motors.get_yaw()+_motors.get_yaw_ff(),
+                           yaw_out         : _motors->get_yaw()+_motors->get_yaw_ff(),
                            control_accel   : (float)(-accel_target_ned_mss.z),
                            accel           : (float)(-(_ahrs.get_accel_ef().z + GRAVITY_MSS)),
-                           accel_out       : _motors.get_throttle(),
-                           throttle_slew   : _motors.get_throttle_slew_rate()
+                           accel_out       : _motors->get_throttle(),
+                           throttle_slew   : _motors->get_throttle_slew_rate()
     };
     AP::logger().WriteBlock(&pkt_rate, sizeof(pkt_rate));
 
@@ -1113,4 +1116,110 @@ void UTB_Attitude::Write_Rate(const AC_PosControl &pos_control) const
 
 #endif // HAL_LOGGING_ENABLED
 
+
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE
+UTBAttitudeCapture::History UTB_Attitude::shadow_history() const
+{
+    UTBAttitudeCapture::History h;
+    h.target = _attitude_target;
+    h.error = _attitude_ang_error;
+    h.euler = _euler_angle_target_rad;
+    h.euler_rate = _euler_rate_target_rads;
+    h.velocity = _ang_vel_target_rads;
+    h.acceleration = _ang_accel_target_rads;
+    h.body = _ang_vel_body_rads;
+    h.thrust = _thrust_angle_rad;
+    h.thrust_error = _thrust_error_angle_rad;
+    h.feedforward = _feedforward_scalar;
+    return h;
+}
+void UTB_Attitude::shadow_history(const UTBAttitudeCapture::History &h)
+{
+    _attitude_target = h.target;
+    _attitude_ang_error = h.error;
+    _euler_angle_target_rad = h.euler;
+    _euler_rate_target_rads = h.euler_rate;
+    _ang_vel_target_rads = h.velocity;
+    _ang_accel_target_rads = h.acceleration;
+    _ang_vel_body_rads = h.body;
+    _thrust_angle_rad = h.thrust;
+    _thrust_error_angle_rad = h.thrust_error;
+    _feedforward_scalar = h.feedforward;
+}
+void UTB_Attitude::shadow_config(const UTBAttitudeCapture::Config &c)
+{
+    _p_angle_roll.set_kP(c.angle_p.x); _p_angle_pitch.set_kP(c.angle_p.y); _p_angle_yaw.set_kP(c.angle_p.z);
+    _accel_roll_max_degss.set(c.accel.x); _accel_pitch_max_degss.set(c.accel.y); _accel_yaw_max_degss.set(c.accel.z);
+    _ang_vel_roll_max_degs.set(c.rate_max.x); _ang_vel_pitch_max_degs.set(c.rate_max.y); _ang_vel_yaw_max_degs.set(c.rate_max.z);
+    _angle_P_scale = c.angle_scale;
+    _dt_s = c.dt; _input_tc.set(c.input_tc); _rate_rp_tc = c.rp_tc; _rate_y_tc = c.yaw_tc;
+    get_rate_yaw_pid().set_kP(c.yaw_p);
+    _rate_bf_ff_enabled.set(c.feedforward); _use_sqrt_controller = c.sqrt_controller;
+}
+#endif
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE
+void UTB_Attitude::input_rate_bf_roll_pitch_yaw_rads(float roll_rate_bf_rads, float pitch_rate_bf_rads, float yaw_rate_bf_rads)
+{
+
+    // update attitude target
+    update_attitude_target();
+
+    // calculate the attitude target euler angles
+    _attitude_target.to_euler(_euler_angle_target_rad);
+
+    if (_rate_bf_ff_enabled) {
+        // Shape body-frame rate inputs into body-frame angular velocity/acceleration targets,
+        // applying acceleration limits and configured time constants.
+        attitude_command_model(0.0, roll_rate_bf_rads, _ang_vel_target_rads.x, _ang_accel_target_rads.x, 0.0, get_accel_roll_max_radss(), _rate_rp_tc, _dt_s);
+        attitude_command_model(0.0, pitch_rate_bf_rads, _ang_vel_target_rads.y, _ang_accel_target_rads.y, 0.0, get_accel_pitch_max_radss(), _rate_rp_tc, _dt_s);
+        attitude_command_model(0.0, yaw_rate_bf_rads, _ang_vel_target_rads.z, _ang_accel_target_rads.z, 0.0, get_accel_yaw_max_radss(), _rate_y_tc, _dt_s);
+
+        // Convert body-frame angular velocity into euler angle derivative of desired attitude
+        body_to_euler_derivative(_attitude_target, _ang_vel_target_rads, _euler_rate_target_rads);
+    } else {
+        // No shaping/feedforward: incrementally rotate the attitude target using the body-frame rate inputs.
+        Quaternion attitude_target_update;
+        attitude_target_update.from_axis_angle(Vector3f{roll_rate_bf_rads, pitch_rate_bf_rads, yaw_rate_bf_rads} * _dt_s);
+        _attitude_target = _attitude_target * attitude_target_update;
+        _attitude_target.normalize();
+
+        // Zero rate and acceleration feedforward targets
+        _euler_rate_target_rads.zero();
+        _ang_vel_target_rads.zero();
+        _ang_accel_target_rads.zero();
+    }
+
+    // Call quaternion attitude controller
+    attitude_controller_run_quat();
+
+}
+void UTB_Attitude::relax_attitude_controllers()
+{
+
+    // take a copy of the last gyro used by the rate controller before using it
+    Vector3f gyro = get_latest_gyro();
+    // Initialize the attitude variables to the current attitude
+    _ahrs.get_quat_body_to_ned(_attitude_target);
+    _attitude_target.to_euler(_euler_angle_target_rad);
+    _attitude_ang_error.initialise();
+
+    // Initialize the angular rate variables to the current rate
+    _ang_vel_target_rads = gyro;
+    body_to_euler_derivative(_attitude_target, _ang_vel_target_rads, _euler_rate_target_rads);
+
+    // Initialize remaining variables
+    _thrust_error_angle_rad = 0.0f;
+
+    // Reset the PID filters
+    get_rate_roll_pid().reset_filter();
+    get_rate_pitch_pid().reset_filter();
+    get_rate_yaw_pid().reset_filter();
+
+    // Reset the I terms
+    reset_rate_controller_I_terms();
+    // finally update the attitude target
+    _ang_vel_body_rads = gyro;
+
+}
+#endif
 #endif // AP_UTB_RATE_SITL_AVAILABLE

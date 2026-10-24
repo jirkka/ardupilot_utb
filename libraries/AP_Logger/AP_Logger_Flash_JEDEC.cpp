@@ -3,6 +3,7 @@
 */
 
 #include "AP_Logger_config.h"
+#include <AP_Logger/AP_Logger_UTBTrace.h>
 
 #if HAL_LOGGING_FLASH_JEDEC_ENABLED
 
@@ -91,6 +92,7 @@ void AP_Logger_Flash_JEDEC::Init()
  */
 void AP_Logger_Flash_JEDEC::WaitReady()
 {
+    UTB_TRACE_SCOPE(trace_ready, WAIT_READY);
     if (flash_died) {
         return;
     }
@@ -179,7 +181,10 @@ bool AP_Logger_Flash_JEDEC::getSectorCount(void)
 // Read the status register
 uint8_t AP_Logger_Flash_JEDEC::ReadStatusReg()
 {
+    UTB_TRACE_SCOPE(trace_status_wait, SPI_WAIT);
     WITH_SEMAPHORE(dev_sem);
+    UTB_TRACE_FINISH(trace_status_wait);
+    UTB_TRACE_SCOPE(trace_status_hold, SPI_HOLD);
     uint8_t cmd = JEDEC_READ_STATUS;
     uint8_t status;
     dev->transfer(&cmd, 1, &status, 1);
@@ -223,6 +228,7 @@ void AP_Logger_Flash_JEDEC::send_command_addr(uint8_t command, uint32_t PageAdr)
 
 void AP_Logger_Flash_JEDEC::PageToBuffer(uint32_t pageNum)
 {
+    UTB_TRACE_SCOPE(trace_page, PAGE_READ);
     if (pageNum == 0 || pageNum > df_NumPages+1) {
         printf("Invalid page read %u\n", pageNum);
         memset(buffer, 0xFF, df_PageSize);
@@ -241,7 +247,10 @@ void AP_Logger_Flash_JEDEC::PageToBuffer(uint32_t pageNum)
 
     uint32_t PageAdr = (pageNum-1) * df_PageSize;
 
+    UTB_TRACE_SCOPE(trace_spi_wait, SPI_WAIT);
     WITH_SEMAPHORE(dev_sem);
+    UTB_TRACE_FINISH(trace_spi_wait);
+    UTB_TRACE_SCOPE(trace_spi_hold, SPI_HOLD);
     dev->set_chip_select(true);
     send_command_addr(JEDEC_READ_DATA, PageAdr);
     dev->transfer(nullptr, 0, buffer, df_PageSize);

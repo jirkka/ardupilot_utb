@@ -71,6 +71,17 @@ public:
         return _output.valid();
     }
 
+#if AP_UTB_NATIVE_SHADOW_ENABLED
+    struct ShadowInput {
+        Vector3f target, gyro, pd_scale, i_scale, actuator;
+        float dt = 0, yaw_ff_scale = 1;
+        bool limited[3] {};
+    };
+    struct ShadowOutput {
+        float control[3] {}, feedforward[3] {};
+    };
+    static ShadowOutput shadow_rate_step(UTB_PID (&pid)[3], const ShadowInput &input);
+#endif
     // pid accessors
     UTB_PID& get_rate_roll_pid() override
     {

@@ -604,4 +604,57 @@ float UTB_PID_SlewLimiter::modifier(float sample, float dt)
     return mod;
 }
 
+
+#if AP_UTB_NATIVE_SHADOW_ENABLED
+AC_PID_Shadow UTB_PID::shadow_snapshot() const
+{
+    AC_PID_Shadow state;
+    const float config[] = {_kp.get(), _ki.get(), _kd.get(), _kff.get(), _kimax.get(), _kpdmax.get(),
+                            _filt_T_hz.get(), _filt_E_hz.get(), _filt_D_hz.get(), _slew_rate_max.get(),
+                            _kdff.get(), _slew_rate_tau.get()};
+    for (uint8_t i = 0; i < AC_PID_Shadow::CONFIG_COUNT; i++) {
+        state.config[i] = config[i];
+    }
+    state.integrator = _integrator;
+    state.target = _target;
+    state.error = _error;
+    state.derivative = _derivative;
+    state.target_derivative = _target_derivative;
+    state.reset_filter = _flags._reset_filter;
+    state.i_set = _flags._I_set;
+    state.slew_scale = _slew_limit_scale;
+    state.info = _pid_info;
+#if AP_FILTER_ENABLED
+    state.notch = _notch_T_filter.get() != 0 || _notch_E_filter.get() != 0 ||
+                  _target_notch != nullptr || _error_notch != nullptr;
+#endif
+    return state;
+}
+void UTB_PID::shadow_restore(const AC_PID_Shadow &state)
+{
+    // Assignment of plain values only; no gain loading or notch setup.
+    _kp.set(state.config[AC_PID_Shadow::P]);
+    _ki.set(state.config[AC_PID_Shadow::I]);
+    _kd.set(state.config[AC_PID_Shadow::D]);
+    _kff.set(state.config[AC_PID_Shadow::FF]);
+    _kimax.set(state.config[AC_PID_Shadow::IMAX]);
+    _kpdmax.set(state.config[AC_PID_Shadow::PDMAX]);
+    _filt_T_hz.set(state.config[AC_PID_Shadow::FLTT]);
+    _filt_E_hz.set(state.config[AC_PID_Shadow::FLTE]);
+    _filt_D_hz.set(state.config[AC_PID_Shadow::FLTD]);
+    _slew_rate_max.set(state.config[AC_PID_Shadow::SMAX]);
+    _kdff.set(state.config[AC_PID_Shadow::DFF]);
+    _slew_rate_tau.set(state.config[AC_PID_Shadow::SRT]);
+    _slew_limit_scale = state.slew_scale;
+    _integrator = state.integrator;
+    _target = state.target;
+    _error = state.error;
+    _derivative = state.derivative;
+    _target_derivative = state.target_derivative;
+    _flags._reset_filter = state.reset_filter;
+    _flags._I_set = state.i_set;
+    _pid_info = state.info;
+}
+#endif
+
 #endif // AP_UTB_RATE_SITL_AVAILABLE

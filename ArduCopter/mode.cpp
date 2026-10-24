@@ -534,6 +534,9 @@ void Copter::update_flight_mode()
     pos_control->set_reset_handling_method(flightmode->move_vehicle_on_ekf_reset() ? AC_PosControl::EKFResetMethod::MoveVehicle : AC_PosControl::EKFResetMethod::MoveTarget);
 
     flightmode->run();
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb_attitude_shadow.finish();
+#endif
 }
 
 // exit_mode - high level call to organise cleanup as a flight mode is exited

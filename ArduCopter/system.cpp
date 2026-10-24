@@ -470,6 +470,12 @@ void Copter::allocate_motors(void)
         AP_BoardConfig::allocation_error("AttitudeControl");
     }
     AP_Param::load_object_from_eeprom(attitude_control, attitude_control_var_info);
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb_attitude_shadow.init();
+#endif
+#if AP_UTB_NATIVE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    utb_native_shadow.init();
+#endif
 #if AP_UTB_NATIVE_BENCH_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     utb_native_bench.init(*ahrs_view);
 #endif

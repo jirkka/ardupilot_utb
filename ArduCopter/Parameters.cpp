@@ -388,6 +388,16 @@ const AP_Param::Info Copter::var_info[] = {
 #endif
 
 
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // @Group: UAS_
+    // @Path: ../libraries/AP_UTB/AP_UTB_AttitudeShadow.cpp
+    GOBJECT(utb_attitude_shadow, "UAS_", AP_UTB_AttitudeShadow),
+#endif
+#if AP_UTB_NATIVE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+    // @Group: UNS_
+    // @Path: ../libraries/AP_UTB/AP_UTB_NativeShadow.cpp
+    GOBJECT(utb_native_shadow, "UNS_", AP_UTB_NativeShadow),
+#endif
 #if AP_UTB_NATIVE_BENCH_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     // @Group: UB3_
     // @Path: ../libraries/AP_UTB/AP_UTB_NativeBench.cpp

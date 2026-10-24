@@ -75,11 +75,28 @@ public:
         _throttle_rpy_mix_desired(AC_ATTITUDE_CONTROL_THR_MIX_DEFAULT),
         _throttle_rpy_mix(AC_ATTITUDE_CONTROL_THR_MIX_DEFAULT),
         _ahrs(ahrs),
-        _motors(motors)
+        _motors(&motors)
     {
         _singleton = this;
         AP_Param::setup_object_defaults(this, var_info);
     }
+
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE
+    // Inert math instance: no motors, singleton publication or parameter registration.
+    explicit UTB_Attitude(UTB_State &state) :
+        _p_angle_roll(AC_ATTITUDE_CONTROL_ANGLE_P),
+        _p_angle_pitch(AC_ATTITUDE_CONTROL_ANGLE_P),
+        _p_angle_yaw(AC_ATTITUDE_CONTROL_ANGLE_P),
+        _angle_boost(0), _use_sqrt_controller(true),
+        _throttle_rpy_mix_desired(AC_ATTITUDE_CONTROL_THR_MIX_DEFAULT),
+        _throttle_rpy_mix(AC_ATTITUDE_CONTROL_THR_MIX_DEFAULT),
+        _ahrs(state), _motors(nullptr) {}
+    void input_rate_bf_roll_pitch_yaw_rads(float roll, float pitch, float yaw);
+    void relax_attitude_controllers();
+    UTBAttitudeCapture::History shadow_history() const;
+    void shadow_history(const UTBAttitudeCapture::History &history);
+    void shadow_config(const UTBAttitudeCapture::Config &config);
+#endif
 
     static UTB_Attitude *get_singleton(void)
     {
@@ -723,7 +740,7 @@ protected:
 
     // References to external libraries
     const UTB_State&  _ahrs;
-    AP_Motors&          _motors;
+    AP_Motors*          _motors;
 
     static UTB_Attitude *_singleton;
 

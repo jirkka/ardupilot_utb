@@ -3,6 +3,7 @@
  */
 
 #include "AP_Logger_config.h"
+#include <AP_Logger/AP_Logger_UTBTrace.h>
 
 #if HAL_LOGGING_BLOCK_ENABLED
 
@@ -132,11 +133,14 @@ bool AP_Logger_Block::_WritePrioritisedBlock(const void *pBuffer, uint16_t size,
         return false;
     }
 
+    UTB_TRACE_SCOPE(trace_wait, WRITE_WAIT);
 #if AP_UTB_BENCH_ENABLED
     UTBBench::MutexProbe bench(write_sem, _bench_mutex, __AP_LINE__);
 #else
     WITH_SEMAPHORE(write_sem);
 #endif
+    UTB_TRACE_FINISH(trace_wait);
+    UTB_TRACE_SCOPE(trace_hold, WRITE_HOLD);
 
     const uint32_t space = writebuf.space();
 
@@ -544,12 +548,16 @@ void AP_Logger_Block::stop_logging_async(void)
 // that should all be handled by the IO thread
 void AP_Logger_Block::start_new_log(void)
 {
+    UTB_TRACE_SCOPE(trace_start, START_LOG);
     if (erase_started) {
         // currently erasing
         return;
     }
 
+    UTB_TRACE_SCOPE(trace_wait, CHIP_WAIT);
     WITH_SEMAPHORE(sem);
+    UTB_TRACE_FINISH(trace_wait);
+    UTB_TRACE_SCOPE(trace_hold, CHIP_HOLD);
 
     if (logging_started()) {
         stop_logging();
@@ -668,6 +676,7 @@ uint16_t AP_Logger_Block::find_last_log(void)
 // This function finds the last page of the last file
 uint32_t AP_Logger_Block::find_last_page(void)
 {
+    UTB_TRACE_SCOPE(trace_find, FIND_PAGE);
     uint32_t look;
     uint32_t bottom = 1;
     uint32_t top = df_NumPages;
@@ -675,7 +684,10 @@ uint32_t AP_Logger_Block::find_last_page(void)
     uint64_t bottom_hash;
     uint64_t top_hash;
 
+    UTB_TRACE_SCOPE(trace_wait, CHIP_WAIT);
     WITH_SEMAPHORE(sem);
+    UTB_TRACE_FINISH(trace_wait);
+    UTB_TRACE_SCOPE(trace_hold, CHIP_HOLD);
 
     StartRead(bottom);
     bottom_hash = ((int64_t)GetFileNumber()<<32) | df_FilePage;
