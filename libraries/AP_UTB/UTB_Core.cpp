@@ -8,6 +8,13 @@
 #include "UTB_Core.h"
 #include <AP_HAL/AP_HAL.h>
 #include <AP_InternalError/AP_InternalError.h>
+UTB_Core *UTB_Core::_singleton;
+void UTB_Core::note_native_rate_call()
+{
+    if (AP_HAL::get_HAL().scheduler->in_main_thread() && _singleton != nullptr && _singleton->_mode != 0) {
+        _singleton->_native_calls++;
+    }
+}
 bool UTB_Core::enter(uint8_t mode, AC_AttitudeControl &native)
 {
     if (!state.finite()) {
@@ -25,7 +32,8 @@ bool UTB_Core::enter(uint8_t mode, AC_AttitudeControl &native)
         rate.get_rate_pitch_pid().reset_filter();
         rate.get_rate_yaw_pid().reset_filter();
     }
-    _seq = _motor_calls = 0;
+    _seq = _motor_calls = _attitude_seq = _source_seq = 0;
+    _native_calls = _audit_faults = 0;
     _mode = mode;
     _healthy = true;
     return true;
@@ -49,8 +57,14 @@ bool UTB_Core::update_rate(float dt)
     }
     // Native PID input guards are evaluated per axis. Estimator/INS health policy stays in AP.
 
+    _source_seq = _attitude_seq;
+    _consumed_target = rate.rate_bf_targets();
+    _consumed_gyro = state.get_gyro_latest();
+    if (_source_seq + 1U != _seq) {
+        _audit_faults |= 1U;
+    }
     rate.set_dt_s(dt);
-    rate.rate_controller_run_dt(state.get_gyro_latest(), dt);
+    rate.rate_controller_run_dt(_consumed_gyro, dt);
     rate.rate_controller_target_reset();
     _healthy = _healthy && rate.output_valid();
     return _healthy;

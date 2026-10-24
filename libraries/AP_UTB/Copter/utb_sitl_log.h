@@ -67,7 +67,7 @@ struct PACKED log_UARX {
 // @Field: M2: Raw normalized AP_Motors actuator 2
 // @Field: M3: Raw normalized AP_Motors actuator 3
 // @Field: M4: Raw normalized AP_Motors actuator 4
-// @Field: APN: Legacy AP rate PID invocation count; UTB3A zero denotes excluded native dispatch, not an independent call probe
+// @Field: APN: Legacy AP rate PID invocation count; UTB3G counts independently probed native calls while UTB owns the controller
 // @Field: UN: Legacy UTB rate PID invocation count; UTB3A rate-slot attempt count, inspect Flt for validity
 // @Field: MN: Existing motor output callback count in this mode
 // @Field: Ex: Legacy rate-slot host duration microseconds, not virtual dt; UTB3A reserved zero

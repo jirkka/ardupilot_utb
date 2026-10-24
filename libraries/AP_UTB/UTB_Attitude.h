@@ -395,6 +395,13 @@ public:
     }
 
     // Return the body-frame angular velocity (in rad/s) used by the angular velocity controller.
+#if AP_UTB_RATE_SITL_AVAILABLE
+    // Read-only active-SITL evidence of the actual input-shaper acceleration state.
+    const Vector3f &get_attitude_target_ang_accel() const
+    {
+        return _ang_accel_target_rads;
+    }
+#endif
     Vector3f rate_bf_targets() const
     {
         return _ang_vel_body_rads + _sysid_ang_vel_body_rads;

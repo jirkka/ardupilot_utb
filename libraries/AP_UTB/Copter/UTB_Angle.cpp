@@ -11,7 +11,7 @@ bool UTB_Angle::init(bool ignore_checks)
 {
     char failure[128];
     if (!copter.utb.enabled() || copter.utb.angle_enable() != 1 ||
-        copter.utb3_core == nullptr || copter.using_rate_thread || copter.g2.att_enable.get() != 0 ||
+        copter.utb3_core == nullptr || copter.started_rate_thread || copter.using_rate_thread || copter.g2.att_enable.get() != 0 ||
         !copter.utb3_control->pre_arm_checks("UT3", failure, sizeof(failure))) {
         return false;
     }
@@ -25,7 +25,8 @@ bool UTB_Angle::allows_arming(AP_Arming::Method method) const
 {
     char failure[128];
     return copter.utb.enabled() && copter.utb.angle_enable() == 1 &&
-           copter.utb3_core != nullptr && copter.utb3_core->healthy() && rc().has_valid_input() &&
+           copter.utb3_core != nullptr && !copter.started_rate_thread && !copter.using_rate_thread &&
+           copter.g2.att_enable.get() == 0 && copter.utb3_core->healthy() && rc().has_valid_input() &&
            copter.utb3_control->pre_arm_checks("UT3", failure, sizeof(failure));
 }
 void UTB_Angle::exit()
@@ -100,6 +101,7 @@ void UTB_Angle::run()
         break;
     }
     controller.input_euler_angle_roll_pitch_euler_rate_yaw_rad(reference.x, reference.y, reference.z);
+    core.note_attitude();
     core.manual_throttle = throttle;
     controller.set_throttle_out(throttle, true, copter.g.throttle_filt);
 

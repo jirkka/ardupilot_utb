@@ -1,4 +1,5 @@
 #include "AC_AttitudeControl_Multi.h"
+#include <AP_UTB/UTB_Core.h>
 #include <AP_UTB/AP_UTB_Timing.h>
 #include <AP_UTB/AP_UTB_ChainShadow.h>
 #include <AC_PID/AC_PID_Shadow.h>
@@ -450,6 +451,9 @@ void AC_AttitudeControl_Multi::update_throttle_rpy_mix()
 
 void AC_AttitudeControl_Multi::rate_controller_run_dt(const Vector3f& gyro_rads, float dt)
 {
+#if AP_UTB_RATE_SITL_AVAILABLE
+    UTB_Core::note_native_rate_call();
+#endif
     // take a copy of the target so that it can't be changed from under us.
     Vector3f ang_vel_body = _ang_vel_body_rads;
 

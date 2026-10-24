@@ -26,11 +26,29 @@ public:
     void begin()
     {
         _valid = true;
+#if AP_UTB_RATE_SITL_AVAILABLE
+        _writes = 0;
+#endif
     }
     bool valid() const
     {
         return _valid;
     }
+#if AP_UTB_RATE_SITL_AVAILABLE
+    // Observe actual setter calls, independently of the PID telemetry snapshot.
+    uint8_t writes() const
+    {
+        return _writes;
+    }
+    const Vector3f &control() const
+    {
+        return _control;
+    }
+    const Vector3f &feedforward() const
+    {
+        return _feedforward;
+    }
+#endif
     void roll(float value);
     void roll_ff(float value);
     void pitch(float value);
@@ -44,5 +62,9 @@ private:
     // The only physical-output interface; the original motor slot still owns output().
     AP_Motors &_motors;
     bool _valid = true;
+#if AP_UTB_RATE_SITL_AVAILABLE
+    Vector3f _control, _feedforward; // Values actually passed to the AP_Motors setters.
+    uint8_t _writes = 0; // Exactly six R/P/Y plus FF calls per own rate iteration.
+#endif
 };
 #endif

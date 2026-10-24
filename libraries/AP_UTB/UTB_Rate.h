@@ -82,6 +82,20 @@ public:
     };
     static ShadowOutput shadow_rate_step(UTB_PID (&pid)[3], const ShadowInput &input);
 #endif
+#if AP_UTB_RATE_SITL_AVAILABLE
+    uint8_t output_writes() const
+    {
+        return _output.writes();
+    }
+    const Vector3f &output_control() const
+    {
+        return _output.control();
+    }
+    const Vector3f &output_feedforward() const
+    {
+        return _output.feedforward();
+    }
+#endif
     // pid accessors
     UTB_PID& get_rate_roll_pid() override
     {

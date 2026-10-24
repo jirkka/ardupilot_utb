@@ -14,7 +14,13 @@
 class UTB_Core
 {
 public:
-    UTB_Core(const AP_AHRS_View &view, AP_MotorsMulticopter &motors) : state(view), rate(state, motors), _motors(motors) {}
+    UTB_Core(const AP_AHRS_View &view, AP_MotorsMulticopter &motors) : state(view), rate(state, motors), _motors(motors)
+    {
+        _singleton = this;
+    }
+    // Native-call probe is SITL-only and does not execute or alter either controller.
+    static void note_native_rate_call();
+    void note_attitude();
     bool enter(uint8_t mode, AC_AttitudeControl &native);
     void leave(uint8_t mode);
     bool update_rate(float dt);
@@ -34,7 +40,11 @@ public:
     UTB_Rate rate;
 private:
     // Current pilot owner; zero means the normal AP controller owns the rate slot.
+    static UTB_Core *_singleton;
     AP_MotorsMulticopter &_motors;
+    Vector3f _consumed_target, _consumed_gyro; // Actual inputs saved before the own Rate step.
+    uint32_t _attitude_seq = 0, _source_seq = 0; // Mode-local target producer/consumer IDs.
+    uint32_t _native_calls = 0, _audit_faults = 0; // Real call probe and cumulative diagnostic fault bits.
     uint32_t _seq = 0, _motor_calls = 0;
     uint64_t _time_us = 0;
     float _dt = 0;

@@ -26,6 +26,10 @@ void UTB_Output::roll(float value)
         value = 0;
     }
     _motors.set_roll(value);
+#if AP_UTB_RATE_SITL_AVAILABLE
+    _control.x = value;
+    _writes++;
+#endif
 }
 void UTB_Output::roll_ff(float value)
 {
@@ -35,6 +39,10 @@ void UTB_Output::roll_ff(float value)
         value = 0;
     }
     _motors.set_roll_ff(value);
+#if AP_UTB_RATE_SITL_AVAILABLE
+    _feedforward.x = value;
+    _writes++;
+#endif
 }
 void UTB_Output::pitch(float value)
 {
@@ -44,6 +52,10 @@ void UTB_Output::pitch(float value)
         value = 0;
     }
     _motors.set_pitch(value);
+#if AP_UTB_RATE_SITL_AVAILABLE
+    _control.y = value;
+    _writes++;
+#endif
 }
 void UTB_Output::pitch_ff(float value)
 {
@@ -53,6 +65,10 @@ void UTB_Output::pitch_ff(float value)
         value = 0;
     }
     _motors.set_pitch_ff(value);
+#if AP_UTB_RATE_SITL_AVAILABLE
+    _feedforward.y = value;
+    _writes++;
+#endif
 }
 void UTB_Output::yaw(float value)
 {
@@ -62,6 +78,10 @@ void UTB_Output::yaw(float value)
         value = 0;
     }
     _motors.set_yaw(value);
+#if AP_UTB_RATE_SITL_AVAILABLE
+    _control.z = value;
+    _writes++;
+#endif
 }
 void UTB_Output::yaw_ff(float value)
 {
@@ -71,6 +91,10 @@ void UTB_Output::yaw_ff(float value)
         value = 0;
     }
     _motors.set_yaw_ff(value);
+#if AP_UTB_RATE_SITL_AVAILABLE
+    _feedforward.z = value;
+    _writes++;
+#endif
 }
 void UTB_Output::throttle_filter(float value)
 {
