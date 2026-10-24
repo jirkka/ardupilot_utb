@@ -98,6 +98,7 @@ public:
     void finish();
     static void dump(ExpandingString &text);
     static const AP_Param::GroupInfo var_info[];
+    int8_t requested_run() const { return _run.get(); }
     static bool enabled();
     static void before(UTBAttitudeCapture::Command kind, const Vector3f &command, bool reset_rate,
                        const UTBAttitudeCapture::Config &config, const UTBAttitudeCapture::Sensors &sensors,

@@ -180,6 +180,9 @@ void Copter::init_ardupilot()
 #endif
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     utb.init(*ahrs_view);
+#if AP_UTB_TIMING_ENABLED
+    utb_timing.init();
+#endif
 #if AP_UTB_BENCH_ENABLED
     utb_bench_config();
 #endif

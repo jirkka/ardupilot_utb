@@ -80,6 +80,7 @@
 #include <AP_Logger/AP_Logger_UTBBench.h>
 #if AP_UTB_ENABLED
 #include <AP_UTB/AP_UTB.h>
+#include <AP_UTB/AP_UTB_Timing.h>
 #include <AP_UTB/UTB_Core.h>
 #include <AP_UTB/AP_UTB_NativeBench.h>
 #include <AP_UTB/AP_UTB_NativeShadow.h>
@@ -263,6 +264,9 @@ private:
 
 #if AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
     AP_UTB utb;
+#if AP_UTB_TIMING_ENABLED
+    AP_UTB_Timing utb_timing;
+#endif
 #if AP_UTB_NATIVE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
     AP_UTB_NativeShadow utb_native_shadow;
 #endif

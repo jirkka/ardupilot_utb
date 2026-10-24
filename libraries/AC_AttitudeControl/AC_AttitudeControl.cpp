@@ -1,4 +1,5 @@
 #include "AC_AttitudeControl.h"
+#include <AP_UTB/AP_UTB_Timing.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <AP_Scheduler/AP_Scheduler.h>
@@ -419,6 +420,9 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_cd(float eu
 // Otherwise, updates the attitude target directly and zeros rate/accel feedforward targets.
 void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw_rad(float euler_roll_angle_rad, float euler_pitch_angle_rad, float euler_yaw_rate_rads)
 {
+#if AP_UTB_TIMING_ENABLED
+    AP_UTB_Timing::attitude(0);
+#endif
 #if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
     const bool utb_capture = UTBAttitudeCapture::enabled();
     if (utb_capture) {
@@ -640,6 +644,9 @@ void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_cds(float roll_rate_bf_cds
 // Otherwise, the attitude target is incrementally rotated using the rate inputs and feedforward targets are zeroed.
 void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_rads(float roll_rate_bf_rads, float pitch_rate_bf_rads, float yaw_rate_bf_rads)
 {
+#if AP_UTB_TIMING_ENABLED
+    AP_UTB_Timing::attitude(1);
+#endif
 #if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
     const bool utb_capture = UTBAttitudeCapture::enabled();
     if (utb_capture) {
@@ -707,6 +714,9 @@ void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_2_cds(float roll_rate_bf_c
 // Attitude targets are updated from the current AHRS attitude to keep target state coherent for mode transitions.
 void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_2_rads(float roll_rate_bf_rads, float pitch_rate_bf_rads, float yaw_rate_bf_rads)
 {
+#if AP_UTB_TIMING_ENABLED
+    AP_UTB_Timing::attitude(2);
+#endif
 #if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
     const bool utb_capture = UTBAttitudeCapture::enabled();
     if (utb_capture) {
@@ -1346,6 +1356,9 @@ void AC_AttitudeControl::reset_target_and_rate(bool reset_rate)
 // If reset_rate is false rates are not reset to allow the rate controllers to run
 void AC_AttitudeControl::reset_yaw_target_and_rate(bool reset_rate)
 {
+#if AP_UTB_TIMING_ENABLED
+    AP_UTB_Timing::yaw_reset();
+#endif
 #if AP_UTB_ATTITUDE_SHADOW_ENABLED && AP_UTB_ENABLED
     const bool utb_capture = UTBAttitudeCapture::enabled();
     if (utb_capture) {

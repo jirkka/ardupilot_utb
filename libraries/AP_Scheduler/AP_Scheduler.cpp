@@ -20,6 +20,7 @@
  */
 
 #include "AP_Scheduler_config.h"
+#include <AP_UTB/AP_UTB_Timing.h>
 
 #if AP_SCHEDULER_ENABLED
 
@@ -364,6 +365,9 @@ void AP_Scheduler::loop()
 
     _loop_sample_time_us = AP_HAL::micros64();
     const uint32_t sample_time_us = uint32_t(_loop_sample_time_us);
+#if AP_UTB_TIMING_ENABLED
+    AP_UTB_Timing::loop(sample_time_us);
+#endif
 #if AP_UTB_LOGGER_TRACE_ENABLED
     UTBLoggerTrace::loop(sample_time_us, get_loop_period_us());
 #endif

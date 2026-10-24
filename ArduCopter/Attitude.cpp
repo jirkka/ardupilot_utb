@@ -9,6 +9,16 @@
 */
 void Copter::run_rate_controller_main()
 {
+#if AP_UTB_TIMING_ENABLED && AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    int8_t uas_run = -1; // Explicit absent-feature marker, never an assumed baseline.
+#if AP_UTB_ATTITUDE_SHADOW_AVAILABLE
+    uas_run = utb_attitude_shadow.requested_run();
+#endif
+    AP_UTB_Timing::context(uint8_t(flightmode->mode_number()), uas_run,
+                           !started_rate_thread && !using_rate_thread &&
+                           get_fast_rate_type() == FastRateType::FAST_RATE_DISABLED &&
+                           AP::scheduler().get_loop_rate_hz() == 400);
+#endif
     // set attitude and position controller loop time
     const float last_loop_time_s = AP::scheduler().get_last_loop_time_s();
 #if AP_UTB_ATTITUDE_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME

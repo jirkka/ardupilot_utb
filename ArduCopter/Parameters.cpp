@@ -37,6 +37,12 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Advanced
     GSCALAR(format_version, "FORMAT_VERSION",   0),
 
+#if AP_UTB_TIMING_ENABLED && AP_UTB_ENABLED && FRAME_CONFIG == MULTICOPTER_FRAME
+    // @Group: UTT_
+    // @Path: ../libraries/AP_UTB/AP_UTB_Timing.cpp
+    GOBJECT(utb_timing, "UTT_", AP_UTB_Timing),
+#endif
+
     // SYSID_THISMAV was here
 
     // SYSID_MYGCS was here

@@ -1,4 +1,5 @@
 #include "AC_AttitudeControl_Multi.h"
+#include <AP_UTB/AP_UTB_Timing.h>
 #include <AC_PID/AC_PID_Shadow.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #if AP_UTB_NATIVE_SHADOW_ENABLED && APM_BUILD_TYPE(APM_BUILD_ArduCopter)
@@ -504,6 +505,9 @@ void AC_AttitudeControl_Multi::rate_controller_run_dt(const Vector3f& gyro_rads,
 // run the rate controller using the configured _dt and latest gyro_rads
 void AC_AttitudeControl_Multi::rate_controller_run()
 {
+#if AP_UTB_TIMING_ENABLED
+    AP_UTB_Timing::rate();
+#endif
     Vector3f gyro_latest_rads = _ahrs.get_gyro_latest();
     rate_controller_run_dt(gyro_latest_rads, _dt_s);
 }
