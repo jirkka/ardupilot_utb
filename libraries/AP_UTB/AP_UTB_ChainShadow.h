@@ -15,6 +15,9 @@
 #endif
 #include "AP_UTB_AttitudeShadow.h"
 #include "AP_UTB_NativeShadow.h"
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+#include "AP_UTB_FlightShadow.h"
+#endif
 
 class UTB_ChainShadowEngine
 {
@@ -55,6 +58,10 @@ public:
     {
         return _last_source;
     }
+    const UTBAttitudeCapture::Frame &last_operation() const
+    {
+        return _last_attitude;
+    }
     const UTBAttitudeCapture::History &consumed_attitude() const
     {
         return _source_own;
@@ -94,6 +101,14 @@ public:
         return _singleton;
     }
     static void dump(ExpandingString &text);
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    static void dump_flight(ExpandingString &text, uint8_t page);
+    void flight_context(bool armed, uint8_t spool, bool supported)
+    {
+        _flight.context(armed, spool);
+        _flight_supported = supported;
+    }
+#endif
     static const AP_Param::GroupInfo var_info[];
     void before_rate(const UTB_Rate::ShadowInput &input, const Vector3f &sysid,
                      uint32_t gyro_us, uint32_t imu_us, uint8_t gyro);
@@ -116,6 +131,11 @@ private:
     static AP_UTB_ChainShadow *_singleton;
     AP_Int8 _run;
     AP_Int32 _count;
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    friend class UTBFlightTestAccess;
+    AP_UTB_FlightShadow _flight;
+    bool _flight_session = false, _flight_supported = false;
+#endif
     UTB_ChainShadowEngine _engine;
     UTB_RateShadow::Frame _rate_frame;
     UTBAttitudeCapture::Frame _att_frame;

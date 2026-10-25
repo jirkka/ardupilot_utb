@@ -46,6 +46,11 @@ struct SysFileList {
 };
 
 static const SysFileList sysfs_file_list[] = {
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    {"utb_flight.txt"},
+    {"utb_flight0.csv"}, {"utb_flight1.csv"}, {"utb_flight2.csv"}, {"utb_flight3.csv"},
+    {"utb_flight4.csv"}, {"utb_flight5.csv"}, {"utb_flight6.csv"}, {"utb_flight7.csv"},
+#endif
 #if AP_UTB_TIMING_ENABLED
     {"utb_timing.txt"},
 #endif
@@ -122,6 +127,13 @@ int AP_Filesystem_Sys::open(const char *fname, int flags, bool allow_absolute_pa
         return -1;
     }
 
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    if (strcmp(fname, "utb_flight.txt") == 0) {
+        AP_UTB_ChainShadow::dump_flight(*r.str, 255);
+    } else if (strncmp(fname, "utb_flight", 10) == 0 && fname[10] >= '0' && fname[10] <= '7') {
+        AP_UTB_ChainShadow::dump_flight(*r.str, uint8_t(fname[10] - '0'));
+    }
+#endif
 #if AP_UTB_CHAIN_SHADOW_AVAILABLE
     if (strcmp(fname, "utb_chain_shadow.txt") == 0) {
         AP_UTB_ChainShadow::dump(*r.str);

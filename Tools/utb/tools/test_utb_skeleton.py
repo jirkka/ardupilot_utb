@@ -54,7 +54,7 @@ class SITL:
     # @details    Public class method. Calls: params.write_text, subprocess.Popen, socket.socket, sock.bind.
     # --------------------------------------------------------------------------------------------------------------------
     def __init__(self, binary, defaults, workdir, log, compiled, enabled, extra_params="", model="quad",
-                 speedup=5, rcin_port=None):
+                 speedup=5, rcin_port=None, isolated_aux_ports=False):
         params = workdir / "utb.parm"
         params.write_text("FRAME_CLASS 1\nFRAME_TYPE 1\nFS_THR_ENABLE 0\nFS_GCS_ENABLE 0\n"
                           "FLTMODE_CH 5\nFLTMODE1 0\nRC7_OPTION 0\nDISARM_DELAY 0\n"
@@ -66,7 +66,8 @@ class SITL:
             [str(binary), "--model", model, "--speedup", str(speedup), "--wipe",
              "--home", "50,14,200,0", "--serial0", f"tcp:{port}",
              "--defaults", f"{defaults},{params}"] +
-            (["--rc-in-port", str(rcin_port)] if rcin_port is not None else []),
+            (["--rc-in-port", str(rcin_port)] if rcin_port is not None else []) +
+            (["--serial1", "none", "--serial2", "none"] if isolated_aux_ports else []),
             cwd=workdir, stdout=log, stderr=subprocess.STDOUT)
         self.link = None
         self.rc5 = 1000

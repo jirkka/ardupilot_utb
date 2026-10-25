@@ -66,7 +66,19 @@ public:
         e._target.body.x += .25f;
     }
 };
-template<unsigned fault> static void exercise()
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+class UTBFlightTestAccess
+{
+public:
+    static void arm(AP_UTB_FlightShadow &recorder)
+    {
+        recorder._run.set(1); recorder._count.set(1000); recorder._decim.set(400);
+        recorder._started = false; recorder._closed = false; recorder._stats = {};
+        recorder._head = recorder._used = 0;
+    }
+};
+#endif
+template<unsigned fault, bool record_fault = false> static void exercise()
 {
     static UTB_ChainShadowEngine chain;
     static AC_PID pid[3] {{.135f,.135f,.0036f,.07f,.5f,15,7,20,0,1,.002f},
@@ -79,6 +91,13 @@ template<unsigned fault> static void exercise()
     Vector3f sysid; // Common native excitation, independent from both attitude targets.
     uint32_t loop;
     uint8_t mode;
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    static AP_UTB_FlightShadow recorder;
+    if (record_fault) {
+        UTBFlightTestAccess::arm(recorder);
+        ASSERT_TRUE(recorder.start());
+    }
+#endif
     native.seed(); chain.start();
     for (auto &p : pid) {
         p.reset_I();
@@ -168,6 +187,11 @@ template<unsigned fault> static void exercise()
             chain.attitude(attitude);
         }
         chain.audit(fault==13 && i==250); chain.end();
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+        if (record_fault) {
+            recorder.record(chain, loop, chain.failed());
+        }
+#endif
         if (fault!=0 && fault!=5 && fault!=10 && fault<14 && i==250) {
             break;
         }
@@ -175,6 +199,20 @@ template<unsigned fault> static void exercise()
     const auto &s=chain.statistics();
     const auto &a=chain.attitude_engine().statistics();
     const auto &p=chain.rate_engine().statistics();
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    if (record_fault) {
+        ASSERT_EQ(recorder.statistics().selected, 2U); // Warmup and forced failure, not just successful samples.
+        const auto &row = recorder.oldest(1);
+        EXPECT_TRUE(row.flags & 2U);
+        EXPECT_EQ(row.loop, 250U);
+        EXPECT_EQ(row.source_loop, 249U);
+        if (fault == 1) {
+            EXPECT_FLOAT_EQ(row.own_target[0] - row.native_target[0], .25f);
+        } else {
+            EXPECT_NEAR(row.native_output[0] - row.own_output[0], .1f, 1.0e-6f);
+        }
+    }
+#endif
     if (fault==0 || fault==5 || fault==10 || fault>=14) {
         EXPECT_EQ(s.paired,499U); EXPECT_EQ(s.warmup,1U); EXPECT_EQ(s.missing,0U); EXPECT_EQ(s.duplicate,0U);
         EXPECT_EQ(s.upstream_mismatch,0U); EXPECT_EQ(p.mismatch,0U); EXPECT_EQ(p.desync,0U);
@@ -275,5 +313,15 @@ TEST(UTBChain, SharedSysidAndActuator)
 {
     exercise<17>();
 }
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+TEST(UTBChain, RecorderRetainsUpstreamFaultContext)
+{
+    exercise<1, true>();
+}
+TEST(UTBChain, RecorderRetainsDownstreamFaultContext)
+{
+    exercise<2, true>();
+}
+#endif
 #endif
 AP_GTEST_MAIN()

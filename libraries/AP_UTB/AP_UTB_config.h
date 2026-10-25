@@ -53,6 +53,11 @@
 
 #define AP_UTB_RATE_SITL_AVAILABLE (AP_UTB_ENABLED && AP_UTB_RATE_SITL_ENABLED && CONFIG_HAL_BOARD == HAL_BOARD_SITL)
 
+#ifndef AP_UTB_FLIGHT_SHADOW_ENABLED
+#define AP_UTB_FLIGHT_SHADOW_ENABLED 0
+#endif
+#define AP_UTB_FLIGHT_SHADOW_AVAILABLE (AP_UTB_ENABLED && AP_UTB_FLIGHT_SHADOW_ENABLED)
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // End Data type, constant, macro definition
 //====================================================================================================================

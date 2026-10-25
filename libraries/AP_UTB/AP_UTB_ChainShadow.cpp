@@ -7,6 +7,22 @@
 #if AP_UTB_CHAIN_SHADOW_AVAILABLE
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Common/ExpandingString.h>
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+#include <cstring>
+// HAL printf formats floats as binary32; export binary64 metric bits without narrowing.
+static void flight_metric(ExpandingString &text, const char *section, uint8_t axis, uint8_t metric,
+                          double maximum, double squares, uint32_t count)
+{
+    const double rmse = count ? sqrt(squares / count) : double(NAN);
+    uint64_t maximum_bits, rmse_bits; // Scalar bit representations, not pointers or object padding.
+    static_assert(sizeof(double) == sizeof(uint64_t), "Metric bit export requires binary64");
+    memcpy(&maximum_bits, &maximum, sizeof(maximum_bits));
+    memcpy(&rmse_bits, &rmse, sizeof(rmse_bits));
+    text.printf("flight_metric64,%s,%u,%u,%08x%08x,%08x%08x\n", section, unsigned(axis), unsigned(metric),
+                unsigned(maximum_bits >> 32), unsigned(uint32_t(maximum_bits)),
+                unsigned(rmse_bits >> 32), unsigned(uint32_t(rmse_bits)));
+}
+#endif
 extern const AP_HAL::HAL &hal;
 using namespace UTBAttitudeCapture;
 
@@ -157,6 +173,11 @@ const AP_Param::GroupInfo AP_UTB_ChainShadow::var_info[] = {
     // @Increment: 1
     // @User: Advanced
     AP_GROUPINFO("COUNT", 1, AP_UTB_ChainShadow, _count, 4000),
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    // @Group: F_
+    // @Path: AP_UTB_FlightShadow.cpp
+    AP_SUBGROUPINFO(_flight, "F_", 2, AP_UTB_ChainShadow, AP_UTB_FlightShadow),
+#endif
     AP_GROUPEND
 };
 AP_UTB_ChainShadow::AP_UTB_ChainShadow()
@@ -166,11 +187,19 @@ AP_UTB_ChainShadow::AP_UTB_ChainShadow()
 void AP_UTB_ChainShadow::init()
 {
     _run.set(0);
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    _flight.init();
+#endif
     _initialized = true;
 }
 void AP_UTB_ChainShadow::freeze(uint8_t reason)
 {
     _reason = reason; _running = false; _run.set(0);
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    if (_flight_session) {
+        _flight.stop(reason);
+    }
+#endif
     _published.store(true, std::memory_order_release);
 }
 bool AP_UTB_ChainShadow::enabled()
@@ -187,8 +216,38 @@ void AP_UTB_ChainShadow::prepare(bool supported, uint8_t mode)
         if (_run.get() != 0) {
             _run.set(0);
         }
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+        // Clear a new request without modifying the already published immutable recording.
+        _flight.init();
+#endif
         return;
     }
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    if (_running && ((_flight_session && _run.get() != 0) || (!_flight_session && _flight.requested()))) {
+        _flight_session = true; freeze(4); return; // Conflicting diagnostics never change native control.
+    }
+    if (!_running && _flight.requested()) {
+        _flight_session = true;
+        if (_run.get() != 0 || !_flight.start()) {
+            freeze(4); return;
+        }
+        _engine.start(); _limit = _flight.limit(); _running = true;
+    }
+    if (_flight_session && _running) {
+        if (mode != 0) {
+            _flight.mode_exit(); freeze(7); return;
+        }
+        if (!supported || !_flight_supported) {
+            _flight.unsupported(); freeze(6); return;
+        }
+        if (!_flight.requested()) {
+            freeze(2); return;
+        }
+        if (_flight.requested_run() != 1) {
+            freeze(4); return;
+        }
+    }
+#endif
     if (!_running && _run.get() != 0) {
         if (_run.get() != 1 || _count.get() < 2 || _count.get() > 200000) {
             freeze(4); return;
@@ -196,7 +255,11 @@ void AP_UTB_ChainShadow::prepare(bool supported, uint8_t mode)
         _engine.start(); _limit = uint32_t(_count.get()); _running = true;
     }
     if (_running) {
-        if (_run.get() == 0) {
+        if (_run.get() == 0
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+            && !_flight_session
+#endif
+           ) {
             freeze(2); return;
         }
         _engine.begin(_loop, mode, supported);
@@ -228,11 +291,22 @@ void AP_UTB_ChainShadow::before_attitude(Command kind, const Vector3f &command, 
     _att_frame.kind = kind; _att_frame.command = command; _att_frame.reset_rate = reset;
     _att_frame.config = config; _att_frame.sensors = sensors; _att_frame.before = history;
     _att_frame.time_us = AP_HAL::micros();
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    if (_flight_session && uint8_t(kind) < uint8_t(Command::RESET) && kind != Command::STABILIZE) {
+        _flight.unsupported(); // A mid-cycle change must not silently become a supported Flight profile.
+    }
+#endif
 }
 void AP_UTB_ChainShadow::after_attitude(const History &history)
 {
     const uint32_t start = AP_HAL::micros();
-    _att_frame.after = history; _engine.attitude(_att_frame);
+    _att_frame.after = history;
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    if (_flight_session && _flight.statistics().unsupported != 0) {
+        return;
+    }
+#endif
+    _engine.attitude(_att_frame);
     _att_last_us = AP_HAL::micros() - start;
     _att_us += _att_last_us; _att_max_us = MAX(_att_max_us, _att_last_us);
 }
@@ -250,6 +324,21 @@ void AP_UTB_ChainShadow::finish()
         return;
     }
     _engine.end();
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+    if (_flight_session) {
+        const bool bad = _engine.failed() || _engine.statistics().downstream_mismatch ||
+                         _engine.attitude_engine().statistics().mismatch;
+        const bool unsupported = _flight.statistics().unsupported || _engine.statistics().unsupported ||
+                                 _engine.attitude_engine().statistics().unsupported || _engine.rate_engine().statistics().unsupported;
+        _flight.record(_engine, _loop, bad || unsupported);
+        if (unsupported) {
+            freeze(6); return;
+        }
+        if (bad) {
+            freeze(3); return;
+        }
+    }
+#endif
     if (_engine.statistics().unsupported || _engine.attitude_engine().statistics().unsupported ||
         _engine.rate_engine().statistics().unsupported) {
         freeze(6);
@@ -259,6 +348,66 @@ void AP_UTB_ChainShadow::finish()
         freeze(_engine.attitude_engine().statistics().mismatch ? 3 : 1);
     }
 }
+#if AP_UTB_FLIGHT_SHADOW_AVAILABLE
+void AP_UTB_ChainShadow::dump_flight(ExpandingString &text, uint8_t page)
+{
+    const AP_UTB_ChainShadow *self = _singleton;
+    if (self == nullptr || !self->_published.load(std::memory_order_acquire) || !self->_flight_session) {
+        text.printf("UTBFlightV1,pending\n"); return;
+    }
+    if (hal.util->get_soft_armed()) {
+        text.printf("UTBFlightV1,armed-unavailable\n"); return;
+    }
+    if (page != 255) {
+        self->_flight.dump_page(text, page); return;
+    }
+    self->_flight.dump_header(text);
+    dump(text); // Existing full accounting; no new comparison algorithm.
+    const auto &a = self->_engine.attitude_engine().statistics();
+    const auto &s = self->_engine.statistics();
+    const auto &r = self->_engine.rate_engine().statistics();
+    const auto &last = self->_att_frame;
+    text.printf("last_operation,loop=%u,mode=%u,kind=%u,time_us=%u\n",
+                unsigned(last.loop), unsigned(last.mode), unsigned(last.kind), unsigned(last.time_us));
+    const float context[] = {last.config.dt, last.command.x, last.command.y, last.command.z,
+                             last.sensors.gyro.x, last.sensors.gyro.y, last.sensors.gyro.z
+                            };
+    text.printf("last_input32,dt,command_x,command_y,command_z,gyro_x,gyro_y,gyro_z\nlast_values32");
+    for (float value : context) {
+        uint32_t bits;
+        memcpy(&bits, &value, sizeof(bits));
+        text.printf(",%08x", unsigned(bits));
+    }
+    text.printf("\n");
+    const auto own_now = self->_engine.attitude_engine().history();
+    const float attitude_context[] = {
+        last.sensors.attitude.q1, last.sensors.attitude.q2, last.sensors.attitude.q3, last.sensors.attitude.q4,
+        last.after.target.q1, last.after.target.q2, last.after.target.q3, last.after.target.q4,
+        own_now.target.q1, own_now.target.q2, own_now.target.q3, own_now.target.q4,
+        last.after.body.x, last.after.body.y, last.after.body.z, own_now.body.x, own_now.body.y, own_now.body.z,
+        last.after.feedforward, own_now.feedforward
+    };
+    text.printf("last_attitude_values32");
+    for (float value : attitude_context) {
+        uint32_t bits;
+        memcpy(&bits, &value, sizeof(bits));
+        text.printf(",%08x", unsigned(bits));
+    }
+    text.printf("\n");
+    // Preserve all binary64 error bits; no small difference is rounded to a textual zero.
+    for (uint8_t k = 0; k < 26; k++) {
+        flight_metric(text, "att", 0, k, a.maximum[k], a.squares[k], a.valid);
+    }
+    for (uint8_t k = 0; k < 4; k++) {
+        flight_metric(text, "target", 0, k, s.target_max[k], s.target_squares[k], s.rate_calls);
+    }
+    for (uint8_t axis = 0; axis < 3; axis++) {
+        for (uint8_t k = 0; k < UTB_RateShadow::METRICS; k++) {
+            flight_metric(text, "pid", axis, k, r.maximum[axis][k], r.squares[axis][k], r.valid);
+        }
+    }
+}
+#endif
 void AP_UTB_ChainShadow::dump(ExpandingString &text)
 {
     const AP_UTB_ChainShadow *self = _singleton;
@@ -325,14 +474,29 @@ void AP_UTB_ChainShadow::dump(ExpandingString &text)
     }
     text.printf("section,axis,metric,max_abs,rmse\n");
     for (uint8_t k = 0; k < 26; k++) {
-        text.printf("att,0,%u,%.9f,%.9f\n", unsigned(k), a.maximum[k], a.valid ? sqrt(a.squares[k]/a.valid) : double(NAN));
+        text.printf("att,0,%u,%.9f,", unsigned(k), a.maximum[k]);
+        if (a.valid) {
+            text.printf("%.9f\n", sqrt(a.squares[k]/a.valid));
+        } else {
+            text.printf("nan\n"); // No samples: do not pass NaN into the HAL float formatter.
+        }
     }
     for (uint8_t k = 0; k < 4; k++) {
-        text.printf("target,0,%u,%.9f,%.9f\n", unsigned(k), s.target_max[k], s.rate_calls ? sqrt(s.target_squares[k]/s.rate_calls) : double(NAN));
+        text.printf("target,0,%u,%.9f,", unsigned(k), s.target_max[k]);
+        if (s.rate_calls) {
+            text.printf("%.9f\n", sqrt(s.target_squares[k]/s.rate_calls));
+        } else {
+            text.printf("nan\n");
+        }
     }
     for (uint8_t axis = 0; axis < 3; axis++) {
         for (uint8_t k = 0; k < UTB_RateShadow::METRICS; k++) {
-            text.printf("pid,%u,%u,%.9f,%.9f\n", unsigned(axis), unsigned(k), r.maximum[axis][k], r.valid ? sqrt(r.squares[axis][k]/r.valid) : double(NAN));
+            text.printf("pid,%u,%u,%.9f,", unsigned(axis), unsigned(k), r.maximum[axis][k]);
+            if (r.valid) {
+                text.printf("%.9f\n", sqrt(r.squares[axis][k]/r.valid));
+            } else {
+                text.printf("nan\n");
+            }
         }
     }
 }
