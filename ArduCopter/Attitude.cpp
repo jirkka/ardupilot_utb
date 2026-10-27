@@ -19,13 +19,16 @@ void Copter::run_rate_controller_main()
                            get_fast_rate_type() == FastRateType::FAST_RATE_DISABLED &&
                            AP::scheduler().get_loop_rate_hz() == 400);
 #endif
-#if AP_UTB_CHAIN_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
+#if AP_UTB_ENABLED && AP_UTB_CHAIN_SHADOW_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
 #if AP_UTB_FLIGHT_SHADOW_AVAILABLE
     bool flight_context_supported = g2.att_enable.get() == 0;
 #if AC_CUSTOMCONTROL_MULTI_ENABLED
     flight_context_supported &= !custom_control.is_safe_to_run();
 #endif
     utb_chain_shadow.flight_context(motors->armed(), uint8_t(motors->get_spool_state()), flight_context_supported);
+#endif
+#if AP_UTB_ENABLED && AP_UTB_FLIGHT_BIN_AVAILABLE
+    utb_chain_shadow.bin_failsafe(any_failsafe_triggered());
 #endif
     utb_chain_shadow.prepare(!started_rate_thread && !using_rate_thread &&
                              get_fast_rate_type() == FastRateType::FAST_RATE_DISABLED &&

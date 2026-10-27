@@ -193,6 +193,9 @@ static void fill_nanf_stack(void)
  */
 void AP_Scheduler::run(uint32_t time_available)
 {
+#if AP_UTB_TIMING_EXEC_ENABLED
+    bool execution_fast_pending = true; // One transition marker; no extra scheduler task.
+#endif
     uint32_t run_started_usec = AP_HAL::micros();
     uint32_t now = run_started_usec;
 
@@ -231,6 +234,12 @@ void AP_Scheduler::run(uint32_t time_available)
             common_tasks_offset++;
         }
 
+#if AP_UTB_TIMING_EXEC_ENABLED
+        if (execution_fast_pending && task.priority > MAX_FAST_TASK_PRIORITIES) {
+            AP_UTB_Timing::execution_event(AP_UTB_ExecutionTiming::FAST_END);
+            execution_fast_pending = false;
+        }
+#endif
         if (task.priority > MAX_FAST_TASK_PRIORITIES) {
             const uint16_t dt = _tick_counter - _last_run[i];
             // we allow 0 to mean loop rate
@@ -315,6 +324,11 @@ void AP_Scheduler::run(uint32_t time_available)
         }
     }
 
+#if AP_UTB_TIMING_EXEC_ENABLED
+    if (execution_fast_pending) {
+        AP_UTB_Timing::execution_event(AP_UTB_ExecutionTiming::FAST_END);
+    }
+#endif
     // update number of spare microseconds
     _spare_micros += time_available;
 
@@ -445,6 +459,9 @@ void AP_Scheduler::loop()
 
 #if AP_SIM_ENABLED && CONFIG_HAL_BOARD != HAL_BOARD_SITL
     hal.simstate->update();
+#endif
+#if AP_UTB_TIMING_EXEC_ENABLED
+    AP_UTB_Timing::scheduler_end();
 #endif
 }
 

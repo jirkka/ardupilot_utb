@@ -4,6 +4,7 @@
 /// @author Jiri Kovar
 /// @version 2026-10-24
 #include "AP_UTB_ChainShadow.h"
+#include "AP_UTB_Timing.h"
 #if AP_UTB_CHAIN_SHADOW_AVAILABLE
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Common/ExpandingString.h>
@@ -178,6 +179,11 @@ const AP_Param::GroupInfo AP_UTB_ChainShadow::var_info[] = {
     // @Path: AP_UTB_FlightShadow.cpp
     AP_SUBGROUPINFO(_flight, "F_", 2, AP_UTB_ChainShadow, AP_UTB_FlightShadow),
 #endif
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    // @Group: B_
+    // @Path: AP_UTB_FlightBin.cpp
+    AP_SUBGROUPINFO(_bin, "B_", 3, AP_UTB_ChainShadow, AP_UTB_FlightBin),
+#endif
     AP_GROUPEND
 };
 AP_UTB_ChainShadow::AP_UTB_ChainShadow()
@@ -194,6 +200,12 @@ void AP_UTB_ChainShadow::init()
 }
 void AP_UTB_ChainShadow::freeze(uint8_t reason)
 {
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    if (_bin_session && _bin.state() == AP_UTB_FlightBin::State::RUNNING) {
+        _bin.stop(reason == 1 ? AP_UTB_FlightBin::Reason::COUNT :
+                  reason == 6 ? AP_UTB_FlightBin::Reason::UNSUPPORTED : AP_UTB_FlightBin::Reason::FAULT);
+    }
+#endif
     _reason = reason; _running = false; _run.set(0);
 #if AP_UTB_FLIGHT_SHADOW_AVAILABLE
     if (_flight_session) {
@@ -212,6 +224,21 @@ void AP_UTB_ChainShadow::prepare(bool supported, uint8_t mode)
     if (!_initialized) {
         return;
     }
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    _bin_now_us = _bin.clock_needed() ? AP_HAL::micros64() : 0;
+    if (_bin.arm_edge(_bin_armed, supported && _flight_supported && mode == 0 && !_bin_failsafe,
+                      !_running && !_published.load(std::memory_order_relaxed) && !_flight.requested() && _run.get() == 0,
+                      _bin_now_us)) {
+        _bin_session = true; _engine.start(); _limit = _bin.limit(); _running = true;
+    }
+    if (_bin_session && _running) {
+        const auto stop = _bin.stop_condition(_bin_armed, mode, supported && _flight_supported, _bin_now_us, _bin_failsafe);
+        if (stop != AP_UTB_FlightBin::Reason::NONE || _run.get() != 0 || _flight.requested()) {
+            _bin.stop(stop != AP_UTB_FlightBin::Reason::NONE ? stop : AP_UTB_FlightBin::Reason::CONFLICT);
+            freeze(2); return;
+        }
+    }
+#endif
     if (_published.load(std::memory_order_relaxed)) {
         if (_run.get() != 0) {
             _run.set(0);
@@ -259,6 +286,9 @@ void AP_UTB_ChainShadow::prepare(bool supported, uint8_t mode)
 #if AP_UTB_FLIGHT_SHADOW_AVAILABLE
             && !_flight_session
 #endif
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+            && !_bin_session
+#endif
            ) {
             freeze(2); return;
         }
@@ -283,7 +313,13 @@ void AP_UTB_ChainShadow::post_axis(uint8_t axis, const AC_PID_Shadow &s, float o
 void AP_UTB_ChainShadow::complete_rate()
 {
     _rate_frame.capture_us = AP_HAL::micros() - _capture_start; _rate_frame.completed = true;
+#if AP_UTB_TIMING_EXEC_ENABLED
+    AP_UTB_Timing::execution_event(AP_UTB_ExecutionTiming::CONSUME_BEGIN);
+#endif
     _engine.rate(_rate_frame, _sysid);
+#if AP_UTB_TIMING_EXEC_ENABLED
+    AP_UTB_Timing::execution_event(AP_UTB_ExecutionTiming::CONSUME_END);
+#endif
 }
 void AP_UTB_ChainShadow::before_attitude(Command kind, const Vector3f &command, bool reset,
         const Config &config, const Sensors &sensors, const History &history)
@@ -324,6 +360,22 @@ void AP_UTB_ChainShadow::finish()
         return;
     }
     _engine.end();
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    if (_bin_session) {
+        if (_engine.statistics().unsupported || _engine.attitude_engine().statistics().unsupported ||
+            _engine.rate_engine().statistics().unsupported) {
+            freeze(6); return;
+        }
+        if (_engine.failed() || _engine.statistics().downstream_mismatch || _engine.attitude_engine().statistics().mismatch) {
+            freeze(3); return;
+        }
+        _bin.sample(_engine, _loop, _bin_now_us);
+        if (_engine.statistics().attempts >= _limit) {
+            freeze(1);
+        }
+        return;
+    }
+#endif
 #if AP_UTB_FLIGHT_SHADOW_AVAILABLE
     if (_flight_session) {
         const bool bad = _engine.failed() || _engine.statistics().downstream_mismatch ||
@@ -421,6 +473,9 @@ void AP_UTB_ChainShadow::dump(ExpandingString &text)
     const auto &a = self->_engine.attitude_engine().statistics();
     const auto &r = self->_engine.rate_engine().statistics();
     text.printf("UTBChainV1,frozen,reason=%u\n", unsigned(self->_reason));
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    self->_bin.dump(text);
+#endif
 #define STAT(x) text.printf(#x ",%u\n", unsigned(s.x))
     STAT(attempts); STAT(paired); STAT(warmup); STAT(missing); STAT(duplicate); STAT(invalid); STAT(unsupported);
     STAT(upstream_mismatch); STAT(downstream_mismatch); STAT(motor_checks); STAT(motor_changes);

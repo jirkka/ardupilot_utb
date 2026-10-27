@@ -9,6 +9,10 @@
 #ifndef AP_UTB_TIMING_ENABLED
 #define AP_UTB_TIMING_ENABLED 0
 #endif
+#include "AP_UTB_ExecutionTiming.h"
+#if AP_UTB_TIMING_EXEC_ENABLED && !AP_UTB_TIMING_ENABLED
+#error Execution timing requires the UTT lifecycle
+#endif
 #if AP_UTB_TIMING_ENABLED
 #include <AP_Param/AP_Param.h>
 #include <AP_Common/ExpandingString.h>
@@ -93,6 +97,11 @@ public:
     static void yaw_reset();
     static void finish();
     static void dump(ExpandingString &text);
+#if AP_UTB_TIMING_EXEC_ENABLED
+    static void execution_event(AP_UTB_ExecutionTiming::Event event);
+    static void scheduler_end();
+    static void dump_execution(ExpandingString &text);
+#endif
 private:
     static AP_UTB_Timing *_singleton;
     AP_Int8 _run;
@@ -103,6 +112,12 @@ private:
     uint32_t _cycle = 0, _limit = 0, _hook_max = 0, _hook_calls = 0;
     uint64_t _hook_sum = 0;
     uint8_t _reason = 0;
+#if AP_UTB_TIMING_EXEC_ENABLED
+    AP_UTB_ExecutionTiming _execution;
+    uint64_t _execution_session_us = 0, _execution_hook_us = 0;
+    uint32_t _execution_calls = 0, _execution_max_us = 0;
+    uint8_t _execution_mode = 255, _execution_stop = 0;
+#endif
     static bool active();
     void overhead(uint32_t start);
     void freeze(uint8_t reason);

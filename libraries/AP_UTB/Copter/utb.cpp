@@ -201,13 +201,18 @@ void Copter::utb_log_init()
 #if HAL_LOGGING_ENABLED
     // Výsledek vytvoření logger worker threadu.
     bool created;
+    bool required; // Worker allocation is confined to startup, including runtime-disabled BIN builds.
 #endif
 
 #if HAL_LOGGING_ENABLED
 #if AP_UTB_BENCH_ENABLED
     UTBBench::creation(utb.enabled(), 3072);
 #endif
-    if (utb.enabled()) {
+    required = utb.enabled();
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    required = true; // BIN opt-in is independent of the historical controller enable.
+#endif
+    if (required) {
         // Allocation is confined to vehicle startup, never the producer.
 
 #if AP_UTB_BENCH_ENABLED && CONFIG_HAL_BOARD == HAL_BOARD_SITL
@@ -219,6 +224,9 @@ void Copter::utb_log_init()
             created = hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&Copter::utb_log_thread, void),
                                                    "utb_log", 3072, AP_HAL::Scheduler::PRIORITY_IO, 0);
         }
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+        utb_chain_shadow.bin_worker_ready(created);
+#endif
         if (!created) {
 #if AP_UTB_BENCH_ENABLED
             UTBBench::creation_failed();
@@ -279,6 +287,9 @@ void Copter::utb_log_thread()
         }
 #endif
         available = logger.should_log(UINT32_MAX) && logger.logging_present() && logger.logging_started();
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+        utb_chain_shadow.bin_worker(logger, available);
+#endif
         utb.set_logging_available(available);
         // Snapshot je lokální jedné iteraci workeru; žádný nový heap ani zámek.
         AP_UTB::Snapshot status;

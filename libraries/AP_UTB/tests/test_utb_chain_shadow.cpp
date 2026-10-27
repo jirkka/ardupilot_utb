@@ -98,6 +98,9 @@ template<unsigned fault, bool record_fault = false> static void exercise()
         ASSERT_TRUE(recorder.start());
     }
 #endif
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    AP_UTB_FlightBin::Sample bin_sample {};
+#endif
     native.seed(); chain.start();
     for (auto &p : pid) {
         p.reset_I();
@@ -181,12 +184,31 @@ template<unsigned fault, bool record_fault = false> static void exercise()
             attitude.kind=mode==1?Command::ACRO:Command::STABILIZE;
         }
         attitude.config=native.attitude_shadow_config(); attitude.sensors=native.attitude_shadow_sensors();
+        attitude.time_us = rate.time_us + 100U;
         attitude.before=native.attitude_shadow_history(); native.execute(attitude.kind,attitude.command,false);
         attitude.after=native.attitude_shadow_history();
         if (!(fault==6 && i==250)) {
             chain.attitude(attitude);
         }
         chain.audit(fault==13 && i==250); chain.end();
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+        if ((fault == 0 || fault == 10) && i > 0) {
+            const uint64_t reference = 0xffff0000ULL + i*2500ULL;
+            ASSERT_TRUE(AP_UTB_FlightBin::make_sample(chain, loop, i, reference, bin_sample));
+            EXPECT_EQ(bin_sample.seq, i); EXPECT_EQ(bin_sample.loop, loop);
+            EXPECT_EQ(bin_sample.source + 1U, loop);
+            EXPECT_EQ(bin_sample.time_us, reference);
+            EXPECT_EQ(bin_sample.source_us + 2400U, reference);
+            EXPECT_FLOAT_EQ(bin_sample.dt, .0025f);
+            for (uint8_t axis = 0; axis < 3; axis++) {
+                EXPECT_FLOAT_EQ(bin_sample.pid[axis][0], rate.after[axis].info.P);
+                EXPECT_FLOAT_EQ(bin_sample.pid[axis][4], rate.after[axis].info.DFF);
+                EXPECT_FLOAT_EQ(bin_sample.pid[axis][0], bin_sample.pid[axis][5]);
+                EXPECT_FLOAT_EQ(bin_sample.rate[axis][0], rate.input.gyro[axis]);
+                EXPECT_FLOAT_EQ(bin_sample.rate[axis][3], bin_sample.rate[axis][4]);
+            }
+        }
+#endif
 #if AP_UTB_FLIGHT_SHADOW_AVAILABLE
         if (record_fault) {
             recorder.record(chain, loop, chain.failed());

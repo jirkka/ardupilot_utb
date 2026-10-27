@@ -15,6 +15,7 @@
 #endif
 #include "AP_UTB_AttitudeShadow.h"
 #include "AP_UTB_NativeShadow.h"
+#include "AP_UTB_FlightBin.h"
 #if AP_UTB_FLIGHT_SHADOW_AVAILABLE
 #include "AP_UTB_FlightShadow.h"
 #endif
@@ -107,6 +108,23 @@ public:
     {
         _flight.context(armed, spool);
         _flight_supported = supported;
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+        _bin_armed = armed;
+#endif
+    }
+#endif
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    void bin_worker_ready(bool ready)
+    {
+        _bin.worker_ready(ready);
+    }
+    void bin_failsafe(bool active)
+    {
+        _bin_failsafe = active;
+    }
+    void bin_worker(AP_Logger &logger, bool available)
+    {
+        _bin.worker(logger, available);
     }
 #endif
     static const AP_Param::GroupInfo var_info[];
@@ -131,6 +149,11 @@ private:
     static AP_UTB_ChainShadow *_singleton;
     AP_Int8 _run;
     AP_Int32 _count;
+#if AP_UTB_FLIGHT_BIN_AVAILABLE
+    AP_UTB_FlightBin _bin;
+    uint64_t _bin_now_us = 0;
+    bool _bin_session = false, _bin_armed = false, _bin_failsafe = false;
+#endif
 #if AP_UTB_FLIGHT_SHADOW_AVAILABLE
     friend class UTBFlightTestAccess;
     AP_UTB_FlightShadow _flight;

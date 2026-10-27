@@ -53,6 +53,9 @@ static const SysFileList sysfs_file_list[] = {
 #endif
 #if AP_UTB_TIMING_ENABLED
     {"utb_timing.txt"},
+#if AP_UTB_TIMING_EXEC_ENABLED
+    {"utb_execution.txt"},
+#endif
 #endif
 #if AP_UTB_ATTITUDE_SHADOW_ENABLED && APM_BUILD_TYPE(APM_BUILD_ArduCopter) && AP_UTB_ENABLED
     {"utb_attitude_shadow.txt"},
@@ -140,6 +143,11 @@ int AP_Filesystem_Sys::open(const char *fname, int flags, bool allow_absolute_pa
     }
 #endif
 #if AP_UTB_TIMING_ENABLED
+#if AP_UTB_TIMING_EXEC_ENABLED
+    if (strcmp(fname, "utb_execution.txt") == 0) {
+        AP_UTB_Timing::dump_execution(*r.str);
+    }
+#endif
     if (strcmp(fname, "utb_timing.txt") == 0) {
         AP_UTB_Timing::dump(*r.str);
     }

@@ -122,7 +122,13 @@ void Copter::motors_output(bool full_push)
 void Copter::motors_output_main()
 {
     if (!using_rate_thread) {
+#if AP_UTB_TIMING_EXEC_ENABLED
+        AP_UTB_Timing::execution_event(AP_UTB_ExecutionTiming::MOTOR_BEGIN);
+#endif
         motors_output();
+#if AP_UTB_TIMING_EXEC_ENABLED
+        AP_UTB_Timing::execution_event(AP_UTB_ExecutionTiming::MOTOR_END);
+#endif
 #if AP_UTB_RATE_SITL_AVAILABLE && FRAME_CONFIG == MULTICOPTER_FRAME
         if (flightmode == &mode_utb_rate_sitl) {
             mode_utb_rate_sitl.log_cycle();

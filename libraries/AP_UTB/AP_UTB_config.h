@@ -58,6 +58,10 @@
 #endif
 #define AP_UTB_FLIGHT_SHADOW_AVAILABLE (AP_UTB_ENABLED && AP_UTB_FLIGHT_SHADOW_ENABLED)
 
+#ifndef AP_UTB_FLIGHT_BIN_ENABLED
+#define AP_UTB_FLIGHT_BIN_ENABLED 0
+#endif
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // End Data type, constant, macro definition
 //====================================================================================================================

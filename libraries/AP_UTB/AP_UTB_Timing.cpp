@@ -197,13 +197,24 @@ void AP_UTB_Timing::overhead(uint32_t start)
 }
 void AP_UTB_Timing::freeze(uint8_t reason)
 {
+#if AP_UTB_TIMING_EXEC_ENABLED
+    _execution.close();
+#endif
     _reason = reason; _run.set(0); _running = false;
     _published.store(true, std::memory_order_release);
 }
 void AP_UTB_Timing::loop(uint32_t now)
 {
     uint32_t start;
-    if (_singleton == nullptr || !_singleton->_initialized || _singleton->_published.load(std::memory_order_relaxed)) {
+    if (_singleton == nullptr || !_singleton->_initialized) {
+        return;
+    }
+    if (_singleton->_published.load(std::memory_order_relaxed)) {
+#if AP_UTB_TIMING_EXEC_ENABLED
+        if (_singleton->_run.get() != 0) {
+            _singleton->_run.set(0); // Reject retrigger without touching any published measurement.
+        }
+#endif
         return;
     }
     AP_UTB_Timing &s = *_singleton;
@@ -215,17 +226,40 @@ void AP_UTB_Timing::loop(uint32_t now)
         if (s._run.get() != 1 || s._count.get() < 1 || s._count.get() > 20000 || hal.util->get_soft_armed()) {
             s.freeze(4); return;
         }
+#if AP_UTB_TIMING_EXEC_ENABLED
+        s._execution.start(); s._execution_session_us = AP_HAL::micros64();
+#endif
         s._engine.start(2500); s._limit = uint32_t(s._count.get()); s._running = true;
     }
     if (s._run.get() == 0 || hal.util->get_soft_armed()) {
         s._engine.close_pending(); s.overhead(start); s.freeze(2); return;
     }
-    s._engine.begin(++s._cycle, now); s.overhead(start);
+#if AP_UTB_TIMING_EXEC_ENABLED
+    if (s._engine.stats().cycles >= s._limit) {
+        s.freeze(8); return; // Scheduler-end was absent; finite capture still cannot run forever.
+    }
+    if (s._count.get() != int32_t(s._limit) || s._run.get() != 1) {
+        s._engine.close_pending(); s.freeze(7); return;
+    }
+#endif
+    s._engine.begin(++s._cycle, now);
+#if AP_UTB_TIMING_EXEC_ENABLED
+    s._execution.begin(s._cycle, now);
+#endif
+    s.overhead(start);
 }
 void AP_UTB_Timing::context(uint8_t mode, int8_t uas, bool supported)
 {
     if (active()) {
         const uint32_t start = AP_HAL::micros();
+#if AP_UTB_TIMING_EXEC_ENABLED
+        if (_singleton->_execution_mode == 255) {
+            _singleton->_execution_mode = mode;
+        }
+        if (!supported || mode > 1 || mode != _singleton->_execution_mode) {
+            _singleton->_execution.unsupported(); _singleton->_execution_stop = 6;
+        }
+#endif
         _singleton->_engine.context(mode, uas, supported && (mode == 0 || mode == 1)); _singleton->overhead(start);
     }
 }
@@ -233,14 +267,22 @@ void AP_UTB_Timing::rate()
 {
     if (active()) {
         const uint32_t start = AP_HAL::micros();
-        _singleton->_engine.rate(start); _singleton->overhead(start);
+        _singleton->_engine.rate(start);
+#if AP_UTB_TIMING_EXEC_ENABLED
+        _singleton->_execution.event(AP_UTB_ExecutionTiming::RATE, _singleton->_cycle, start);
+#endif
+        _singleton->overhead(start);
     }
 }
 void AP_UTB_Timing::attitude(uint8_t kind)
 {
     if (active()) {
         const uint32_t start = AP_HAL::micros();
-        _singleton->_engine.attitude(start, kind); _singleton->overhead(start);
+        _singleton->_engine.attitude(start, kind);
+#if AP_UTB_TIMING_EXEC_ENABLED
+        _singleton->_execution.event(AP_UTB_ExecutionTiming::ATTITUDE, _singleton->_cycle, start);
+#endif
+        _singleton->overhead(start);
     }
 }
 void AP_UTB_Timing::yaw_reset()
@@ -256,9 +298,13 @@ void AP_UTB_Timing::finish()
         AP_UTB_Timing &s = *_singleton;
         const uint32_t start = AP_HAL::micros();
         s._engine.finish(); s.overhead(start);
+#if AP_UTB_TIMING_EXEC_ENABLED
+        s._execution.event(AP_UTB_ExecutionTiming::MODE_END, s._cycle, AP_HAL::micros());
+#else
         if (s._engine.stats().cycles >= s._limit) {
             s.freeze(1);
         }
+#endif
     }
 }
 void AP_UTB_Timing::dump(ExpandingString &text)
@@ -296,4 +342,87 @@ void AP_UTB_Timing::dump(ExpandingString &text)
                     unsigned(f.yaw_resets), unsigned(f.supported), unsigned(f.missing_finish));
     }
 }
+#if AP_UTB_TIMING_EXEC_ENABLED
+void AP_UTB_Timing::execution_event(AP_UTB_ExecutionTiming::Event event)
+{
+    uint32_t start, elapsed; // Bracket includes clock quantisation/preemption, not a hardware WCET.
+    if (!active()) {
+        return;
+    }
+    AP_UTB_Timing &s = *_singleton;
+    start = AP_HAL::micros();
+    s._execution.event(event, s._cycle, start);
+    elapsed = AP_HAL::micros() - start;
+    s._execution_hook_us += elapsed; s._execution_calls++;
+    if (elapsed > s._execution_max_us) {
+        s._execution_max_us = elapsed;
+    }
+}
+void AP_UTB_Timing::scheduler_end()
+{
+    uint32_t start, elapsed;
+    uint8_t reason = 0;
+    if (!active()) {
+        return;
+    }
+    AP_UTB_Timing &s = *_singleton;
+    start = AP_HAL::micros();
+    s._execution.event(AP_UTB_ExecutionTiming::SCHED_END, s._cycle, start);
+    s._execution.close();
+    if (hal.util->get_soft_armed()) {
+        reason = 2;
+    } else if (s._execution_stop) {
+        reason = s._execution_stop;
+    } else if (s._execution.failed()) {
+        reason = 8;
+    } else if (s._count.get() != int32_t(s._limit)) {
+        reason = 7;
+    } else if (s._engine.stats().cycles >= s._limit) {
+        reason = 1;
+    }
+    elapsed = AP_HAL::micros() - start;
+    s._execution_hook_us += elapsed; s._execution_calls++;
+    if (elapsed > s._execution_max_us) {
+        s._execution_max_us = elapsed;
+    }
+    if (reason) {
+        s.freeze(reason);
+    }
+}
+void AP_UTB_Timing::dump_execution(ExpandingString &text)
+{
+    if (_singleton == nullptr || !_singleton->_published.load(std::memory_order_acquire)) {
+        text.printf("UTBExecutionV1,pending\n"); return;
+    }
+    if (hal.util->get_soft_armed()) {
+        text.printf("UTBExecutionV1,armed-unavailable\n"); return;
+    }
+    const AP_UTB_Timing &s = *_singleton;
+    const auto &v = s._execution.stats();
+    text.printf("UTBExecutionV1,frozen,session_us=%llu,reason=%u,cycles=%u,limit=%u\n",
+                (unsigned long long)s._execution_session_us, unsigned(s._reason), unsigned(v.cycles), unsigned(s._limit));
+    text.printf("health,missing=%u,duplicate=%u,invalid=%u,gaps=%u,unsupported=%u\n",
+                unsigned(v.missing), unsigned(v.duplicate), unsigned(v.invalid), unsigned(v.gaps), unsigned(v.unsupported));
+    text.printf("hooks,sum_us=%llu,calls=%u,max_us=%u\n", (unsigned long long)s._execution_hook_us,
+                unsigned(s._execution_calls), unsigned(s._execution_max_us));
+    text.printf("metric,id,count,min,max,sum,min_cycle,max_cycle,min_us,max_us,over2500,over5000\n");
+    for (uint8_t k = 0; k < AP_UTB_ExecutionTiming::METRICS; k++) {
+        const auto &m = v.metric[k];
+        text.printf("metric,%u,%u,%u,%u,%llu,%u,%u,%u,%u,%u,%u\n", unsigned(k), unsigned(m.count),
+                    unsigned(m.minimum), unsigned(m.maximum), (unsigned long long)m.sum, unsigned(m.min_cycle),
+                    unsigned(m.max_cycle), unsigned(m.min_us), unsigned(m.max_us), unsigned(m.over_nominal), unsigned(m.over_two_periods));
+    }
+    text.printf("context,rows=%u,capacity=17,centre=main_to_motor_return\n", unsigned(s._execution.context_count()));
+    for (uint8_t k = 0; k < s._execution.context_count(); k++) {
+        const auto &row = s._execution.context(k);
+        text.printf("row,%u,%u,%u,%u", unsigned(row.cycle), unsigned(row.main), unsigned(row.present), unsigned(row.bad));
+        for (uint8_t j = 0; j < AP_UTB_ExecutionTiming::EVENTS; j++) {
+            text.printf(",%u", unsigned(row.time[j]));
+        }
+        text.printf("\n");
+    }
+    text.printf("end,session_us=%llu\n", (unsigned long long)s._execution_session_us);
+}
+#endif // AP_UTB_TIMING_EXEC_ENABLED
+
 #endif // AP_UTB_TIMING_ENABLED

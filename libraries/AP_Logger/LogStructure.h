@@ -1396,6 +1396,12 @@ enum LogMessages : uint8_t {
     LOG_IDS_FROM_FENCE,
     LOG_IDS_FROM_HAL,
 
+    // Appended IDs preserve every existing native and vehicle message identifier.
+    LOG_UFPI_MSG,
+    LOG_UFRS_MSG,
+    LOG_UFAT_MSG,
+    LOG_UFLS_MSG,
+
     _LOG_LAST_MSG_
 };
 
